@@ -133,6 +133,10 @@ subprojects {
         it.options.release = 21
     }
 
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
     jar {
         manifest {
             attributes([
