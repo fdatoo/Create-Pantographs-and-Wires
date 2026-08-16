@@ -27,7 +27,13 @@ subprojects {
         if (rootProject.hasProperty("lwjgl_version")) {
             resolutionStrategy.eachDependency { details ->
                 if (details.requested.group == "org.lwjgl") {
-                    details.useVersion rootProject.lwjgl_version
+                    // Minecraft's patched macOS FreeType native exists only at the
+                    // manifest-pinned version; upgrading its classifier breaks resolution.
+                    def patchedMacFreeType = details.requested.name == "lwjgl-freetype"
+                            && details.requested.version == "3.3.3"
+                    if (!patchedMacFreeType) {
+                        details.useVersion rootProject.lwjgl_version
+                    }
                 }
             }
         }
