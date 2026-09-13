@@ -13,6 +13,8 @@ import com.simibubi.create.content.trains.entity.CarriageSounds;
 
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.config.ModClientConfig;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -55,6 +57,36 @@ public class CarriageSoundsMixin {
             return;
         }
         soundEntry.playAt(level, position, volume, pitch, fade);
+    }
+
+    /**
+     * The arrival hiss is only partly a STEAM event: two of the three sounds played when a
+     * train pulls up go straight through Level.playLocalSound, so the redirect above never
+     * sees them and they hiss on regardless.
+     */
+    @Redirect(
+        method = "tick",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/Level;playLocalSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V"
+        ),
+        require = 0
+    )
+    private void paw$skipArrivalHissForElectricTrains(
+        Level instance,
+        double x,
+        double y,
+        double z,
+        SoundEvent sound,
+        SoundSource source,
+        float volume,
+        float pitch,
+        boolean distanceDelay
+    ) {
+        if (paw$isElectricTrain(instance)) {
+            return;
+        }
+        instance.playLocalSound(x, y, z, sound, source, volume, pitch, distanceDelay);
     }
 
     private boolean paw$isElectricTrain(Level level) {

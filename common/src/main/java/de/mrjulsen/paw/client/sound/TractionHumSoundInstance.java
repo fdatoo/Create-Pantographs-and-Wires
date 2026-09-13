@@ -101,6 +101,16 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
         this.active = false;
     }
 
+    /**
+     * Every voice starts at zero volume so it can fade in, and the sound engine drops
+     * sounds whose volume is zero at play() time unless they declare this. Without it the
+     * whole bank is skipped before it ever reaches a channel, and the fade never runs.
+     */
+    @Override
+    public boolean canStartSilent() {
+        return true;
+    }
+
     @Override
     public void tick() {
         this.pitch += (this.targetPitch - this.pitch) * PITCH_SMOOTHING;
