@@ -295,7 +295,8 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
                     source = ModDamageTypes.thirdRail(level);
                 }
                 if (entity.hurt(source, amount) && level instanceof ServerLevel serverLevel) {
-                    serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, entity.getX(), entity.getY() + 0.3, entity.getZ(), 12, 0.25, 0.2, 0.25, 0.15);
+                    serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, entity.getX(), entity.getY() + 0.3, entity.getZ(), 40, 0.35, 0.3, 0.35, 0.6);
+                    serverLevel.sendParticles(ParticleTypes.END_ROD, entity.getX(), entity.getY() + 0.3, entity.getZ(), 8, 0.2, 0.2, 0.2, 0.08);
                 }
             }
         }

@@ -1,80 +1,93 @@
 package de.mrjulsen.paw.traction;
 
-import static de.mrjulsen.paw.traction.WmataTractionData.*;
+import static de.mrjulsen.paw.traction.WmataTractionData.BRAKING_LEVEL;
+import static de.mrjulsen.paw.traction.WmataTractionData.COAST_GAIN;
+import static de.mrjulsen.paw.traction.WmataTractionData.FREQUENCY;
+import static de.mrjulsen.paw.traction.WmataTractionData.NOISE_LEVEL;
+import static de.mrjulsen.paw.traction.WmataTractionData.POWERED_LEVEL;
+import static de.mrjulsen.paw.traction.WmataTractionData.REFERENCE_HZ;
+import static de.mrjulsen.paw.traction.WmataTractionData.TABLE_STEPS;
 
 /**
- * The WMATA 6000-series traction sound as a function of time along the reference departure:
- * an upper cluster that drops and plateaus then rises and turns diffuse, a ridge climbing
- * steadily from about 440Hz to 1.6kHz that swells near 4s and again near 8s, a brief upper
- * event, and a rising noise bed.
+ * The WMATA 6000-series traction sound as tables over train speed, from standing (0) to top speed (1).
  *
- * Frequencies are features measured in the recording. Levels, the diffuse upper band and the
- * voice scales were tuned offline against it (tools/sound/wmata). None of it is a recovered
- * inverter or motor parameter. The game maps train speed onto this timeline, which is a design
- * choice rather than something the recording establishes.
+ * Departure stages are laid out over speed ranges. The upper whine has three stages (the starting
+ * tone, the plateau and rise, the high section) on two voices, crossfaded at equal power where they
+ * overlap; the lower tone rises on its own straight line with speed; the brief upper event sits in its
+ * own speed range. Braking has a separate curve on its own voice rather than the departure in
+ * reverse.
  *
- * Volumes are what each voice should play at before the player's traction volume setting,
- * and never exceed 1.0.
+ * Tonal voices follow traction demand (see TractionDemand): full under power, far quieter while
+ * coasting or holding speed, and swapped for the braking curve while braking. The noise bed follows
+ * speed alone.
+ *
+ * Frequencies are features measured in the reference recording; levels and the voice layout were
+ * tuned offline and by ear (tools/sound/wmata). None of it is a recovered inverter or motor parameter.
+ * Volumes never exceed 1.0.
  */
 public final class WmataTraction {
-    private static final double SILENT_DB = -59.999;
 
-    private static final MonotoneCubic UPPER_FREQUENCY = new MonotoneCubic(UPPER_FREQUENCY_KNOTS);
-    private static final MonotoneCubic RIDGE_FREQUENCY = new MonotoneCubic(RIDGE_FREQUENCY_KNOTS);
-    private static final MonotoneCubic BRIEF_FREQUENCY = new MonotoneCubic(BRIEF_FREQUENCY_KNOTS);
-
-    private static final MonotoneCubic UPPER_LEVEL = new MonotoneCubic(UPPER_LEVEL_KNOTS_DB);
-    private static final MonotoneCubic UPPER_LINE_CUT = new MonotoneCubic(UPPER_LINE_CUT_KNOTS_DB);
-    private static final MonotoneCubic UPPER_DIFFUSE_LEVEL = new MonotoneCubic(UPPER_DIFFUSE_LEVEL_KNOTS_DB);
-    private static final MonotoneCubic RIDGE_LEVEL = new MonotoneCubic(RIDGE_LEVEL_KNOTS_DB);
-    private static final MonotoneCubic BRIEF_LEVEL = new MonotoneCubic(BRIEF_LEVEL_KNOTS_DB);
-    private static final MonotoneCubic NOISE_LEVEL = new MonotoneCubic(NOISE_LEVEL_KNOTS_DB);
+    public enum Voice {
+        /** Upper whine stages 1 and 3. */
+        STAGE_A,
+        /** Upper whine stage 2. */
+        STAGE_B,
+        /** Narrowband noise on the upper whine's track, once it turns diffuse. */
+        UPPER_DIFFUSE,
+        /** The braking tone. */
+        BRAKE,
+        /** The lower tone, rising steadily with speed. */
+        RIDGE,
+        /** The brief upper event near 2.9 kHz. */
+        BRIEF
+    }
 
     private WmataTraction() {}
 
-    /** Position along the reference departure for a speed fraction of 0 (standing) to 1 (top). */
-    public static double timeForSpeedFraction(double fraction) {
-        return Math.min(1, Math.max(0, fraction)) * TIMELINE_SECONDS;
+    /** The frequency baked into the voice's sample. */
+    public static double referenceFrequency(Voice voice) {
+        return REFERENCE_HZ[voice.ordinal()];
     }
 
-    public static double upperFrequency(double t) {
-        return UPPER_FREQUENCY.at(t);
+    public static double frequency(Voice voice, double speedFraction) {
+        return sample(FREQUENCY[voice.ordinal()], speedFraction);
     }
 
-    public static double ridgeFrequency(double t) {
-        return RIDGE_FREQUENCY.at(t);
+    /** The voice's level under full traction demand. */
+    public static double poweredLevel(Voice voice, double speedFraction) {
+        return sample(POWERED_LEVEL[voice.ordinal()], speedFraction);
     }
 
-    public static double briefFrequency(double t) {
-        return BRIEF_FREQUENCY.at(t);
+    /** The voice's level under full braking demand. */
+    public static double brakingLevel(Voice voice, double speedFraction) {
+        return sample(BRAKING_LEVEL[voice.ordinal()], speedFraction);
     }
 
-    /** The clean upper line, which gives way to the diffuse band once the cluster broadens. */
-    public static double upperLineVolume(double t) {
-        return TONAL_VOICE_SCALE * linear(UPPER_LEVEL, t, 0) * linear(UPPER_LINE_CUT, t, 0);
+    /**
+     * @param power traction demand, 0 (coasting) to 1
+     * @param brake braking demand, 0 to 1; crossfades from the departure's voices to the braking curve
+     */
+    public static double volume(Voice voice, double speedFraction, double power, double brake) {
+        double p = clamp01(power);
+        double b = clamp01(brake);
+        double powered = (COAST_GAIN + (1 - COAST_GAIN) * p) * poweredLevel(voice, speedFraction);
+        return (1 - b) * powered + b * brakingLevel(voice, speedFraction);
     }
 
-    /** Narrowband noise riding the upper centre, for the stretch where the cluster turns diffuse. */
-    public static double upperDiffuseVolume(double t) {
-        return TONAL_VOICE_SCALE * linear(UPPER_LEVEL, t, 0) * linear(UPPER_DIFFUSE_LEVEL, t, 0);
+    /** The rolling noise bed, which follows speed alone. */
+    public static double noiseVolume(double speedFraction) {
+        return sample(NOISE_LEVEL, speedFraction);
     }
 
-    /** The rising ridge: one continuous voice, since its two swells are one component. */
-    public static double ridgeVolume(double t) {
-        return TONAL_VOICE_SCALE * linear(RIDGE_LEVEL, t, RIDGE_GAIN_DB);
+    /** Linear interpolation over a table spaced evenly from 0 to 1, clamped at both ends. */
+    static double sample(double[] table, double speedFraction) {
+        double x = Math.min(1, Math.max(0, speedFraction)) * TABLE_STEPS;
+        int i = Math.min((int) Math.floor(x), TABLE_STEPS - 1);
+        double f = x - i;
+        return table[i] * (1 - f) + table[i + 1] * f;
     }
 
-    public static double briefVolume(double t) {
-        return TONAL_VOICE_SCALE * linear(BRIEF_LEVEL, t, BRIEF_GAIN_DB);
-    }
-
-    public static double noiseVolume(double t) {
-        return NOISE_VOICE_SCALE * linear(NOISE_LEVEL, t, 0);
-    }
-
-    /** A dB level curve as a linear gain, offset by gainDb. -60 dB on the curve means silence. */
-    private static double linear(MonotoneCubic curve, double t, double gainDb) {
-        double db = curve.at(t);
-        return db <= SILENT_DB ? 0 : Math.pow(10, (db + gainDb) / 20);
+    private static double clamp01(double value) {
+        return Math.min(1, Math.max(0, value));
     }
 }

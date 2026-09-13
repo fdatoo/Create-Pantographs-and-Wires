@@ -1,22 +1,36 @@
 """Build the in-game WMATA traction profile from the tuned reference-matching synthesis.
 
 Writes:
-  - six looping samples (44.1 kHz mono Vorbis, like the MP 89 set) into sounds/electric;
-  - WmataTractionData.java: the knot tables and voice scales the client plays from;
-  - WmataTractionTest.java: golden values from SciPy's PchipInterpolator, pinning the Java port.
+  - five looping samples (44.1 kHz mono Vorbis, like the MP 89 set) into sounds/electric;
+  - WmataTractionData.java: per-voice tables over train speed that the client plays from;
+  - WmataTractionTest.java: golden values from traction_model.py, pinning the Java to the model;
+  - wmata_ingame_tables.json: the same tables, for simulate_ingame.py.
 
 Inputs are wmata-agent-settings.json (the brief) and wmata_tuning2.json (the tuned result).
 The reference recording is not needed here, only by the tuning scripts.
 
 Level scale: every tonal sample is baked so that a unit-amplitude tone in the offline mix is
-volume 1.0 in game, at the 0.30 amplitude the MP 89 samples use. The whole bank is then scaled
-so no voice ever asks the engine for more than volume 1.0, and so its mean mix power over a
-standstill-to-cruise ramp matches the MP 89 profile, keeping the two variants equally loud.
+volume 1.0 in game, at the 0.30 amplitude the MP 89 samples use. The bank's scales were set so no
+voice asked the engine for more than volume 1.0 and its departure matched MP 89's loudness. Those
+scales are still derived from the original timeline curves (legacy_curves) and deliberately left
+alone by later changes: reducing a layer lowers the mix rather than being normalised back up.
 
 Noise: the tuned noise matched the whole recording, which was made on a platform, so it carried
 station background and came out far louder than the traction tones. Here the background is
-subtracted from its envelope and the bed trimmed to a level chosen by ear from in-game renders
-(simulate_ingame.py). Also writes wmata_ingame_tables.json for that simulator.
+subtracted from its envelope and the bed trimmed to a level chosen by ear from in-game renders.
+
+Playback (revision for comfortable repeated play):
+  - The upper whine (its line with the baked-in satellites, and the narrowband noise on the same
+    track) sits 10 dB under its tuned level. Nothing is renormalised.
+  - Tonal layers follow traction demand (TractionDemand): full under power, COAST_GAIN_DB while
+    coasting or holding speed, so there is no sustained whine at cruise. The noise bed follows
+    speed alone.
+  - Departure stages are laid out over speed ranges, not playback time. The upper whine has three
+    stages on two voices, crossfaded at equal power where they overlap; the lower tone keeps its
+    own straight-line rise with speed.
+  - Braking has its own curve on its own voice, crossfaded in by braking demand: a single upper
+    tone falling with speed and the lower tone at a steady lower level. It is not the departure
+    reversed, and nothing is modulated to fake inverter changes.
 """
 import json, os, subprocess, tempfile
 import numpy as np
@@ -24,6 +38,7 @@ import soundfile as sf
 from scipy.interpolate import PchipInterpolator
 from scipy.signal import butter, sosfreqz, iirpeak, freqz
 import synth_wmata as S
+import traction_model as TM
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
@@ -50,6 +65,22 @@ PLATFORM_BACKGROUND_DB = -8.74
 # cruise in game; this puts it about 4 dB under, close to the MP 89 balance.
 NOISE_TRIM_DB = -18.0
 
+# Revision for comfortable repeated play.
+UPPER_WHINE_GAIN_DB = -10.0
+COAST_GAIN_DB = -20.0
+TABLE_STEPS = 200
+# Upper whine stages over speed fraction: crossfades run over [start, end] at equal power.
+STAGE_1_TO_2 = (0.07, 0.10)
+STAGE_2_TO_3 = (0.575, 0.70)
+# Braking: the upper tone's pitch falls from BRAKE_TOP_HZ at top speed to BRAKE_REST_HZ, its level
+# from BRAKE_TOP_DB to BRAKE_REST_DB (in the upper cluster's tuned dB frame), and it fades out as
+# the train comes to rest; the lower tone holds at BRAKE_RIDGE_DB (in its own tuned frame).
+BRAKE_REST_HZ, BRAKE_TOP_HZ = 2400.0, 2580.0
+BRAKE_REST_DB, BRAKE_TOP_DB = -9.0, -4.0
+BRAKE_FADE = (0.03, 0.10)
+BRAKE_RIDGE_DB = -8.0
+BRAKE_RIDGE_FADE = (0.23, 0.30)
+
 
 def without_background(knots, background_db):
     """Remove a constant background power from a dB envelope, keeping its peak at 0 dB."""
@@ -63,9 +94,7 @@ def without_background(knots, background_db):
 # The low sweep (B) and the later mid ridge (D) are one component. Both lie within about 20 Hz of
 # RIDGE_LINE, and along that line the reference holds a tone above chance (checked against parallel
 # control lines) from about 2 s to 10.5 s, weaker between the two measured stretches. Played as two
-# events that faded to silence, each went "woop" and ended. So they are one rising voice: B's and
-# D's knots where they were measured, the line between and after, holding at cruise (chosen by ear
-# over fading out).
+# events that faded to silence, each went "woop" and ended. So they are one rising voice.
 RIDGE_LINE = (92.0, 152.6)  # f = a + b * t, Hz, fitted through the B and D knots
 
 
@@ -118,12 +147,10 @@ def rms(x):
     return float(np.sqrt(np.mean(np.asarray(x) ** 2)))
 
 
-def curves(t, tonal_scale, noise_scale):
+def legacy_curves(t, tonal_scale, noise_scale):
+    """The original timeline curves (t = 10 s x speed fraction). Only used to derive the level scales."""
     K, G = KNOTS, GAINS
     return {
-        "upperFrequency": pchip(K["UPPER_FREQUENCY_KNOTS"], t),
-        "ridgeFrequency": pchip(K["RIDGE_FREQUENCY_KNOTS"], t),
-        "briefFrequency": pchip(K["BRIEF_FREQUENCY_KNOTS"], t),
         "upperLineVolume": tonal_scale * lin(K["UPPER_LEVEL_KNOTS_DB"], t) * lin(K["UPPER_LINE_CUT_KNOTS_DB"], t),
         "upperDiffuseVolume": tonal_scale * lin(K["UPPER_LEVEL_KNOTS_DB"], t) * lin(K["UPPER_DIFFUSE_LEVEL_KNOTS_DB"], t),
         "ridgeVolume": tonal_scale * lin(K["RIDGE_LEVEL_KNOTS_DB"], t, G["RIDGE_GAIN_DB"]),
@@ -223,7 +250,7 @@ for name, y in samples.items():
     print(f"  {name:22} {len(y):6d} samples RMS {20*np.log10(rms(y)):6.2f} dBFS peak {20*np.log10(np.max(np.abs(y))):6.2f} dBFS "
           f"strongest {fr[np.argmax(sp)]:7.1f} Hz  seam/p99-step {seam:4.2f}")
 
-# ---------------------------------------------------------------- scales
+# ---------------------------------------------------------------- scales (unchanged by the revision)
 # The approved offline mix, the reference the noise level is measured against.
 res = S.render(level_overrides={"A_upper_cluster": KNOTS["UPPER_LEVEL_KNOTS_DB"], "B_rising_low_tone": tun["B_rising_low_tone_level_knots_s_db"]},
                noise_env_knots=tun["noise_env_knots_s_db"], noise_db=tun["noise_db_rel_tones"],
@@ -234,15 +261,14 @@ noise_k = rms(res["noise"] / res["gain"] / lin(tun["noise_env_knots_s_db"], t48)
 noise_unit = noise_k * AMP / rms(samples["wmata_noise"]) * 10 ** (NOISE_TRIM_DB / 20)
 
 grid = np.linspace(0, 10, 20001)
-raw = curves(grid, 1.0, noise_unit)
-vols = {k: v for k, v in raw.items() if k.endswith("Volume")}
-peak = max(float(np.max(v)) for v in vols.values())
+raw = legacy_curves(grid, 1.0, noise_unit)
+peak = max(float(np.max(v)) for v in raw.values())
 scale = 0.999 / peak  # a hair of margin so no stepping between grid points crosses 1.0
 
 voice_rms = {"upperLineVolume": rms(samples["wmata_upper_line"]), "upperDiffuseVolume": rms(samples["wmata_upper_diffuse"]),
              "ridgeVolume": rms(samples["wmata_ridge"]), "briefVolume": rms(samples["wmata_brief"]),
              "noiseVolume": rms(samples["wmata_noise"])}
-wmata_power = np.mean(sum((voice_rms[k] * v * scale) ** 2 for k, v in vols.items()))
+wmata_power = np.mean(sum((voice_rms[k] * v * scale) ** 2 for k, v in raw.items()))
 
 
 def window(x, a, b, c, d):
@@ -258,57 +284,138 @@ mp89_power = np.mean((mp["tone_a"] * 1.0 * window(frac, -1, 0.02, 0.15, 0.35)) *
 match = np.sqrt(mp89_power / wmata_power)
 if match <= 1:
     scale *= match
-    parity = "matched"
-else:
-    parity = f"limited: WMATA sits {20*np.log10(match):.2f} dB below MP 89, since raising it would exceed volume 1.0"
 TONAL_SCALE, NOISE_SCALE = float(scale), float(noise_unit * scale)
-final = curves(grid, TONAL_SCALE, NOISE_SCALE)
-top = max(float(np.max(v)) for k, v in final.items() if k.endswith("Volume"))
-print(f"\nnoise unit volume {noise_unit:.4f}; peak-normalised scale {0.999/peak:.4f}; MP 89 parity {parity}")
-print(f"TONAL_VOICE_SCALE {TONAL_SCALE:.6f}  NOISE_VOICE_SCALE {NOISE_SCALE:.6f}  loudest voice volume {top:.4f}")
-for k, v in final.items():
-    if k.endswith("Volume"):
-        print(f"  {k:20} max {np.max(v):.4f} at t={grid[np.argmax(v)]:.2f}s")
+print(f"\nlevel scales (as approved, not renormalised): TONAL {TONAL_SCALE:.6f}  NOISE {NOISE_SCALE:.6f}")
+
+# ---------------------------------------------------------------- playback tables over speed
+s = np.linspace(0, 1, TABLE_STEPS + 1)
+t = 10 * s  # where each speed fraction sits on the reference departure's timeline
+zeros = np.zeros_like(s)
+upper_gain = 10 ** (UPPER_WHINE_GAIN_DB / 20)
+
+
+def fade_in(x, a, b):
+    return np.sin(np.pi / 2 * np.clip((x - a) / (b - a), 0, 1))
+
+
+def fade_out(x, a, b):
+    return np.cos(np.pi / 2 * np.clip((x - a) / (b - a), 0, 1))
+
+
+# Upper whine stages. 1: the starting tone at 2495 Hz. 2: the plateau at 2380 Hz and the rise to
+# 2590 Hz. 3: the high section, entering at 2490 Hz, rising to 2575 Hz and settling at 2520 Hz.
+# Stages 1 and 3 share voice A, stage 2 has voice B, so overlapping stages never share a voice.
+w1 = fade_out(s, *STAGE_1_TO_2)
+w2 = fade_in(s, *STAGE_1_TO_2) * fade_out(s, *STAGE_2_TO_3)
+w3 = fade_in(s, *STAGE_2_TO_3)
+f1 = np.full_like(s, 2495.0)
+f2 = pchip([[1, 2380], [3, 2380], [4, 2420], [5, 2575], [5.75, 2590], [7, 2590]], t)
+f3 = pchip([[5.75, 2490], [7, 2490], [8, 2575], [10, 2520]], t)
+diffuse_weight = w2 ** 2 + w3 ** 2
+f_diffuse = np.where(diffuse_weight > 1e-9, (w2 ** 2 * f2 + w3 ** 2 * f3) / np.maximum(diffuse_weight, 1e-9), f2)
+upper_level = lin(KNOTS["UPPER_LEVEL_KNOTS_DB"], t)
+line_level = upper_level * lin(KNOTS["UPPER_LINE_CUT_KNOTS_DB"], t)
+
+frequency = {
+    "STAGE_A": np.where(s < 0.3, f1, f3),
+    "STAGE_B": f2,
+    "UPPER_DIFFUSE": f_diffuse,
+    "BRAKE": BRAKE_REST_HZ + (BRAKE_TOP_HZ - BRAKE_REST_HZ) * s,
+    # The lower tone rises on its own straight line with speed, independent of the upper stages.
+    "RIDGE": np.clip(ridge_line(t), ridge_line(2.25), ridge_line(10)),
+    "BRIEF": pchip(KNOTS["BRIEF_FREQUENCY_KNOTS"], t),
+}
+powered = {
+    "STAGE_A": TONAL_SCALE * upper_gain * line_level * (w1 + w3),
+    "STAGE_B": TONAL_SCALE * upper_gain * line_level * w2,
+    "UPPER_DIFFUSE": TONAL_SCALE * upper_gain * upper_level * lin(KNOTS["UPPER_DIFFUSE_LEVEL_KNOTS_DB"], t),
+    "BRAKE": zeros,
+    "RIDGE": TONAL_SCALE * lin(KNOTS["RIDGE_LEVEL_KNOTS_DB"], t, GAINS["RIDGE_GAIN_DB"]),
+    "BRIEF": TONAL_SCALE * lin(KNOTS["BRIEF_LEVEL_KNOTS_DB"], t, GAINS["BRIEF_GAIN_DB"]),
+}
+braking = {
+    "STAGE_A": zeros,
+    "STAGE_B": zeros,
+    "UPPER_DIFFUSE": zeros,
+    "BRAKE": TONAL_SCALE * upper_gain * 10 ** ((BRAKE_REST_DB + (BRAKE_TOP_DB - BRAKE_REST_DB) * s) / 20) * fade_in(s, *BRAKE_FADE),
+    "RIDGE": TONAL_SCALE * 10 ** ((BRAKE_RIDGE_DB + GAINS["RIDGE_GAIN_DB"]) / 20) * fade_in(s, *BRAKE_RIDGE_FADE),
+    "BRIEF": zeros,
+}
+noise_level = NOISE_SCALE * lin(KNOTS["NOISE_LEVEL_KNOTS_DB"], t)
+reference = {"STAGE_A": REF["UPPER"], "STAGE_B": REF["UPPER"], "UPPER_DIFFUSE": REF["UPPER"], "BRAKE": REF["UPPER"],
+             "RIDGE": REF["RIDGE"], "BRIEF": REF["BRIEF"]}
+
+for voice in TM.VOICES:
+    for label, table in (("frequency", frequency), ("powered", powered), ("braking", braking)):
+        assert np.all(np.isfinite(table[voice])), f"{voice} {label} not finite"
+    assert powered[voice].max() <= 1 and braking[voice].max() <= 1, f"{voice} asks for more than volume 1.0"
+    audible = (powered[voice] > 1e-4) | (braking[voice] > 1e-4)
+    ratio = frequency[voice] / reference[voice]
+    assert np.all((ratio[audible] >= 0.5) & (ratio[audible] <= 2.0)), f"{voice} pitch leaves the engine's range while audible"
+
+tables = {
+    "steps": TABLE_STEPS,
+    "voices": TM.VOICES,
+    "samples": TM.SAMPLES,
+    "reference_hz": [reference[v] for v in TM.VOICES],
+    "frequency": [frequency[v].tolist() for v in TM.VOICES],
+    "powered_level": [powered[v].tolist() for v in TM.VOICES],
+    "braking_level": [braking[v].tolist() for v in TM.VOICES],
+    "noise_level": noise_level.tolist(),
+    "coast_gain": 10 ** (COAST_GAIN_DB / 20),
+}
+json.dump(tables, open(os.path.join(HERE, "wmata_ingame_tables.json"), "w"))
+print("peak volumes, powered / braking:")
+for v in TM.VOICES:
+    print(f"  {v:14} {powered[v].max():.4f} / {braking[v].max():.4f}")
+print(f"  NOISE          {noise_level.max():.4f}")
 
 # ---------------------------------------------------------------- Java
-def jarr(knots):
-    return "{" + ", ".join("{" + f"{float(a)!r}, {float(b)!r}" + "}" for a, b in knots) + "}"
-
+row = lambda values: "{" + ", ".join(repr(float(x)) for x in values) + "}"
+table_block = lambda name, rows: [f"    static final double[][] {name} = {{"] + [f"        {row(r)}," for r in rows] + ["    };"]
 
 lines = [
     "package de.mrjulsen.paw.traction;",
     "",
     "/**",
-    " * Generated by tools/sound/wmata/build_wmata_ingame.py. Do not edit by hand; change the",
-    " * tuning there and regenerate. Frequencies are the brief's measured features; level knots,",
-    " * gains and scales were tuned offline against the reference recording, except the noise bed,",
-    " * which has the platform background removed and a level chosen by ear.",
+    " * Generated by tools/sound/wmata/build_wmata_ingame.py. Do not edit by hand; change the model",
+    " * there and regenerate. Every table has TABLE_STEPS + 1 entries spaced evenly over speed, from",
+    " * standing (0) to the drive's top speed (1). Rows follow WmataTraction.Voice order. Levels already",
+    " * include the bank's level scales and the upper whine's reduction.",
     " */",
-    "public final class WmataTractionData {",
+    "final class WmataTractionData {",
     "    private WmataTractionData() {}",
     "",
-    "    /** Length of the reference departure the curves describe, in seconds. */",
-    "    public static final double TIMELINE_SECONDS = 10.0;",
+    f"    static final int TABLE_STEPS = {TABLE_STEPS};",
+    f"    /** Tonal level while coasting or holding speed, relative to full traction demand ({COAST_GAIN_DB:g} dB). */",
+    f"    static final double COAST_GAIN = {tables['coast_gain']!r};",
+    f"    /** The upper whine's reduction from its tuned level, already applied to the tables. */",
+    f"    static final double UPPER_WHINE_GAIN_DB = {UPPER_WHINE_GAIN_DB!r};",
+    "",
+    f"    static final double[] REFERENCE_HZ = {row(tables['reference_hz'])};",
     "",
 ]
-for k, v in REF.items():
-    lines.append(f"    public static final double {k}_REFERENCE_HZ = {v!r};")
-lines.append("")
-for k, v in KNOTS.items():
-    lines.append(f"    static final double[][] {k} = {jarr(v)};")
-lines.append("")
-for k, v in GAINS.items():
-    lines.append(f"    static final double {k} = {v!r};")
-lines += ["", f"    static final double TONAL_VOICE_SCALE = {TONAL_SCALE!r};", f"    static final double NOISE_VOICE_SCALE = {NOISE_SCALE!r};", "}", ""]
+lines += table_block("FREQUENCY", tables["frequency"]) + [""]
+lines += table_block("POWERED_LEVEL", tables["powered_level"]) + [""]
+lines += table_block("BRAKING_LEVEL", tables["braking_level"]) + [""]
+lines += [f"    static final double[] NOISE_LEVEL = {row(tables['noise_level'])};", "}", ""]
 open(JAVA_DATA, "w").write("\n".join(lines))
-json.dump({"knots": KNOTS, "gains": GAINS, "reference_hz": REF, "tonal_voice_scale": TONAL_SCALE, "noise_voice_scale": NOISE_SCALE},
-          open(os.path.join(HERE, "wmata_ingame_tables.json"), "w"), indent=1)
 
-times = [-1.0, 0.0, 0.13, 0.5, 0.7, 0.85, 1.0, 1.7, 2.5, 2.8, 2.9, 3.0, 3.1, 3.33, 3.8, 4.1, 4.5, 4.9, 5.25,
-         5.4, 5.6, 6.1, 6.33, 6.9, 7.3, 7.6, 7.8, 8.1, 8.6, 8.9, 9.1, 9.5, 10.0, 12.0]
-g = curves(np.array(times), TONAL_SCALE, NOISE_SCALE)
-fmt = lambda arr: "{" + ", ".join(f"{float(x)!r}" for x in arr) + "}"
-names = list(g.keys())
+# Golden values from the Python model
+cases = []
+for vi, voice in enumerate(TM.VOICES):
+    for sv in (-0.1, 0.0, 0.004, 0.05, 0.07, 0.085, 0.1, 0.2, 0.23, 0.26, 0.3, 0.333, 0.45, 0.575, 0.6, 0.64, 0.7, 0.8, 0.95, 1.0, 1.2):
+        for p, b in ((0.0, 0.0), (1.0, 0.0), (0.3, 0.6)):
+            cases.append((vi, sv, p, b, TM.volume(tables, voice, sv, p, b), TM.frequency(tables, voice, sv)))
+speeds, _ = TM.gameplay()
+demand = TM.TractionDemand()
+power_trace, brake_trace = [], []
+for speed in speeds:
+    demand.update(speed)
+    power_trace.append(demand.power)
+    brake_trace.append(demand.brake)
+
+col = lambda i: "{" + ", ".join(repr(float(c[i])) for c in cases) + "}"
 test = [
     "package de.mrjulsen.paw.traction;",
     "",
@@ -317,34 +424,97 @@ test = [
     "",
     "import org.junit.jupiter.api.Test;",
     "",
+    "import de.mrjulsen.paw.traction.WmataTraction.Voice;",
+    "",
     "/**",
-    " * Generated by tools/sound/wmata/build_wmata_ingame.py. The expected values come from",
-    " * SciPy's PchipInterpolator on the same knots, so this pins the Java curves to the offline",
-    " * synthesis the profile was tuned with.",
+    " * Generated by tools/sound/wmata/build_wmata_ingame.py. Expected values come from traction_model.py,",
+    " * the Python model the renders are made with, so this pins the client to what was auditioned.",
     " */",
     "class WmataTractionTest {",
-    f"    private static final double[] TIMES = {fmt(times)};",
+    "    private static final int[] VOICE = {" + ", ".join(str(c[0]) for c in cases) + "};",
+    f"    private static final double[] SPEED = {col(1)};",
+    f"    private static final double[] POWER = {col(2)};",
+    f"    private static final double[] BRAKE = {col(3)};",
+    f"    private static final double[] VOLUME = {col(4)};",
+    f"    private static final double[] FREQUENCY = {col(5)};",
+    f"    private static final double[] GAMEPLAY_SPEEDS = {row(speeds)};",
+    f"    private static final double[] GAMEPLAY_POWER = {row(power_trace)};",
+    f"    private static final double[] GAMEPLAY_BRAKE = {row(brake_trace)};",
+    "",
+    "    @Test",
+    "    void volumesAndFrequenciesMatchTheModel() {",
+    "        for (int i = 0; i < VOICE.length; i++) {",
+    "            Voice voice = Voice.values()[VOICE[i]];",
+    "            String at = voice + \" at speed \" + SPEED[i] + \", power \" + POWER[i] + \", brake \" + BRAKE[i];",
+    "            assertEquals(VOLUME[i], WmataTraction.volume(voice, SPEED[i], POWER[i], BRAKE[i]), 1e-9, at);",
+    "            assertEquals(FREQUENCY[i], WmataTraction.frequency(voice, SPEED[i]), 1e-9, at);",
+    "        }",
+    "    }",
+    "",
+    "    @Test",
+    "    void demandMatchesTheModelThroughTheGameplayTest() {",
+    "        TractionDemand demand = new TractionDemand();",
+    "        for (int i = 0; i < GAMEPLAY_SPEEDS.length; i++) {",
+    "            demand.update(GAMEPLAY_SPEEDS[i]);",
+    "            assertEquals(GAMEPLAY_POWER[i], demand.power(), 1e-12, \"power at tick \" + i);",
+    "            assertEquals(GAMEPLAY_BRAKE[i], demand.brake(), 1e-12, \"brake at tick \" + i);",
+    "        }",
+    "    }",
+    "",
+    "    @Test",
+    "    void volumesStayWithinWhatTheEngineCanPlay() {",
+    "        for (Voice voice : Voice.values()) {",
+    "            for (int step = 0; step <= 1000; step++) {",
+    "                double speed = step / 1000.0;",
+    "                for (double power : new double[] {0, 1}) {",
+    "                    for (double brake : new double[] {0, 1}) {",
+    "                        double volume = WmataTraction.volume(voice, speed, power, brake);",
+    "                        assertTrue(volume >= 0 && volume <= 1, voice + \" at speed \" + speed + \" was \" + volume);",
+    "                    }",
+    "                }",
+    "            }",
+    "        }",
+    "        for (int step = 0; step <= 1000; step++) {",
+    "            double noise = WmataTraction.noiseVolume(step / 1000.0);",
+    "            assertTrue(noise >= 0 && noise <= 1, \"noise was \" + noise);",
+    "        }",
+    "    }",
+    "",
+    "    @Test",
+    "    void pitchStaysInsideTheEngineClampWheneverAVoiceIsAudible() {",
+    "        for (Voice voice : Voice.values()) {",
+    "            for (int step = 0; step <= 1000; step++) {",
+    "                double speed = step / 1000.0;",
+    "                if (WmataTraction.poweredLevel(voice, speed) > 1e-4 || WmataTraction.brakingLevel(voice, speed) > 1e-4) {",
+    "                    double ratio = WmataTraction.frequency(voice, speed) / WmataTraction.referenceFrequency(voice);",
+    "                    assertTrue(ratio >= 0.5 && ratio <= 2.0, voice + \" ratio \" + ratio + \" at speed \" + speed);",
+    "                }",
+    "            }",
+    "        }",
+    "    }",
+    "",
+    "    @Test",
+    "    void coastingPlaysTheTonesFarUnderFullPower() {",
+    "        for (Voice voice : Voice.values()) {",
+    "            for (int step = 0; step <= 200; step++) {",
+    "                double speed = step / 200.0;",
+    "                double full = WmataTraction.volume(voice, speed, 1, 0);",
+    "                assertEquals(WmataTractionData.COAST_GAIN * full, WmataTraction.volume(voice, speed, 0, 0), 1e-12, voice + \" at \" + speed);",
+    "            }",
+    "        }",
+    "    }",
+    "",
+    "    @Test",
+    "    void brakingReplacesTheDepartureStagesWithItsOwnCurve() {",
+    "        for (Voice stage : new Voice[] {Voice.STAGE_A, Voice.STAGE_B, Voice.UPPER_DIFFUSE, Voice.BRIEF}) {",
+    "            assertEquals(0, WmataTraction.volume(stage, 0.8, 1, 1), 1e-12, stage + \" while braking\");",
+    "        }",
+    "        assertEquals(0, WmataTraction.volume(Voice.BRAKE, 0.8, 1, 0), 1e-12, \"brake voice while powering\");",
+    "        assertTrue(WmataTraction.volume(Voice.BRAKE, 0.8, 0, 1) > 0, \"brake voice while braking\");",
+    "        assertTrue(WmataTraction.frequency(Voice.BRAKE, 0.2) < WmataTraction.frequency(Voice.BRAKE, 0.8), \"braking pitch falls with speed\");",
+    "    }",
+    "}",
+    "",
 ]
-for nm in names:
-    test.append(f"    private static final double[] {nm.upper()} = {fmt(g[nm])};")
-test += ["", "    @Test", "    void curvesMatchOfflineSynthesis() {", "        for (int i = 0; i < TIMES.length; i++) {", "            double t = TIMES[i];"]
-for nm in names:
-    test.append(f'            assertEquals({nm.upper()}[i], WmataTraction.{nm}(t), 1e-9, "{nm} at t=" + t);')
-test += ["        }", "    }", "",
-         "    @Test",
-         "    void volumesStayWithinWhatTheEngineCanPlay() {",
-         "        for (double t = 0; t <= WmataTractionData.TIMELINE_SECONDS; t += 0.005) {"]
-for nm in names:
-    if nm.endswith("Volume"):
-        test.append(f'            double {nm} = WmataTraction.{nm}(t);')
-        test.append(f'            assertTrue({nm} >= 0 && {nm} <= 1.0 + 1e-12, "{nm} at t=" + t + " was " + {nm});')
-test += ["        }", "    }", "",
-         "    @Test",
-         "    void pitchRatiosStayInsideTheEngineClamp() {",
-         "        for (double t = 0; t <= WmataTractionData.TIMELINE_SECONDS; t += 0.005) {"]
-for nm, ref in (("upperFrequency", "UPPER"), ("ridgeFrequency", "RIDGE"), ("briefFrequency", "BRIEF")):
-    test.append(f"            double {nm}Ratio = WmataTraction.{nm}(t) / WmataTractionData.{ref}_REFERENCE_HZ;")
-    test.append(f'            assertTrue({nm}Ratio >= 0.5 && {nm}Ratio <= 2.0, "{nm} ratio at t=" + t);')
-test += ["        }", "    }", "}", ""]
 open(JAVA_TEST, "w").write("\n".join(test))
-print(f"\nwrote {os.path.relpath(JAVA_DATA, REPO)} and {os.path.relpath(JAVA_TEST, REPO)}")
+print(f"\nwrote {os.path.relpath(JAVA_DATA, REPO)} and {os.path.relpath(JAVA_TEST, REPO)} ({len(cases)} golden cases, {len(speeds)} demand ticks)")

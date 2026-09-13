@@ -1,5 +1,7 @@
 package de.mrjulsen.paw.client.sound;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,16 +12,16 @@ import de.mrjulsen.paw.config.TractionSoundProfile;
 import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
+import de.mrjulsen.paw.traction.TractionDemand;
 import de.mrjulsen.paw.traction.WmataTraction;
-import de.mrjulsen.paw.traction.WmataTractionData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvent;
 
 /**
- * Owns the traction sound for every vehicle carrying a pantograph. Backed by
- * {@link ElectricTrainStateTracker} so a train with several pantographs (or one
+ * Owns the traction sound for every vehicle carrying a pantograph or collector shoe. Backed by
+ * {@link ElectricTrainStateTracker} so a train with several collectors (or one
  * briefly skipping across an insulator gap) keeps one steady sound instead of
  * stuttering on and off.
  *
@@ -28,10 +30,12 @@ import net.minecraft.sounds.SoundEvent;
  * WMATA 6000-series by default, or the Paris MP 89. Every frequency is an observed
  * acoustic feature, not a recovered electrical or switching parameter.
  *
- * Both recordings are a single acceleration, so their timelines are mapped onto train
- * speed rather than elapsed time: standing is the start of the departure and cruise
- * is its end. That mapping is a design choice. A recording measures frequencies, not
- * how they should follow a throttle.
+ * Both recordings are a single acceleration, so their sounds are laid out over train
+ * speed rather than elapsed time: standing is the start of the departure and top speed
+ * is its end. The WMATA profile also follows traction demand, estimated from how the
+ * train's speed changes: its tones are strong under power, far quieter while coasting,
+ * and replaced by a separate braking curve while braking. That mapping is a design
+ * choice. A recording measures frequencies, not how they should follow a throttle.
  */
 @Environment(EnvType.CLIENT)
 public final class TractionSoundManager {
@@ -53,7 +57,7 @@ public final class TractionSoundManager {
     // Below this the vehicle counts as stopped and its voices are released outright.
     private static final double SPEED_CONSIDERED_STOPPED = 0.01;
 
-    // Load envelope: the tonal layer swells while pulling and eases back once the vehicle
+    // MP 89 load envelope: the tonal layer swells while pulling and eases back once the vehicle
     // stops accelerating, leaving the mechanical texture underneath at a constant level.
     private static final double ACCEL_AT_FULL_LOAD = 0.004;
     private static final float CRUISE_LOAD = 0.75f;
@@ -106,7 +110,7 @@ public final class TractionSoundManager {
             ACTIVE.put(vehicleId, entry);
         } else if (entry.lastUpdateTick != gameTime) {
             // A train reports once per collector each tick. Only the first report moves the sound, or
-            // the rest would see no change in speed and hold the tonal load at its coasting level.
+            // the rest would see no change in speed and read the train as coasting.
             entry.update(speed);
         }
         entry.lastUpdateTick = gameTime;
@@ -140,7 +144,7 @@ public final class TractionSoundManager {
         return (float) Math.min(1, Math.max(0, Math.abs(speed) / SPEED_AT_FULL_MOTION));
     }
 
-    /** Tonal level while pulling versus coasting, from acceleration in blocks/tick^2. */
+    /** MP 89 tonal level while pulling versus coasting, from acceleration in blocks/tick^2. */
     static float loadScaleFor(double acceleration) {
         double pull = Math.min(1, Math.max(0, acceleration / ACCEL_AT_FULL_LOAD));
         return (float) (CRUISE_LOAD + (1 - CRUISE_LOAD) * pull);
@@ -180,8 +184,8 @@ public final class TractionSoundManager {
     }
 
     /**
-     * Whether this vehicle has a pantograph reporting at all, regardless of whether it is
-     * currently touching wire. Used to decide that a train is electric rather than steam,
+     * Whether this vehicle has a collector reporting at all, regardless of whether it is
+     * currently touching wire or rail. Used to decide that a train is electric rather than steam,
      * which should not flicker just because the collector crossed an insulator gap.
      */
     public static boolean isElectric(UUID vehicleId, long gameTime) {
@@ -198,6 +202,7 @@ public final class TractionSoundManager {
     private static final class Entry {
         private final TractionSoundProfile profile;
         private final VoiceBank bank;
+        private final TractionDemand demand = new TractionDemand();
         private long lastObservedTick;
         private long lastUpdateTick = Long.MIN_VALUE;
         private double previousSpeed;
@@ -212,9 +217,10 @@ public final class TractionSoundManager {
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;
             hasPreviousSpeed = true;
+            demand.update(Math.abs(speed));
 
             float motion = motionScale(speed);
-            bank.update(speedFraction(speed), motion, motion * loadScaleFor(acceleration));
+            bank.update(speedFraction(speed), motion, motion * loadScaleFor(acceleration), demand);
         }
 
         private void updatePosition(double x, double y, double z) {
@@ -237,9 +243,10 @@ public final class TractionSoundManager {
         /**
          * @param fraction speed from standing (0) to the drive's top (1)
          * @param motion   overall level from speed, for mechanical layers
-         * @param tonal    motion scaled by load, for the traction tones
+         * @param tonal    motion scaled by MP 89's load envelope
+         * @param demand   traction and braking demand, for the WMATA profile
          */
-        void update(double fraction, float motion, float tonal);
+        void update(double fraction, float motion, float tonal, TractionDemand demand);
     }
 
     /**
@@ -281,7 +288,7 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public void update(double fraction, float motion, float tonal) {
+        public void update(double fraction, float motion, float tonal, TractionDemand demand) {
             ridge.setTargetFrequency(RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * fraction);
             ridge.setLoadScale(tonal * window(fraction, 0.05, 0.30, 1.0, 1.01));
 
@@ -296,26 +303,35 @@ public final class TractionSoundManager {
     }
 
     /**
-     * WMATA 6000-series: an upper cluster near 2.4-2.6kHz that turns diffuse as the train
-     * gathers speed, a ridge climbing from about 440Hz to 1.6kHz that swells twice, a brief
-     * upper event, and a rising noise bed. Curves and levels live in {@link WmataTraction}.
+     * WMATA 6000-series: an upper whine near 2.4-2.6kHz in three speed stages, a lower tone
+     * climbing from about 440Hz to 1.6kHz, a brief upper event, a separate braking tone, and a
+     * rising noise bed. Curves, levels and demand mixing live in {@link WmataTraction}.
      */
     private static final class WmataBank implements VoiceBank {
-        private final TractionHumSoundInstance upperLine;
-        private final TractionHumSoundInstance upperDiffuse;
-        private final TractionHumSoundInstance ridge;
-        private final TractionHumSoundInstance brief;
+        private final Map<WmataTraction.Voice, TractionHumSoundInstance> tonal = new EnumMap<>(WmataTraction.Voice.class);
         private final TractionHumSoundInstance noise;
         private final List<TractionHumSoundInstance> voices;
 
         private WmataBank(double x, double y, double z) {
-            upperLine = voice(ModSounds.WMATA_UPPER_LINE.get(), 1.0f, WmataTractionData.UPPER_REFERENCE_HZ, x, y, z);
-            upperDiffuse = voice(ModSounds.WMATA_UPPER_DIFFUSE.get(), 1.0f, WmataTractionData.UPPER_REFERENCE_HZ, x, y, z);
-            ridge = voice(ModSounds.WMATA_RIDGE.get(), 1.0f, WmataTractionData.RIDGE_REFERENCE_HZ, x, y, z);
-            brief = voice(ModSounds.WMATA_BRIEF.get(), 1.0f, WmataTractionData.BRIEF_REFERENCE_HZ, x, y, z);
+            List<TractionHumSoundInstance> all = new ArrayList<>();
+            for (WmataTraction.Voice voice : WmataTraction.Voice.values()) {
+                TractionHumSoundInstance instance = voice(sampleFor(voice), 1.0f, WmataTraction.referenceFrequency(voice), x, y, z);
+                tonal.put(voice, instance);
+                all.add(instance);
+            }
             noise = voice(ModSounds.WMATA_NOISE.get(), 1.0f, UNPITCHED_REFERENCE_HZ, x, y, z);
-            voices = List.of(upperLine, upperDiffuse, ridge, brief, noise);
             noise.setTargetFrequency(UNPITCHED_REFERENCE_HZ);
+            all.add(noise);
+            voices = List.copyOf(all);
+        }
+
+        private static SoundEvent sampleFor(WmataTraction.Voice voice) {
+            return switch (voice) {
+                case STAGE_A, STAGE_B, BRAKE -> ModSounds.WMATA_UPPER_LINE.get();
+                case UPPER_DIFFUSE -> ModSounds.WMATA_UPPER_DIFFUSE.get();
+                case RIDGE -> ModSounds.WMATA_RIDGE.get();
+                case BRIEF -> ModSounds.WMATA_BRIEF.get();
+            };
         }
 
         @Override
@@ -324,21 +340,14 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public void update(double fraction, float motion, float tonal) {
-            double t = WmataTraction.timeForSpeedFraction(fraction);
-
-            double upper = WmataTraction.upperFrequency(t);
-            upperLine.setTargetFrequency(upper);
-            upperLine.setLoadScale(tonal * (float) WmataTraction.upperLineVolume(t));
-            upperDiffuse.setTargetFrequency(upper);
-            upperDiffuse.setLoadScale(tonal * (float) WmataTraction.upperDiffuseVolume(t));
-
-            ridge.setTargetFrequency(WmataTraction.ridgeFrequency(t));
-            ridge.setLoadScale(tonal * (float) WmataTraction.ridgeVolume(t));
-            brief.setTargetFrequency(WmataTraction.briefFrequency(t));
-            brief.setLoadScale(tonal * (float) WmataTraction.briefVolume(t));
-
-            noise.setLoadScale(motion * (float) WmataTraction.noiseVolume(t));
+        public void update(double fraction, float motion, float tonalLoad, TractionDemand demand) {
+            for (Map.Entry<WmataTraction.Voice, TractionHumSoundInstance> entry : tonal.entrySet()) {
+                WmataTraction.Voice voice = entry.getKey();
+                TractionHumSoundInstance instance = entry.getValue();
+                instance.setTargetFrequency(WmataTraction.frequency(voice, fraction));
+                instance.setLoadScale(motion * (float) WmataTraction.volume(voice, fraction, demand.power(), demand.brake()));
+            }
+            noise.setLoadScale(motion * (float) WmataTraction.noiseVolume(fraction));
         }
     }
 }
