@@ -20,6 +20,19 @@ public class ModSounds {
     /** Broadband bed shaped against the reference recording. */
     public static final RegistrySupplier<SoundEvent> MP89_TEXTURE = register("electric.mp89_texture");
 
+    /** WMATA 6000-series upper cluster line at 2440Hz, its two drifting satellites baked in. */
+    public static final RegistrySupplier<SoundEvent> WMATA_UPPER_LINE = register("electric.wmata_upper_line");
+    /** Narrowband noise centred on the upper cluster, for where it turns diffuse. */
+    public static final RegistrySupplier<SoundEvent> WMATA_UPPER_DIFFUSE = register("electric.wmata_upper_diffuse");
+    /** The independent low sweep, cut at 700Hz. */
+    public static final RegistrySupplier<SoundEvent> WMATA_LOW = register("electric.wmata_low");
+    /** The brief upper event, cut at 2890Hz. */
+    public static final RegistrySupplier<SoundEvent> WMATA_BRIEF = register("electric.wmata_brief");
+    /** The later mid ridge, cut at 1350Hz. */
+    public static final RegistrySupplier<SoundEvent> WMATA_MID = register("electric.wmata_mid");
+    /** The rising noise bed: 400/650/900Hz body bands over broadband rolling noise. */
+    public static final RegistrySupplier<SoundEvent> WMATA_NOISE = register("electric.wmata_noise");
+
     private static RegistrySupplier<SoundEvent> register(String name) {
         return SOUNDS.register(
             name,

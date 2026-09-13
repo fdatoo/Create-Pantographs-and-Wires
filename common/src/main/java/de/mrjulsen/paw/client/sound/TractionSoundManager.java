@@ -1,14 +1,17 @@
 package de.mrjulsen.paw.client.sound;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import de.mrjulsen.paw.config.ModClientConfig;
+import de.mrjulsen.paw.config.TractionSoundProfile;
 import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
+import de.mrjulsen.paw.traction.WmataTraction;
+import de.mrjulsen.paw.traction.WmataTractionData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -20,16 +23,15 @@ import net.minecraft.sounds.SoundEvent;
  * briefly skipping across an insulator gap) keeps one steady sound instead of
  * stuttering on and off.
  *
- * The sound is built from components measured in a recording of an MP 89, each
- * played as its own independently pitched voice: a rising low ridge, two fixed
- * departure tones, and a broadband bed. Every frequency here is an observed
+ * Each vehicle plays a bank of independently pitched voices built from components
+ * measured in a recording, chosen by the traction profile in the client config: the
+ * WMATA 6000-series by default, or the Paris MP 89. Every frequency is an observed
  * acoustic feature, not a recovered electrical or switching parameter.
  *
- * The recording is a single acceleration, so its timeline is mapped onto train
- * speed rather than elapsed time: the ridge tracks speed across its measured
- * span, and the two tone centres fade past each other as the train pulls away.
- * That mapping is a design choice. The recording measures frequencies, not how
- * they should follow a throttle.
+ * Both recordings are a single acceleration, so their timelines are mapped onto train
+ * speed rather than elapsed time: standing is the start of the departure and cruise
+ * is its end. That mapping is a design choice. A recording measures frequencies, not
+ * how they should follow a throttle.
  */
 @Environment(EnvType.CLIENT)
 public final class TractionSoundManager {
@@ -51,23 +53,13 @@ public final class TractionSoundManager {
     // Below this the vehicle counts as stopped and its voices are released outright.
     private static final double SPEED_CONSIDERED_STOPPED = 0.01;
 
-    // Tone centres are fixed and never glide into one another, as measured. Only the
-    // ridge moves. The 1372Hz partner is baked into the 686Hz sample at its measured
-    // -6dB, and the ridge harmonics into the ridge sample, so locked ratios pitch as one.
-    private static final double TONE_A_HZ = 686;
-    private static final double TONE_B_HZ = 1186;
-    private static final double RIDGE_REFERENCE_HZ = 256;
-    private static final double RIDGE_AT_REST_HZ = 191;
-    private static final double RIDGE_AT_TOP_HZ = 323;
-    private static final float RIDGE_LEVEL = 0.9f;
-
-    private static final double TEXTURE_REFERENCE_HZ = 1;
-    private static final float TEXTURE_LEVEL = 0.5f;
-
     // Load envelope: the tonal layer swells while pulling and eases back once the vehicle
     // stops accelerating, leaving the mechanical texture underneath at a constant level.
     private static final double ACCEL_AT_FULL_LOAD = 0.004;
     private static final float CRUISE_LOAD = 0.75f;
+
+    // Noise samples have no pitch to track; a reference of 1Hz driven to 1Hz holds them still.
+    private static final double UNPITCHED_REFERENCE_HZ = 1;
 
     private static final ElectricTrainStateTracker TRACKER =
         new ElectricTrainStateTracker(CONTACT_GRACE_TICKS, CAPABILITY_GRACE_TICKS);
@@ -97,11 +89,20 @@ public final class TractionSoundManager {
             return;
         }
 
+        // A profile changed in the config takes over on the next observation: the old
+        // bank fades out on its own while the new one fades in.
+        TractionSoundProfile profile = ModClientConfig.TRACTION_PROFILE.get();
+        if (entry != null && entry.profile != profile) {
+            entry.stop();
+            ACTIVE.remove(vehicleId);
+            entry = null;
+        }
+
         if (entry == null || entry.isStopped()) {
             if (entry == null && ACTIVE.size() >= MAX_VEHICLES) {
                 return;
             }
-            entry = startVoices(speed, x, y, z);
+            entry = start(profile, speed, x, y, z);
             ACTIVE.put(vehicleId, entry);
         } else {
             entry.update(speed);
@@ -112,21 +113,16 @@ public final class TractionSoundManager {
         entry.lastObservedTick = gameTime;
     }
 
-    private static Entry startVoices(double speed, double x, double y, double z) {
-        Entry entry = new Entry();
-        entry.toneA = voice(ModSounds.MP89_TONE_A.get(), 1.0f, TONE_A_HZ, x, y, z);
-        entry.toneB = voice(ModSounds.MP89_TONE_B.get(), 1.0f, TONE_B_HZ, x, y, z);
-        entry.ridge = voice(ModSounds.MP89_RIDGE.get(), RIDGE_LEVEL, RIDGE_REFERENCE_HZ, x, y, z);
-        entry.texture = voice(ModSounds.MP89_TEXTURE.get(), TEXTURE_LEVEL, TEXTURE_REFERENCE_HZ, x, y, z);
-        entry.voices.addAll(List.of(entry.toneA, entry.toneB, entry.ridge, entry.texture));
-
-        // Motor-body resonances belong to the structure, not the excitation, so the
-        // texture never moves: tonal lines slide past fixed resonances.
-        entry.texture.setTargetFrequency(TEXTURE_REFERENCE_HZ);
+    private static Entry start(TractionSoundProfile profile, double speed, double x, double y, double z) {
+        VoiceBank bank = switch (profile) {
+            case MP89 -> new Mp89Bank(x, y, z);
+            case WMATA -> new WmataBank(x, y, z);
+        };
+        Entry entry = new Entry(profile, bank);
         // Frequencies are set before playback so no voice starts at its sample's own
         // pitch and audibly slides to where the vehicle's speed actually puts it.
         entry.update(speed);
-        entry.voices.forEach(v -> Minecraft.getInstance().getSoundManager().play(v));
+        bank.voices().forEach(v -> Minecraft.getInstance().getSoundManager().play(v));
         return entry;
     }
 
@@ -134,11 +130,6 @@ public final class TractionSoundManager {
         SoundEvent event, float level, double referenceHz, double x, double y, double z
     ) {
         return new TractionHumSoundInstance(event, level, referenceHz, x, y, z);
-    }
-
-    /** The low ridge, its measured span mapped onto the speed range. */
-    public static double ridgeFrequency(double speed) {
-        return RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * speedFraction(speed);
     }
 
     /** Overall level from speed, so a train standing at a platform falls silent. */
@@ -194,11 +185,6 @@ public final class TractionSoundManager {
         return TRACKER.snapshot(vehicleId, gameTime).capable();
     }
 
-    /** Total voices currently sounding across all vehicles; for the F3 overlay. */
-    public static int activeVoiceCount() {
-        return ACTIVE.values().stream().mapToInt(entry -> entry.voices.size()).sum();
-    }
-
     /** Call on disconnect/world unload so no voice survives into the next session. */
     public static void stopAll() {
         ACTIVE.values().forEach(Entry::stop);
@@ -207,14 +193,16 @@ public final class TractionSoundManager {
     }
 
     private static final class Entry {
-        private final List<TractionHumSoundInstance> voices = new ArrayList<>();
-        private TractionHumSoundInstance toneA;
-        private TractionHumSoundInstance toneB;
-        private TractionHumSoundInstance ridge;
-        private TractionHumSoundInstance texture;
+        private final TractionSoundProfile profile;
+        private final VoiceBank bank;
         private long lastObservedTick;
         private double previousSpeed;
         private boolean hasPreviousSpeed;
+
+        private Entry(TractionSoundProfile profile, VoiceBank bank) {
+            this.profile = profile;
+            this.bank = bank;
+        }
 
         private void update(double speed) {
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
@@ -222,10 +210,75 @@ public final class TractionSoundManager {
             hasPreviousSpeed = true;
 
             float motion = motionScale(speed);
-            float tonal = motion * loadScaleFor(acceleration);
-            double fraction = speedFraction(speed);
+            bank.update(speedFraction(speed), motion, motion * loadScaleFor(acceleration));
+        }
 
-            ridge.setTargetFrequency(ridgeFrequency(speed));
+        private void updatePosition(double x, double y, double z) {
+            bank.voices().forEach(voice -> voice.updatePosition(x, y, z));
+        }
+
+        private void stop() {
+            bank.voices().forEach(TractionHumSoundInstance::requestStop);
+        }
+
+        private boolean isStopped() {
+            return bank.voices().get(0).isStopped();
+        }
+    }
+
+    /** One profile's voices and how they follow the vehicle. */
+    private interface VoiceBank {
+        List<TractionHumSoundInstance> voices();
+
+        /**
+         * @param fraction speed from standing (0) to the drive's top (1)
+         * @param motion   overall level from speed, for mechanical layers
+         * @param tonal    motion scaled by load, for the traction tones
+         */
+        void update(double fraction, float motion, float tonal);
+    }
+
+    /**
+     * Paris MP 89: a rising low ridge, two fixed departure tones, and a broadband bed.
+     *
+     * Tone centres are fixed and never glide into one another, as measured. Only the ridge
+     * moves. The 1372Hz partner is baked into the 686Hz sample at its measured -6dB, and the
+     * ridge harmonics into the ridge sample, so locked ratios pitch as one.
+     */
+    private static final class Mp89Bank implements VoiceBank {
+        private static final double TONE_A_HZ = 686;
+        private static final double TONE_B_HZ = 1186;
+        private static final double RIDGE_REFERENCE_HZ = 256;
+        private static final double RIDGE_AT_REST_HZ = 191;
+        private static final double RIDGE_AT_TOP_HZ = 323;
+        private static final float RIDGE_LEVEL = 0.9f;
+        private static final float TEXTURE_LEVEL = 0.5f;
+
+        private final TractionHumSoundInstance toneA;
+        private final TractionHumSoundInstance toneB;
+        private final TractionHumSoundInstance ridge;
+        private final TractionHumSoundInstance texture;
+        private final List<TractionHumSoundInstance> voices;
+
+        private Mp89Bank(double x, double y, double z) {
+            toneA = voice(ModSounds.MP89_TONE_A.get(), 1.0f, TONE_A_HZ, x, y, z);
+            toneB = voice(ModSounds.MP89_TONE_B.get(), 1.0f, TONE_B_HZ, x, y, z);
+            ridge = voice(ModSounds.MP89_RIDGE.get(), RIDGE_LEVEL, RIDGE_REFERENCE_HZ, x, y, z);
+            texture = voice(ModSounds.MP89_TEXTURE.get(), TEXTURE_LEVEL, UNPITCHED_REFERENCE_HZ, x, y, z);
+            voices = List.of(toneA, toneB, ridge, texture);
+            // Motor-body resonances belong to the structure, not the excitation, so the
+            // texture never moves: tonal lines slide past fixed resonances.
+            texture.setTargetFrequency(UNPITCHED_REFERENCE_HZ);
+        }
+
+        @Override
+        public List<TractionHumSoundInstance> voices() {
+            return voices;
+        }
+
+        @Override
+        public void update(double fraction, float motion, float tonal) {
+            ridge.setTargetFrequency(RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * fraction);
             ridge.setLoadScale(tonal * window(fraction, 0.05, 0.30, 1.0, 1.01));
 
             // The 686Hz tone leads at departure, 1186Hz takes over, then the ridge carries.
@@ -236,17 +289,56 @@ public final class TractionSoundManager {
 
             texture.setLoadScale(motion);
         }
+    }
 
-        private void updatePosition(double x, double y, double z) {
-            voices.forEach(voice -> voice.updatePosition(x, y, z));
+    /**
+     * WMATA 6000-series: an upper cluster near 2.4-2.6kHz that turns diffuse as the train
+     * gathers speed, a low sweep from 556 to 843Hz, a brief upper event, a later mid ridge,
+     * and a rising noise bed. Curves and levels live in {@link WmataTraction}.
+     */
+    private static final class WmataBank implements VoiceBank {
+        private final TractionHumSoundInstance upperLine;
+        private final TractionHumSoundInstance upperDiffuse;
+        private final TractionHumSoundInstance low;
+        private final TractionHumSoundInstance brief;
+        private final TractionHumSoundInstance mid;
+        private final TractionHumSoundInstance noise;
+        private final List<TractionHumSoundInstance> voices;
+
+        private WmataBank(double x, double y, double z) {
+            upperLine = voice(ModSounds.WMATA_UPPER_LINE.get(), 1.0f, WmataTractionData.UPPER_REFERENCE_HZ, x, y, z);
+            upperDiffuse = voice(ModSounds.WMATA_UPPER_DIFFUSE.get(), 1.0f, WmataTractionData.UPPER_REFERENCE_HZ, x, y, z);
+            low = voice(ModSounds.WMATA_LOW.get(), 1.0f, WmataTractionData.LOW_REFERENCE_HZ, x, y, z);
+            brief = voice(ModSounds.WMATA_BRIEF.get(), 1.0f, WmataTractionData.BRIEF_REFERENCE_HZ, x, y, z);
+            mid = voice(ModSounds.WMATA_MID.get(), 1.0f, WmataTractionData.MID_REFERENCE_HZ, x, y, z);
+            noise = voice(ModSounds.WMATA_NOISE.get(), 1.0f, UNPITCHED_REFERENCE_HZ, x, y, z);
+            voices = List.of(upperLine, upperDiffuse, low, brief, mid, noise);
+            noise.setTargetFrequency(UNPITCHED_REFERENCE_HZ);
         }
 
-        private void stop() {
-            voices.forEach(TractionHumSoundInstance::requestStop);
+        @Override
+        public List<TractionHumSoundInstance> voices() {
+            return voices;
         }
 
-        private boolean isStopped() {
-            return ridge == null || ridge.isStopped();
+        @Override
+        public void update(double fraction, float motion, float tonal) {
+            double t = WmataTraction.timeForSpeedFraction(fraction);
+
+            double upper = WmataTraction.upperFrequency(t);
+            upperLine.setTargetFrequency(upper);
+            upperLine.setLoadScale(tonal * (float) WmataTraction.upperLineVolume(t));
+            upperDiffuse.setTargetFrequency(upper);
+            upperDiffuse.setLoadScale(tonal * (float) WmataTraction.upperDiffuseVolume(t));
+
+            low.setTargetFrequency(WmataTraction.lowFrequency(t));
+            low.setLoadScale(tonal * (float) WmataTraction.lowVolume(t));
+            brief.setTargetFrequency(WmataTraction.briefFrequency(t));
+            brief.setLoadScale(tonal * (float) WmataTraction.briefVolume(t));
+            mid.setTargetFrequency(WmataTraction.midFrequency(t));
+            mid.setLoadScale(tonal * (float) WmataTraction.midVolume(t));
+
+            noise.setLoadScale(motion * (float) WmataTraction.noiseVolume(t));
         }
     }
 }

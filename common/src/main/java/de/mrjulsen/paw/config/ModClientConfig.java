@@ -10,6 +10,7 @@ public class ModClientConfig {
     public static final ForgeConfigSpec.ConfigValue<Boolean> DEBUG_ORIGINAL_HITBOX;
     public static final ForgeConfigSpec.ConfigValue<Boolean> SILENCE_STEAM_ON_ELECTRIC_TRAINS;
     public static final ForgeConfigSpec.ConfigValue<Double> TRACTION_VOLUME;
+    public static final ForgeConfigSpec.EnumValue<TractionSoundProfile> TRACTION_PROFILE;
 
     static {
         BUILDER.push(PantographsAndWires.MOD_ID + "_client_config");
@@ -23,6 +24,8 @@ public class ModClientConfig {
         TRACTION_VOLUME = BUILDER.comment(new String[] {"Loudness of the electric traction sound. 0 disables it entirely.", "Default: 0.5"})
             .defineInRange("sound.traction_volume", 0.5D, 0.0D, 1.0D);
 
+        TRACTION_PROFILE = BUILDER.comment(new String[] {"Which train the electric traction sound is modelled on. WMATA: Washington Metro 6000-series. MP89: Paris Metro MP 89.", "Default: WMATA"})
+            .defineEnum("sound.traction_profile", TractionSoundProfile.WMATA);
 
         BUILDER.pop();
         SPEC = BUILDER.build();
