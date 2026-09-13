@@ -68,11 +68,15 @@ public final class TractionSoundManager {
     // The bass voice rides the same 2fe order the inner sidebands are spaced by.
     private static final int BASS_ORDER = 2;
     private static final float BASS_LEVEL = 1.0f;
+    // The texture is a bed, not the lead: without this it sits above the carrier, since
+    // its sample is inherently hotter and it is exempt from the load envelope below.
+    private static final float TEXTURE_LEVEL = 0.5f;
 
     // Load envelope: the tonal layer swells while pulling and eases back once the vehicle
     // stops accelerating, leaving the mechanical texture underneath at a constant level.
+    // The floor stays high enough that the whine never ducks under the texture at cruise.
     private static final double ACCEL_AT_FULL_LOAD = 0.004;
-    private static final float CRUISE_LOAD = 0.55f;
+    private static final float CRUISE_LOAD = 0.75f;
 
     private static final ElectricTrainStateTracker TRACKER =
         new ElectricTrainStateTracker(CONTACT_GRACE_TICKS, CAPABILITY_GRACE_TICKS);
@@ -136,7 +140,7 @@ public final class TractionSoundManager {
         entry.voices.add(entry.bass);
 
         TractionHumSoundInstance texture = new TractionHumSoundInstance(
-            ModSounds.TRACTION_TEXTURE.get(), 1.0f, TEXTURE_REFERENCE_HZ, x, y, z);
+            ModSounds.TRACTION_TEXTURE.get(), TEXTURE_LEVEL, TEXTURE_REFERENCE_HZ, x, y, z);
         // Motor-body resonances are a property of the structure, not the excitation, so this
         // voice never moves: tonal lines slide past fixed resonances instead of dragging them.
         texture.setTargetFrequency(TEXTURE_REFERENCE_HZ);

@@ -22,7 +22,9 @@ import net.minecraft.sounds.SoundSource;
 @Environment(EnvType.CLIENT)
 public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
 
-    private static final float MASTER_VOLUME = 0.6f;
+    // Create's own train loops play in SoundSource.NEUTRAL at up to 1.5x on full-scale
+    // samples, so anything much below unity here is simply buried underneath them.
+    private static final float MASTER_VOLUME = 1.0f;
     // 10 ticks (0.5s) to fade fully in or out.
     private static final float FADE_STEP = 1f / 10f;
     // How quickly pitch glides toward its target each tick; smaller = slower spool-up.
