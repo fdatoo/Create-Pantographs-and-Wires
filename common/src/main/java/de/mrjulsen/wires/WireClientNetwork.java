@@ -56,34 +56,50 @@ public final class WireClientNetwork implements IWireNetwork {
         return level;
     }
 
-    public static void clear() {        
+    public static synchronized void clear() {
         dimension = null;
         currentNetwork = null;
     }
-    
-    public static WireClientNetwork get(Level level) {
-        if (dimension != level.dimensionTypeId().location() || currentNetwork == null) {
-            dimension = level.dimensionTypeId().location();
-            return currentNetwork = new WireClientNetwork(level);
+
+    /**
+     * Reached from both the render thread and the network thread, so it has to be
+     * synchronized: without it, two threads can each see a null network, each build one,
+     * and one overwrite the other, stranding every wire that synced into the loser. The
+     * window is guaranteed rather than theoretical, since clear() nulls this on quit and
+     * the bulk wire sync arrives immediately after the next join.
+     *
+     * The dimension test also compared ResourceLocation by reference. Equal locations from
+     * different instances would have silently discarded the whole network and every wire in
+     * it, so it compares by value now.
+     */
+    public static synchronized WireClientNetwork get(Level level) {
+        ResourceLocation current = level.dimensionTypeId().location();
+        if (currentNetwork == null || !current.equals(dimension)) {
+            dimension = current;
+            currentNetwork = new WireClientNetwork(level);
         }
         return currentNetwork;
     }
 
 
 
-    public Collection<WireCollision> getCollisionsTroughBlock(BlockPos pos) {
-        return collisionByBlock.get(pos);
+    // Every read below hands back a copy rather than the multimap's live view. Callers
+    // iterate these while the network thread is mutating the same maps, and a live view
+    // would throw ConcurrentModificationException mid-iteration.
+
+    public synchronized Collection<WireCollision> getCollisionsTroughBlock(BlockPos pos) {
+        return List.copyOf(collisionByBlock.get(pos));
     }
 
-    public Collection<WireCollision> getCollisionsTroughSection(SectionPos pos) {
-        return collisionBySection.get(pos);
+    public synchronized Collection<WireCollision> getCollisionsTroughSection(SectionPos pos) {
+        return List.copyOf(collisionBySection.get(pos));
     }
 
-    public Collection<WireCollision> getCollisionsTroughChunk(ChunkPos pos) {
-        return collisionByChunk.get(pos);
+    public synchronized Collection<WireCollision> getCollisionsTroughChunk(ChunkPos pos) {
+        return List.copyOf(collisionByChunk.get(pos));
     }
 
-    public Collection<WireBlockCollision> getCollisionsInBlock(BlockPos pos) {
+    public synchronized Collection<WireBlockCollision> getCollisionsInBlock(BlockPos pos) {
         Collection<WireBlockCollision> connections = new LinkedList<>();
         for (WireCollision c : collisionByBlock.get(pos)) {
             connections.addAll(c.collisionsInBlock(pos));
@@ -99,14 +115,19 @@ public final class WireClientNetwork implements IWireNetwork {
         return collisionByBlock.containsKey(pos);
     }
 
+    /**
+     * A copy, not the multimap's live view. This is iterated on the render thread while
+     * a chunk section compiles, and the network thread mutates the same map as wire sync
+     * arrives; handing out the view let that iteration throw partway through, which would
+     * abort the compile and leave that one section's wires missing while others rendered.
+     */
     public synchronized Collection<WireSegmentRenderDataBatch> connectionsInSection(SectionPos section) {
-        if (!hasConnectionsInSection(section)) {
-            return List.of();
-        }
-        return renderDataBySection.get(section);
+        return List.copyOf(renderDataBySection.get(section));
     }
 
-    public void createClientConnection(@Nullable ChunkPos chunk, WireSyncDataEntry in) {
+    // Mutators run on the network thread while the render thread reads. They share the
+    // readers' monitor so writes are not lost or seen half-applied.
+    public synchronized void createClientConnection(@Nullable ChunkPos chunk, WireSyncDataEntry in) {
         if (in.forceUpdate()) {
             removeClientConnection(in.data().getConnectionId());
         } else if (renderDataById.containsKey(in.data().getConnectionId())) {
@@ -136,13 +157,13 @@ public final class WireClientNetwork implements IWireNetwork {
         }
     }
 
-    public void removeClientConnections(UUID[] connectionIds) {
+    public synchronized void removeClientConnections(UUID[] connectionIds) {
         for (UUID id : connectionIds) {
             removeClientConnection(id);
         }
     }
 
-    public void removeClientConnection(UUID connectionId) {
+    public synchronized void removeClientConnection(UUID connectionId) {
         if (!renderDataById.containsKey(connectionId)) {
             return;
         }
@@ -160,7 +181,7 @@ public final class WireClientNetwork implements IWireNetwork {
         }
     }
 
-    public void onClientChunkLoading(WireChunkLoadingData in) {
+    public synchronized void onClientChunkLoading(WireChunkLoadingData in) {
         synchronized (renderDataByChunk) {
             Set<UUID> emptyConnections = new HashSet<>();
             for (WireSegmentRenderDataBatch renderdata : renderDataByChunk.get(in.pos())) {
