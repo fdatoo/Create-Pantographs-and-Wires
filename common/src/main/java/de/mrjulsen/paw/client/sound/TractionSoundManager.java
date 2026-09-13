@@ -149,8 +149,13 @@ public final class TractionSoundManager {
         return entry;
     }
 
+    /** Total voices currently sounding across all vehicles; for the F3 overlay. */
+    public static int activeVoiceCount() {
+        return ACTIVE.values().stream().mapToInt(entry -> entry.voices.size()).sum();
+    }
+
     /** Switching frequency in Hz: stepped by gear, holding within each band. */
-    static double switchingFrequency(double speed) {
+    public static double switchingFrequency(double speed) {
         double fraction = speedFraction(speed);
         double gearProgress = fraction * GEAR_COUNT;
         int gearIndex = Math.min(GEAR_COUNT - 1, (int) gearProgress);
@@ -160,7 +165,7 @@ public final class TractionSoundManager {
     }
 
     /** Electrical frequency in Hz: climbs continuously with motor RPM. */
-    static double electricalFrequency(double speed) {
+    public static double electricalFrequency(double speed) {
         return FE_AT_REST_HZ + (FE_AT_TOP_HZ - FE_AT_REST_HZ) * speedFraction(speed);
     }
 

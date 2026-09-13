@@ -1,6 +1,7 @@
 package de.mrjulsen.paw.event;
 
 import de.mrjulsen.paw.PantographsAndWires;
+import de.mrjulsen.paw.client.debug.TractionDebugOverlay;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.compat.sodium.IncompatabilityScreen;
 import de.mrjulsen.paw.compat.sodium.SodiumCompatEvent;
@@ -32,6 +33,12 @@ public final class ModClientEvents {
     public static void init() {
 
         ClientGuiEvent.DEBUG_TEXT_LEFT.register((lines) -> {
+            if (Minecraft.getInstance().level != null) {
+                String traction = TractionDebugOverlay.line(Minecraft.getInstance().level.getGameTime());
+                if (traction != null) {
+                    lines.add(traction);
+                }
+            }
             if (!PantographsAndWires.useAdvancedLogging()) {
                 return;
             }

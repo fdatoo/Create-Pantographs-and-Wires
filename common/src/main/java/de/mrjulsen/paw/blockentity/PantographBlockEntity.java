@@ -113,6 +113,11 @@ public class PantographBlockEntity extends SmartBlockEntity implements GeoBlockE
         return this.touchingWire;
     }
 
+    /** Height of the resolved wire contact, or 0 when there is none. */
+    public double getCatenaryWireHeight() {
+        return this.catenaryWireHeight;
+    }
+
 
     @Override
     protected void write(CompoundTag tag, boolean clientPacket) {

@@ -33,6 +33,11 @@ public final class CatenaryContactDetector {
     static final long MAX_COLLISIONS_PER_BLOCK = 1_024;
     static final long MAX_TOTAL_COLLISION_DATA = 16_384;
 
+    // Diagnostics for the F3 overlay: how much the last sweep actually looked at.
+    // Written from the client tick only, read for display.
+    public static volatile int lastSweepBlocks;
+    public static volatile int lastCollisionCount;
+
     private static final double UNIT_ROUNDOFF = 0x1.0p-53;
     // Covers the FMA expression, absolute-magnitude accumulation, and bound rounding.
     private static final double SAT_FILTER_GAMMA =
@@ -147,6 +152,8 @@ public final class CatenaryContactDetector {
         }
         List<CollisionData> validatedCollisions = new ArrayList<>();
         long totalCollisions = 0;
+        lastSweepBlocks = sweep.intersectingBlocks().size();
+        lastCollisionCount = 0;
         try {
             for (BlockPos queryPos : sweep.intersectingBlocks()) {
                 Iterable<CollisionData> collisionData = source.collisionsInBlock(queryPos);
@@ -167,6 +174,7 @@ public final class CatenaryContactDetector {
                 }
             }
 
+            lastCollisionCount = validatedCollisions.size();
             List<WireSegment> segments = new ArrayList<>();
             Set<Object> encounteredIdentities = new HashSet<>();
             for (CollisionData collision : validatedCollisions) {
