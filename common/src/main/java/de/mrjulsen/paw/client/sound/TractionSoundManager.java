@@ -25,11 +25,17 @@ public final class TractionSoundManager {
     // is swept out and its sound force-stopped after this many ticks of silence.
     private static final long STALE_AFTER_TICKS = 40;
 
-    // Speed (blocks/tick) at and beyond which the whine reaches MAX_PITCH; a typical
-    // cruising train sits well under this, so most of the pitch range is used in practice.
+    // Speed (blocks/tick) at and beyond which the whine reaches its top gear; a typical
+    // cruising train sits well under this, so most of the range is used in practice.
     private static final double SPEED_AT_MAX_PITCH = 0.5;
     private static final float MIN_PITCH = 0.85f;
-    private static final float MAX_PITCH = 1.5f;
+    // Real IGBT traction inverters hold their switching frequency fairly steady within a
+    // speed band, then drop to a lower frequency and climb again each time the controller
+    // shifts pulse pattern -- a rising staircase, not one smooth glide. GEAR_RISE is how far
+    // pitch climbs across one band; GEAR_DROP is the step back down at the start of the next.
+    private static final int GEAR_COUNT = 4;
+    private static final float GEAR_RISE = 0.22f;
+    private static final float GEAR_DROP = 0.08f;
 
     private static final ElectricTrainStateTracker TRACKER =
         new ElectricTrainStateTracker(CONTACT_GRACE_TICKS, CAPABILITY_GRACE_TICKS);
@@ -74,7 +80,10 @@ public final class TractionSoundManager {
 
     private static float pitchForSpeed(double speed) {
         double fraction = Math.min(1, Math.max(0, Math.abs(speed) / SPEED_AT_MAX_PITCH));
-        return (float) (MIN_PITCH + (MAX_PITCH - MIN_PITCH) * Math.sqrt(fraction));
+        double gearProgress = fraction * GEAR_COUNT;
+        int gearIndex = Math.min(GEAR_COUNT - 1, (int) gearProgress);
+        double withinGear = gearProgress - gearIndex;
+        return (float) (MIN_PITCH + gearIndex * (GEAR_RISE - GEAR_DROP) + withinGear * GEAR_RISE);
     }
 
     /** Call once per client tick to sweep vehicles that stopped reporting entirely. */
