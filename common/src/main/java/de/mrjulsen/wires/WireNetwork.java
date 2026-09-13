@@ -420,6 +420,16 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
 
     public void onChunkLoad(Level level, ChunkPos pos, Player player) {
         playersWatchingChunk.put(pos, player.getUUID());
+        // [PaW sync] diagnostics: wires are only sent for chunks their collision passes
+        // through, so a chunk holding a wire endpoint with no collision never sends it.
+        if (!collisionByChunk.containsKey(pos)) {
+            for (BlockPos endpoint : connectionsByBlock.keySet()) {
+                if ((endpoint.getX() >> 4) == pos.x && (endpoint.getZ() >> 4) == pos.z) {
+                    WiresApi.LOGGER.warn("[PaW sync] chunk {} holds wire endpoint {} but has no collision, so nothing is sent for it", pos, endpoint);
+                    break;
+                }
+            }
+        }
         synchronized (collisionByChunk) {
             if (collisionByChunk.containsKey(pos) && player instanceof ServerPlayer serverPlayer) {
                 Collection<WireConnection> connections = new ArrayList<>(getConnectionsTroughChunk(pos));
@@ -429,6 +439,7 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
                     syncData.add(new WireSyncDataEntry(connection.getWireConnectionSyncData(), b));
                 }
                 DataAccessor.getFromClient(serverPlayer, new WiresNetworkSyncData(pos, syncData), NetworkManager.WIRE_CONNECTOR_DATA_TRANSFER, $ -> {});
+                WiresApi.LOGGER.info("[PaW sync] load chunk {} -> {}: sent {}", pos, serverPlayer.getGameProfile().getName(), connections.stream().map(WireConnection::getId).toList());
             }
         }
     }
@@ -442,6 +453,7 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
                 Collection<WireConnection> connections = getConnectionsTroughChunk(pos);
                 if (connections.isEmpty()) return;
                 DataAccessor.getFromClient(serverPlayer, new WireChunkLoadingData(pos, connections.stream().map(WireConnection::getId).collect(Collectors.toSet()), false), NetworkManager.WIRE_CONNECTION_CHUNK_LOADING, $ -> {});
+                WiresApi.LOGGER.info("[PaW sync] unload chunk {} -> {}: {}", pos, serverPlayer.getGameProfile().getName(), connections.stream().map(WireConnection::getId).toList());
             }
         }
     }
