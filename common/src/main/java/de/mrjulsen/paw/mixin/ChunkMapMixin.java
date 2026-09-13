@@ -8,13 +8,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import de.mrjulsen.paw.event.ChunkLoadingEvents;
-import de.mrjulsen.wires.WireNetwork;
-import de.mrjulsen.wires.WiresApi;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 @Mixin(ChunkMap.class)
 public class ChunkMapMixin {
@@ -22,16 +20,19 @@ public class ChunkMapMixin {
     @Shadow
     private ServerLevel level;
 
-    @Inject(method = "updateChunkTracking", at = @At(value = "HEAD"))
-    protected void updateChunkTracking(ServerPlayer player, ChunkPos chunkPos, MutableObject<ClientboundLevelChunkWithLightPacket> packetCache, boolean wasLoaded, boolean load, CallbackInfo ci) {
-        // [PaW track] diagnostics: wires sync only at join and leave, never while moving.
-        // Log every real transition with the network it consults, to tell "this hook does
-        // not fire on movement" apart from "it fires and onChunkLoad finds nothing".
-        if (wasLoaded != load) {
-            WireNetwork net = WireNetwork.get(level);
-            WiresApi.LOGGER.info("[PaW track] {} {} for {} | net@{} {}", load ? "watch" : "unwatch", chunkPos,
-                player.getGameProfile().getName(), Integer.toHexString(System.identityHashCode(net)), net.debug_text());
-        }
-        ChunkLoadingEvents.fireChunkWatch(wasLoaded, load, player, chunkPos, level);
+    /**
+     * Wires for a chunk are sent when the chunk itself is sent to the player.
+     *
+     * This used to hook updateChunkTracking, but Lithium overwrites ChunkMap.move with its
+     * own loop that calls playerLoadedChunk and ServerPlayer.untrackChunk directly. With
+     * Lithium installed, updateChunkTracking only ran when a player joined or left, so wires
+     * were sent for the chunks around the join point and never for anywhere the player went
+     * afterwards. Every path that sends a chunk, vanilla or Lithium, goes through
+     * playerLoadedChunk, and it also covers chunks that only become ready after the player
+     * started watching them. The matching unwatch lives in ServerPlayerMixin.
+     */
+    @Inject(method = "playerLoadedChunk", at = @At("HEAD"))
+    private void paw$onChunkSent(ServerPlayer player, MutableObject<ClientboundLevelChunkWithLightPacket> packetCache, LevelChunk chunk, CallbackInfo ci) {
+        ChunkLoadingEvents.fireChunkWatch(true, player, chunk.getPos(), level);
     }
 }
