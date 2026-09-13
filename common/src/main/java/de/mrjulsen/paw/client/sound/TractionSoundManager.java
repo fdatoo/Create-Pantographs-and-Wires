@@ -38,10 +38,11 @@ public final class TractionSoundManager {
     private static final int MAX_VEHICLES = 8;
 
     // Speed (blocks/tick) at and beyond which the drive reaches its top gear. Create's
-    // trainTopSpeed defaults to 28 m/s, which at 20 ticks a second is 1.4 blocks/tick;
-    // calibrating below that pins every train in top gear for most of its speed range and
-    // crowds all the gear changes into the first moments of acceleration.
-    private static final double SPEED_AT_TOP_GEAR = 1.4;
+    // configured maximum is 1.4 (28 m/s), but trains in practice cruise near half that,
+    // so calibrating to the maximum leaves the upper gears unreachable and puts a gear
+    // boundary right at cruising speed, where speed jitter would hunt between gears.
+    // Measured against actual cruise instead; above it the top gear simply holds.
+    private static final double SPEED_AT_TOP_GEAR = 0.7;
 
     // A standing train has no traction whine and no rolling noise, since nothing is
     // turning. Below this the whole bank fades out instead of humming at the platform.
