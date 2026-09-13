@@ -148,9 +148,7 @@ public final class WireClientNetwork implements IWireNetwork {
     }
 
     private void createClientConnectionUnguarded(@Nullable ChunkPos chunk, WireSyncDataEntry in) {
-        if (in.forceUpdate()) {
-            WiresApi.LOGGER.info("[PaW sync] rebuild {} (chunk {}, attach points changed)", in.data().getConnectionId(), chunk);
-            removeClientConnection(in.data().getConnectionId());
+        if (in.forceUpdate()) {            removeClientConnection(in.data().getConnectionId());
         } else if (renderDataById.containsKey(in.data().getConnectionId())) {
             // A connection the client already knows, re-sent because its chunk came back
             // into view. Vanilla rebuilds a reloaded chunk's render sections from scratch,
@@ -173,9 +171,7 @@ public final class WireClientNetwork implements IWireNetwork {
             // section, and the neighbours lose their half of it just the same.
             for (WireSegmentRenderDataBatch renderdata : known) {
                 setSectionDirty(renderdata.getSection());
-            }
-            WiresApi.LOGGER.info("[PaW sync] known {} (chunk {}), {} batches re-dirtied", in.data().getConnectionId(), chunk, known.size());
-            return;
+            }            return;
         }
         
         Set<SectionPos> sectionsIn = new HashSet<>();
@@ -193,13 +189,9 @@ public final class WireClientNetwork implements IWireNetwork {
 
         for (SectionPos section : sectionsIn) {
             setSectionDirty(section);
-        }
-        WiresApi.LOGGER.info("[PaW sync] built {} (chunk {}) into sections {}", in.data().getConnectionId(), chunk, sectionsIn);
-    }
+        }    }
 
-    public synchronized void removeClientConnections(UUID[] connectionIds) {
-        WiresApi.LOGGER.info("[PaW sync] removing {}: server deleted them", java.util.Arrays.toString(connectionIds));
-        for (UUID id : connectionIds) {
+    public synchronized void removeClientConnections(UUID[] connectionIds) {        for (UUID id : connectionIds) {
             removeClientConnection(id);
         }
     }
@@ -232,9 +224,7 @@ public final class WireClientNetwork implements IWireNetwork {
                 }
             }
 
-            for (UUID id : emptyConnections) {                
-                WiresApi.LOGGER.info("[PaW sync] removing {}: every batch now flagged unloaded (unload of chunk {})", id, in.pos());
-                removeClientConnection(id);
+            for (UUID id : emptyConnections) {                                removeClientConnection(id);
             }
         }
     }

@@ -10,7 +10,6 @@ import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import com.simibubi.create.foundation.utility.VecHelper;
 
-import de.mrjulsen.paw.client.debug.TractionDebugOverlay;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -47,15 +46,7 @@ public class PantographMovementBehaviour implements MovementBehaviour {
                 context.position.x(),
                 context.position.y(),
                 context.position.z()
-            );
-            TractionDebugOverlay.record(
-                be.isExpandable(),
-                be.isTouchingWire(),
-                be.getCatenaryWireHeight(),
-                context.motion.length(),
-                gameTime
-            );
-        }
+            );        }
 	}
 
     /**
