@@ -64,5 +64,7 @@
     "enum.pantographsandwires.insulator_placement": "Isolatorplatzierung",
     "enum.pantographsandwires.insulator_placement.none": "Keine",
     "enum.pantographsandwires.insulator_placement.back": "Hinten",
-    "enum.pantographsandwires.insulator_placement.front": "Vorne"
+    "enum.pantographsandwires.insulator_placement.front": "Vorne",
+
+    "subtitle.pantographsandwires.electric_traction_hum": "Elektrisches Fahrgeräusch"
 }

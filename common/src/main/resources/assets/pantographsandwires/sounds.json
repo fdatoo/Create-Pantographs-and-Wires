@@ -1,0 +1,11 @@
+{
+    "electric.traction_hum": {
+        "subtitle": "subtitle.pantographsandwires.electric_traction_hum",
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/traction_hum",
+                "stream": false
+            }
+        ]
+    }
+}

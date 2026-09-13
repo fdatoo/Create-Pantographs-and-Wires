@@ -1,11 +1,16 @@
 package de.mrjulsen.paw.blockentity;
 
+import java.util.UUID;
+
 import org.joml.Vector3d;
 
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
+import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import com.simibubi.create.foundation.utility.VecHelper;
 
+import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -14,7 +19,7 @@ import net.minecraft.world.phys.Vec3;
 public class PantographMovementBehaviour implements MovementBehaviour {
 
 	@Override
-	public void tick(MovementContext context) {       
+	public void tick(MovementContext context) {
         if (context.contraption.entity.level().isClientSide() &&
             context.contraption.presentBlockEntities.containsKey(context.localPos) &&
             context.contraption.presentBlockEntities.get(context.localPos) instanceof PantographBlockEntity be
@@ -30,8 +35,30 @@ public class PantographMovementBehaviour implements MovementBehaviour {
                 return new Vector3d(r.x(), r.y(), r.z());
             });
             be.contraptionTick();
+
+            TractionSoundManager.observe(
+                vehicleId(context.contraption.entity),
+                context.contraption.entity.level().getGameTime(),
+                be.isExpandable(),
+                be.isTouchingWire(),
+                context.position.x(),
+                context.position.y(),
+                context.position.z()
+            );
         }
 	}
+
+    /**
+     * A whole train (all its carriages/pantographs) shares one identity so the hum
+     * doesn't stutter when only one of several pantographs loses contact; a
+     * contraption outside Create's train system falls back to its own entity id.
+     */
+    private static UUID vehicleId(AbstractContraptionEntity entity) {
+        if (entity instanceof CarriageContraptionEntity carriageEntity && carriageEntity.trainId != null) {
+            return carriageEntity.trainId;
+        }
+        return entity.getUUID();
+    }
 
     @Override
     public boolean renderAsNormalBlockEntity() {

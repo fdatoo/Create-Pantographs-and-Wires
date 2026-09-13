@@ -63,5 +63,7 @@
     "enum.pantographsandwires.insulator_placement": "Insulator Placement",
     "enum.pantographsandwires.insulator_placement.none": "None",
     "enum.pantographsandwires.insulator_placement.back": "Back",
-    "enum.pantographsandwires.insulator_placement.front": "Front"
+    "enum.pantographsandwires.insulator_placement.front": "Front",
+
+    "subtitle.pantographsandwires.electric_traction_hum": "Electric traction hum"
 }

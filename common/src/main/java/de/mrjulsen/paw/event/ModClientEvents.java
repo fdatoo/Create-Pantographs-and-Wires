@@ -1,6 +1,7 @@
 package de.mrjulsen.paw.event;
 
 import de.mrjulsen.paw.PantographsAndWires;
+import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.compat.sodium.IncompatabilityScreen;
 import de.mrjulsen.paw.compat.sodium.SodiumCompatEvent;
 import de.mrjulsen.wires.item.WireBaseItem;
@@ -12,6 +13,7 @@ import dev.architectury.event.CompoundEventResult;
 import dev.architectury.event.events.client.ClientGuiEvent;
 import dev.architectury.event.events.client.ClientLifecycleEvent;
 import dev.architectury.event.events.client.ClientPlayerEvent;
+import dev.architectury.event.events.client.ClientTickEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -48,6 +50,13 @@ public final class ModClientEvents {
 
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register((server) -> {
             WireClientNetwork.clear();
+            TractionSoundManager.stopAll();
+        });
+
+        ClientTickEvent.CLIENT_POST.register((mc) -> {
+            if (mc.level != null) {
+                TractionSoundManager.tick(mc.level.getGameTime());
+            }
         });
 
         ClientGuiEvent.RENDER_HUD.register((graphics, ticks) -> {

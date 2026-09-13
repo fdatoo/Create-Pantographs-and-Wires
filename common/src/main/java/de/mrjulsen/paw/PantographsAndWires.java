@@ -14,6 +14,7 @@ import de.mrjulsen.paw.registry.ModBlocks;
 import de.mrjulsen.paw.registry.ModCreativeModeTab;
 import de.mrjulsen.paw.registry.ModItems;
 import de.mrjulsen.paw.registry.ModNetworkAccessor;
+import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.registry.ModWireRegistry;
 import de.mrjulsen.wires.WiresApi;
 import de.mrjulsen.mcdragonlib.net.NetworkManagerBase;
@@ -54,6 +55,7 @@ public final class PantographsAndWires {
         ModItems.init();
         ModBlockEntities.init();
         ModCreativeModeTab.setup();
+        ModSounds.init();
 
         CrossPlatform.registerConfig();
         ModCommonEvents.init();
