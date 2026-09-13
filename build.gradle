@@ -114,6 +114,10 @@ subprojects {
         it.options.release = 17
     }
 
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
     // Configure Maven publishing.
     publishing {
         publications {
