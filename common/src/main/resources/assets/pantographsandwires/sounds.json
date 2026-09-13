@@ -31,5 +31,38 @@
                 "stream": false
             }
         ]
+    },
+    "electric.mp89_tone_a": {
+        "subtitle": "subtitle.pantographsandwires.electric_traction_hum",
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/mp89_tone_a",
+                "stream": false
+            }
+        ]
+    },
+    "electric.mp89_tone_b": {
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/mp89_tone_b",
+                "stream": false
+            }
+        ]
+    },
+    "electric.mp89_ridge": {
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/mp89_ridge",
+                "stream": false
+            }
+        ]
+    },
+    "electric.mp89_texture": {
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/mp89_texture",
+                "stream": false
+            }
+        ]
     }
 }
