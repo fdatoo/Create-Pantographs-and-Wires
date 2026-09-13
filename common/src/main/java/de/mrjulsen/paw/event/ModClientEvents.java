@@ -61,15 +61,23 @@ public final class ModClientEvents {
                 // usually two or three cubes below the one holding the wire. Reporting only
                 // that cube would read known=false for a perfectly healthy wire. Sweep the
                 // surrounding column instead so this can be read from the foot of a pole.
+                // Report collision alongside render geometry. Both are created in the same
+                // method from the same WireBatch, so the pair separates the two failures that
+                // look identical in game: c>0 with r=0 means the wire reached the client and
+                // its geometry was lost or filed under some other section, while both zero
+                // means the client was never told about the wire at all.
                 StringBuilder found = new StringBuilder();
                 int sections = 0;
-                for (int dy = -2; dy <= 5 && sections < 6; dy++) {
-                    for (int dx = -1; dx <= 1 && sections < 6; dx++) {
-                        for (int dz = -1; dz <= 1 && sections < 6; dz++) {
+                for (int dy = -2; dy <= 5 && sections < 8; dy++) {
+                    for (int dx = -1; dx <= 1 && sections < 8; dx++) {
+                        for (int dz = -1; dz <= 1 && sections < 8; dz++) {
                             SectionPos at = SectionPos.of(here.x() + dx, here.y() + dy, here.z() + dz);
                             int batches = net.connectionsInSection(at).size();
-                            if (batches > 0) {
-                                found.append(String.format(" %d,%d,%d(%d)", at.x(), at.y(), at.z(), batches));
+                            int collisions = net.getCollisionsTroughSection(at).size();
+                            if (batches > 0 || collisions > 0) {
+                                found.append(String.format(
+                                    " %d,%d,%d(r%d c%d)", at.x(), at.y(), at.z(), batches, collisions
+                                ));
                                 sections++;
                             }
                         }
