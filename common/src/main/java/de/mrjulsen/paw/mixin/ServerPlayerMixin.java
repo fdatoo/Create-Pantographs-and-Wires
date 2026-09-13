@@ -20,6 +20,6 @@ public class ServerPlayerMixin {
     @Inject(method = "untrackChunk", at = @At("HEAD"))
     private void paw$onChunkForgotten(ChunkPos chunkPos, CallbackInfo ci) {
         ServerPlayer self = (ServerPlayer)(Object)this;
-        ChunkLoadingEvents.fireChunkWatch(false, self, chunkPos, self.serverLevel());
+        ChunkLoadingEvents.queueChunkWatch(false, self, chunkPos, self.serverLevel());
     }
 }

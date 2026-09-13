@@ -33,6 +33,7 @@ public class ChunkMapMixin {
      */
     @Inject(method = "playerLoadedChunk", at = @At("HEAD"))
     private void paw$onChunkSent(ServerPlayer player, MutableObject<ClientboundLevelChunkWithLightPacket> packetCache, LevelChunk chunk, CallbackInfo ci) {
-        ChunkLoadingEvents.fireChunkWatch(true, player, chunk.getPos(), level);
+        // Queued, never inline: see ChunkLoadingEvents.queueChunkWatch for the deadlock.
+        ChunkLoadingEvents.queueChunkWatch(true, player, chunk.getPos(), level);
     }
 }
