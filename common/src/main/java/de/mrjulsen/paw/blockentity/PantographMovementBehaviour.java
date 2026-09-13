@@ -41,6 +41,7 @@ public class PantographMovementBehaviour implements MovementBehaviour {
                 context.contraption.entity.level().getGameTime(),
                 be.isExpandable(),
                 be.isTouchingWire(),
+                context.motion.length(),
                 context.position.x(),
                 context.position.y(),
                 context.position.z()

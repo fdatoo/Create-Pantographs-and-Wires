@@ -25,6 +25,12 @@ public final class TractionSoundManager {
     // is swept out and its sound force-stopped after this many ticks of silence.
     private static final long STALE_AFTER_TICKS = 40;
 
+    // Speed (blocks/tick) at and beyond which the whine reaches MAX_PITCH; a typical
+    // cruising train sits well under this, so most of the pitch range is used in practice.
+    private static final double SPEED_AT_MAX_PITCH = 0.5;
+    private static final float MIN_PITCH = 0.85f;
+    private static final float MAX_PITCH = 1.5f;
+
     private static final ElectricTrainStateTracker TRACKER =
         new ElectricTrainStateTracker(CONTACT_GRACE_TICKS, CAPABILITY_GRACE_TICKS);
     private static final Map<UUID, Entry> ACTIVE = new HashMap<>();
@@ -36,6 +42,7 @@ public final class TractionSoundManager {
         long gameTime,
         boolean raised,
         boolean touching,
+        double speed,
         double x,
         double y,
         double z
@@ -61,7 +68,13 @@ public final class TractionSoundManager {
         if (touching) {
             entry.sound.updatePosition(x, y, z);
         }
+        entry.sound.setTargetPitch(pitchForSpeed(speed));
         entry.lastObservedTick = gameTime;
+    }
+
+    private static float pitchForSpeed(double speed) {
+        double fraction = Math.min(1, Math.max(0, Math.abs(speed) / SPEED_AT_MAX_PITCH));
+        return (float) (MIN_PITCH + (MAX_PITCH - MIN_PITCH) * Math.sqrt(fraction));
     }
 
     /** Call once per client tick to sweep vehicles that stopped reporting entirely. */
