@@ -1,0 +1,59 @@
+{
+	"credit": "Item form of the third rail: the same cross-section ThirdRailRenderer sweeps along a curve.",
+	"parent": "block/block",
+	"textures": {
+		"0": "pantographsandwires:block/third_rail",
+		"particle": "pantographsandwires:block/third_rail"
+	},
+	"elements": [
+		{
+			"name": "insulator_pedestal",
+			"from": [6, 0, 6],
+			"to": [10, 3, 10],
+			"faces": {
+				"north": {"uv": [0, 8, 4, 11], "texture": "#0"},
+				"east": {"uv": [4, 8, 8, 11], "texture": "#0"},
+				"south": {"uv": [8, 8, 12, 11], "texture": "#0"},
+				"west": {"uv": [12, 8, 16, 11], "texture": "#0"},
+				"down": {"uv": [0, 8, 4, 12], "texture": "#0"}
+			}
+		},
+		{
+			"name": "conductor",
+			"from": [6.5, 3, 0],
+			"to": [9.5, 6, 16],
+			"faces": {
+				"north": {"uv": [0, 0, 3, 3], "texture": "#0"},
+				"east": {"uv": [0, 0, 16, 3], "texture": "#0"},
+				"south": {"uv": [13, 0, 16, 3], "texture": "#0"},
+				"west": {"uv": [0, 1, 16, 4], "texture": "#0"},
+				"up": {"uv": [0, 0, 16, 3], "texture": "#0", "rotation": 90},
+				"down": {"uv": [0, 1, 16, 4], "texture": "#0", "rotation": 90}
+			}
+		},
+		{
+			"name": "cover_bracket",
+			"from": [9.5, 3, 7],
+			"to": [10.5, 9, 9],
+			"faces": {
+				"north": {"uv": [0, 12, 1, 16], "texture": "#0"},
+				"east": {"uv": [2, 12, 4, 16], "texture": "#0"},
+				"south": {"uv": [1, 12, 2, 16], "texture": "#0"},
+				"west": {"uv": [4, 12, 6, 16], "texture": "#0"}
+			}
+		},
+		{
+			"name": "cover_board",
+			"from": [4, 9, 0],
+			"to": [12, 10.5, 16],
+			"faces": {
+				"north": {"uv": [0, 4, 8, 5.5], "texture": "#0"},
+				"east": {"uv": [0, 5, 16, 6.5], "texture": "#0"},
+				"south": {"uv": [8, 4, 16, 5.5], "texture": "#0"},
+				"west": {"uv": [0, 6, 16, 7.5], "texture": "#0"},
+				"up": {"uv": [0, 4, 16, 8], "texture": "#0", "rotation": 90},
+				"down": {"uv": [0, 4, 16, 8], "texture": "#0", "rotation": 90}
+			}
+		}
+	]
+}

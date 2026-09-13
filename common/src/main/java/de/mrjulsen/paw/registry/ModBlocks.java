@@ -17,6 +17,8 @@ import com.tterrag.registrate.util.nullness.NonNullSupplier;
 
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.block.CantileverBlock;
+import de.mrjulsen.paw.block.CollectorShoeBlock;
+import de.mrjulsen.paw.block.ThirdRailBlock;
 import de.mrjulsen.paw.block.CantileverBracketBlock;
 import de.mrjulsen.paw.block.CantileverBracketPostConnectionBlock;
 import de.mrjulsen.paw.block.CantileverBracketVerticalBlock;
@@ -33,11 +35,13 @@ import de.mrjulsen.paw.block.UInsulatorBlock;
 import de.mrjulsen.paw.block.VInsulatorBlock;
 import de.mrjulsen.paw.block.abstractions.AbstractCantileverBlock;
 import de.mrjulsen.paw.block.property.EInsulatorType;
+import de.mrjulsen.paw.blockentity.CollectorShoeMovementBehaviour;
 import de.mrjulsen.paw.blockentity.PantographInteractionBehaviour;
 import de.mrjulsen.paw.blockentity.PantographMovementBehaviour;
 import de.mrjulsen.paw.client.model.RotatedBlockModel;
 import de.mrjulsen.paw.item.CantileverBlockItem;
 import de.mrjulsen.paw.item.FuelBlockItem;
+import de.mrjulsen.paw.item.ThirdRailItem;
 import de.mrjulsen.mcdragonlib.util.DLUtils;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.registries.Registries;
@@ -65,6 +69,25 @@ public class ModBlocks {
 		.transform(TagGen.pickaxeOnly())
 		.onRegister(AllMovementBehaviours.movementBehaviour(new PantographMovementBehaviour()))
 		.onRegister(AllInteractionBehaviours.interactionBehaviour(new PantographInteractionBehaviour()))
+		.register();
+
+	public static final BlockEntry<ThirdRailBlock> THIRD_RAIL = PantographsAndWires.REGISTRATE.block("third_rail", ThirdRailBlock::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.noOcclusion().noCollission())
+		.transform(TagGen.pickaxeOnly())
+		.item(ThirdRailItem::new)
+		.tab(ModCreativeModeTab.MAIN_TAB.getKey())
+		.build()
+		.register();
+
+	public static final BlockEntry<CollectorShoeBlock> COLLECTOR_SHOE = PantographsAndWires.REGISTRATE.block("collector_shoe", CollectorShoeBlock::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.noOcclusion())
+		.transform(TagGen.pickaxeOnly())
+		.onRegister(AllMovementBehaviours.movementBehaviour(new CollectorShoeMovementBehaviour()))
+		.item()
+		.tab(ModCreativeModeTab.MAIN_TAB.getKey())
+		.build()
 		.register();
 
 	public static final BlockEntry<LatticeMastBlock> LATTICE_MAST = PantographsAndWires.REGISTRATE.block("lattice_mast", LatticeMastBlock::new)

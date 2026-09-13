@@ -65,5 +65,18 @@
     "enum.pantographsandwires.insulator_placement.back": "Back",
     "enum.pantographsandwires.insulator_placement.front": "Front",
 
-    "subtitle.pantographsandwires.electric_traction_hum": "Electric traction hum"
+    "subtitle.pantographsandwires.electric_traction_hum": "Electric traction hum",
+
+    "block.pantographsandwires.third_rail": "Third Rail",
+    "block.pantographsandwires.third_rail.tooltip.summary": "An _electrified rail_ laid beside the track, under a protective cover. Trains with a _Collector Shoe_ on that side draw power from it. _Touching the conductor hurts._",
+    "block.pantographsandwires.third_rail.tooltip.condition1": "When R-Clicked on a Third Rail",
+    "block.pantographsandwires.third_rail.tooltip.behaviour1": "Selects it as the start of a new rail. Click a second point to lay a _straight or curved_ rail to it, the same way _track_ is placed. _Sneak_ to clear the selection.",
+    "block.pantographsandwires.third_rail.tooltip.condition2": "When Wrenched",
+    "block.pantographsandwires.third_rail.tooltip.behaviour2": "Moves the _cover supports_ to the other side of the rail.",
+    "block.pantographsandwires.collector_shoe": "Collector Shoe",
+    "block.pantographsandwires.collector_shoe.tooltip.summary": "Mounted on the side of a train, it slides along a _Third Rail_ on the side it faces and powers the train just like a _Pantograph_.",
+    "pantographsandwires.third_rail.not_enough_rails": "Not holding enough Third Rails",
+    "pantographsandwires.third_rail.supports_moved": "Cover supports moved to the other side",
+    "death.attack.pantographsandwires.third_rail": "%1$s touched the third rail",
+    "death.attack.pantographsandwires.third_rail.player": "%1$s touched the third rail while fleeing %2$s"
 }

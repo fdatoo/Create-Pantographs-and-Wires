@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "shape=z": { "model": "pantographsandwires:block/third_rail" },
+        "shape=x": { "model": "pantographsandwires:block/third_rail" },
+        "shape=pd": { "model": "pantographsandwires:block/third_rail" },
+        "shape=nd": { "model": "pantographsandwires:block/third_rail" }
+    }
+}

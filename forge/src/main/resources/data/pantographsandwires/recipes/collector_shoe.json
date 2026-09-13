@@ -1,0 +1,25 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "key": {
+      "A": {
+        "item": "create:andesite_alloy"
+      },
+      "I": {
+        "item": "pantographsandwires:insulator_brown"
+      },
+      "S": {
+        "item": "pantographsandwires:iron_strip"
+      },
+      "G": {
+        "item": "pantographsandwires:graphite_ingot"
+      }
+    },
+    "pattern": [
+      "AI",
+      "SG"
+    ],
+    "result": {
+      "count": 1,
+      "item": "pantographsandwires:collector_shoe"
+    }
+  }

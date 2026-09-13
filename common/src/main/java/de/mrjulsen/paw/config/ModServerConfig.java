@@ -14,6 +14,9 @@ public class ModServerConfig {
     public static final ForgeConfigSpec.ConfigValue<Double> WIRE_COLLISION_TRACER_STEP_SIZE;
     public static final ForgeConfigSpec.ConfigValue<Boolean> BLOCKS_BREAK_WIRES;
     public static final ForgeConfigSpec.ConfigValue<Boolean> WIRE_ENTITY_DAMAGE;
+    public static final ForgeConfigSpec.ConfigValue<Integer> THIRD_RAIL_MAX_LENGTH;
+    public static final ForgeConfigSpec.ConfigValue<Boolean> THIRD_RAIL_ENTITY_DAMAGE;
+    public static final ForgeConfigSpec.ConfigValue<Double> THIRD_RAIL_DAMAGE_AMOUNT;
 
     static {
         BUILDER.push(PantographsAndWires.MOD_ID + "_common_config");
@@ -29,6 +32,13 @@ public class ModServerConfig {
 
         WIRE_COLLISION_TRACER_STEP_SIZE = BUILDER.comment(new String[] {"[in Block Pixels]", "Which step size is used in the collision calculation of the cables. Lower values increase precision but require more computing power. Higher values are inaccurate but require less more performance.", WARN, "Default: 1"})
             .defineInRange("wires.calculation.collision_tracer_step_size", 1, 0.1, 4);
+
+        THIRD_RAIL_MAX_LENGTH = BUILDER.comment(new String[] {"[in Blocks]", "The maximum distance between the two ends of a placed third rail curve.", "Default: 32"})
+            .defineInRange("third_rail.max_length", 32, 8, 128);
+        THIRD_RAIL_ENTITY_DAMAGE = BUILDER.comment(new String[] {"Whether touching a third rail's conductor hurts players and mobs.", "Default: true"})
+            .define("third_rail.entity_damage", true);
+        THIRD_RAIL_DAMAGE_AMOUNT = BUILDER.comment(new String[] {"[in half hearts]", "Damage dealt each time an entity touches a third rail's conductor.", "Default: 8"})
+            .defineInRange("third_rail.damage_amount", 8.0D, 0.0D, 1000.0D);
 
         BUILDER.pop();
         SPEC = BUILDER.build();

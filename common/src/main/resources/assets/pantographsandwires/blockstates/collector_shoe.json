@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "pantographsandwires:block/collector_shoe" },
+        "facing=east": { "model": "pantographsandwires:block/collector_shoe", "y": 90 },
+        "facing=south": { "model": "pantographsandwires:block/collector_shoe", "y": 180 },
+        "facing=west": { "model": "pantographsandwires:block/collector_shoe", "y": 270 }
+    }
+}

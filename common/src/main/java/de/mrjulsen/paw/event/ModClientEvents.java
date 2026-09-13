@@ -1,6 +1,7 @@
 package de.mrjulsen.paw.event;
 
 import de.mrjulsen.paw.PantographsAndWires;
+import de.mrjulsen.paw.client.ThirdRailPlacementPreview;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.compat.sodium.IncompatabilityScreen;
 import de.mrjulsen.paw.compat.sodium.SodiumCompatEvent;
@@ -56,6 +57,7 @@ public final class ModClientEvents {
         ClientTickEvent.CLIENT_POST.register((mc) -> {
             if (mc.level != null) {
                 TractionSoundManager.tick(mc.level.getGameTime());
+                ThirdRailPlacementPreview.clientTick();
             }
         });
 

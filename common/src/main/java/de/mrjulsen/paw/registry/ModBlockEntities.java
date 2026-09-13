@@ -8,7 +8,9 @@ import com.tterrag.registrate.util.nullness.NonNullSupplier;
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.blockentity.MultiblockWireConnectorBlockEntity;
 import de.mrjulsen.paw.blockentity.PantographBlockEntity;
+import de.mrjulsen.paw.blockentity.ThirdRailBlockEntity;
 import de.mrjulsen.paw.blockentity.client.PantographBlockRenderer;
+import de.mrjulsen.paw.blockentity.client.ThirdRailRenderer;
 import de.mrjulsen.wires.block.WireConnectorBlockEntity;
 import net.minecraft.world.level.block.Block;
 
@@ -24,6 +26,14 @@ public class ModBlockEntities {
 			ModBlocks.PANTOGRAPH
 		)
 		.renderer(() -> PantographBlockRenderer::new)
+		.register();
+
+	public static final BlockEntityEntry<ThirdRailBlockEntity> THIRD_RAIL_BLOCK_ENTITY = PantographsAndWires.REGISTRATE
+		.blockEntity("third_rail", ThirdRailBlockEntity::new)
+		.validBlocks(
+			ModBlocks.THIRD_RAIL
+		)
+		.renderer(() -> ThirdRailRenderer::new)
 		.register();
 
 	static {

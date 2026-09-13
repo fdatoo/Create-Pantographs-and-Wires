@@ -54,7 +54,7 @@ public class PantographMovementBehaviour implements MovementBehaviour {
      * doesn't stutter when only one of several pantographs loses contact; a
      * contraption outside Create's train system falls back to its own entity id.
      */
-    private static UUID vehicleId(AbstractContraptionEntity entity) {
+    public static UUID vehicleId(AbstractContraptionEntity entity) {
         if (entity instanceof CarriageContraptionEntity carriageEntity && carriageEntity.trainId != null) {
             return carriageEntity.trainId;
         }

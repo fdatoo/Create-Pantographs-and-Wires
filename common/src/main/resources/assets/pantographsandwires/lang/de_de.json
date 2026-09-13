@@ -66,5 +66,18 @@
     "enum.pantographsandwires.insulator_placement.back": "Hinten",
     "enum.pantographsandwires.insulator_placement.front": "Vorne",
 
-    "subtitle.pantographsandwires.electric_traction_hum": "Elektrisches Fahrgeräusch"
+    "subtitle.pantographsandwires.electric_traction_hum": "Elektrisches Fahrgeräusch",
+
+    "block.pantographsandwires.third_rail": "Stromschiene",
+    "block.pantographsandwires.third_rail.tooltip.summary": "Eine _stromführende Schiene_ neben dem Gleis, unter einer Schutzabdeckung. Züge mit einem _Schleifschuh_ auf dieser Seite beziehen daraus Strom. _Die Berührung ist gefährlich._",
+    "block.pantographsandwires.third_rail.tooltip.condition1": "Rechtsklick auf eine Stromschiene",
+    "block.pantographsandwires.third_rail.tooltip.behaviour1": "Wählt sie als Anfang einer neuen Schiene. Klicke auf einen zweiten Punkt, um eine _gerade oder gebogene_ Schiene dorthin zu legen, genau wie beim _Gleisbau_. _Schleichen_ hebt die Auswahl auf.",
+    "block.pantographsandwires.third_rail.tooltip.condition2": "Mit dem Schraubenschlüssel",
+    "block.pantographsandwires.third_rail.tooltip.behaviour2": "Setzt die _Abdeckungshalter_ auf die andere Seite der Schiene.",
+    "block.pantographsandwires.collector_shoe": "Schleifschuh",
+    "block.pantographsandwires.collector_shoe.tooltip.summary": "An der Seite eines Zuges montiert, gleitet er auf einer _Stromschiene_ auf der Seite, in die er zeigt, und versorgt den Zug wie ein _Stromabnehmer_.",
+    "pantographsandwires.third_rail.not_enough_rails": "Nicht genug Stromschienen dabei",
+    "pantographsandwires.third_rail.supports_moved": "Abdeckungshalter auf die andere Seite versetzt",
+    "death.attack.pantographsandwires.third_rail": "%1$s hat die Stromschiene berührt",
+    "death.attack.pantographsandwires.third_rail.player": "%1$s hat auf der Flucht vor %2$s die Stromschiene berührt"
 }

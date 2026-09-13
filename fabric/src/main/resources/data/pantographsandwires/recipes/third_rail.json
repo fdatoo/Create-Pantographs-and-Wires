@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "key": {
+      "C": {
+        "tag": "minecraft:wooden_slabs"
+      },
+      "S": {
+        "item": "pantographsandwires:iron_strip"
+      },
+      "I": {
+        "item": "pantographsandwires:insulator_brown"
+      }
+    },
+    "pattern": [
+      "CCC",
+      "SSS",
+      " I "
+    ],
+    "result": {
+      "count": 6,
+      "item": "pantographsandwires:third_rail"
+    }
+  }

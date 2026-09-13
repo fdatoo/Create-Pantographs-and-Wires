@@ -40,6 +40,8 @@
         "pantographsandwires:cantilever_double_4_brown",
         "pantographsandwires:cantilever_double_5_brown",
         "pantographsandwires:cantilever_double_6_brown",
-        "pantographsandwires:cantilever_double_7_brown"
+        "pantographsandwires:cantilever_double_7_brown",
+        "pantographsandwires:third_rail",
+        "pantographsandwires:collector_shoe"
     ]
 }

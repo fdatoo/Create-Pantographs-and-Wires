@@ -1,0 +1,97 @@
+{
+	"credit": "Collector shoe, facing north: the shoe reaches out past the north face and hangs low toward the rail.",
+	"parent": "block/block",
+	"textures": {
+		"0": "pantographsandwires:block/treated_metal",
+		"1": "pantographsandwires:block/insulator",
+		"2": "pantographsandwires:block/anvil",
+		"particle": "pantographsandwires:block/treated_metal"
+	},
+	"elements": [
+		{
+			"name": "mounting_plate",
+			"from": [3, 3, 14],
+			"to": [13, 14, 16],
+			"faces": {
+				"north": {"uv": [3, 2, 13, 13], "texture": "#0"},
+				"east": {"uv": [0, 2, 2, 13], "texture": "#0"},
+				"south": {"uv": [3, 2, 13, 13], "texture": "#0", "cullface": "south"},
+				"west": {"uv": [14, 2, 16, 13], "texture": "#0"},
+				"up": {"uv": [3, 0, 13, 2], "texture": "#0"},
+				"down": {"uv": [3, 14, 13, 16], "texture": "#0"}
+			}
+		},
+		{
+			"name": "arm_inner",
+			"from": [6.5, 8, 10],
+			"to": [9.5, 11, 14],
+			"faces": {
+				"east": {"uv": [0, 4, 4, 7], "texture": "#0"},
+				"west": {"uv": [12, 4, 16, 7], "texture": "#0"},
+				"up": {"uv": [6, 0, 9, 4], "texture": "#0"},
+				"down": {"uv": [6, 12, 9, 16], "texture": "#0"}
+			}
+		},
+		{
+			"name": "insulator",
+			"from": [5.5, 6.5, 6],
+			"to": [10.5, 12.5, 10],
+			"faces": {
+				"north": {"uv": [0, 6, 5, 12], "texture": "#1"},
+				"east": {"uv": [1, 6, 5, 12], "texture": "#1"},
+				"south": {"uv": [0, 6, 5, 12], "texture": "#1"},
+				"west": {"uv": [1, 6, 5, 12], "texture": "#1"},
+				"up": {"uv": [0, 6, 5, 10], "texture": "#1"},
+				"down": {"uv": [0, 8, 5, 12], "texture": "#1"}
+			}
+		},
+		{
+			"name": "insulator_cap",
+			"from": [6, 12.5, 6.5],
+			"to": [10, 13.5, 9.5],
+			"faces": {
+				"north": {"uv": [6, 0, 10, 1], "texture": "#1"},
+				"east": {"uv": [6, 1, 9, 2], "texture": "#1"},
+				"south": {"uv": [6, 2, 10, 3], "texture": "#1"},
+				"west": {"uv": [6, 1, 9, 2], "texture": "#1"},
+				"up": {"uv": [6, 0, 10, 3], "texture": "#1"}
+			}
+		},
+		{
+			"name": "arm_outer",
+			"from": [7, 8.5, 1],
+			"to": [9, 10.5, 6],
+			"faces": {
+				"north": {"uv": [7, 5, 9, 7], "texture": "#0"},
+				"east": {"uv": [1, 5, 6, 7], "texture": "#0"},
+				"west": {"uv": [10, 5, 15, 7], "texture": "#0"},
+				"up": {"uv": [7, 1, 9, 6], "texture": "#0"},
+				"down": {"uv": [7, 10, 9, 15], "texture": "#0"}
+			}
+		},
+		{
+			"name": "hanger",
+			"from": [7, 2, 1],
+			"to": [9, 8.5, 3],
+			"faces": {
+				"north": {"uv": [7, 7, 9, 13.5], "texture": "#2"},
+				"east": {"uv": [3, 7, 5, 13.5], "texture": "#2"},
+				"south": {"uv": [7, 7, 9, 13.5], "texture": "#2"},
+				"west": {"uv": [11, 7, 13, 13.5], "texture": "#2"}
+			}
+		},
+		{
+			"name": "shoe",
+			"from": [3, 0, -3],
+			"to": [13, 2, 4],
+			"faces": {
+				"north": {"uv": [3, 14, 13, 16], "texture": "#2"},
+				"east": {"uv": [0, 14, 7, 16], "texture": "#2"},
+				"south": {"uv": [3, 14, 13, 16], "texture": "#2"},
+				"west": {"uv": [9, 14, 16, 16], "texture": "#2"},
+				"up": {"uv": [3, 0, 13, 7], "texture": "#2"},
+				"down": {"uv": [3, 9, 13, 16], "texture": "#2"}
+			}
+		}
+	]
+}
