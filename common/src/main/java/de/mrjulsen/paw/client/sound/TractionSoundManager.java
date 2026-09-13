@@ -1,9 +1,12 @@
 package de.mrjulsen.paw.client.sound;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
 import net.fabricmc.api.EnvType;
@@ -11,31 +14,55 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 
 /**
- * Owns the looping electric traction hum for every vehicle carrying a
- * pantograph. Backed by {@link ElectricTrainStateTracker} so a train with
- * several pantographs (or one briefly skipping across an insulator gap)
- * keeps a single steady hum instead of one that stutters on and off.
+ * Owns the traction sound for every vehicle carrying a pantograph. Backed by
+ * {@link ElectricTrainStateTracker} so a train with several pantographs (or one
+ * briefly skipping across an insulator gap) keeps one steady sound instead of
+ * stuttering on and off.
+ *
+ * Each vehicle gets a small bank of independently pitched voices rather than a
+ * single sample: a carrier at the switching frequency, one voice per PWM
+ * sideband, and a fixed-pitch texture bed. Sidebands sit at fc +/- k*fe, so as
+ * electrical frequency rises with speed they spread apart around a carrier that
+ * is meanwhile holding steady within its gear -- the real behaviour, and not
+ * something one pitch-shifted sample can reproduce.
  */
 @Environment(EnvType.CLIENT)
 public final class TractionSoundManager {
-    // Bridges brief insulator gaps between wire spans without audibly cutting the hum.
+    // Bridges brief insulator gaps between wire spans without audibly cutting the sound.
     private static final long CONTACT_GRACE_TICKS = 10;
     private static final long CAPABILITY_GRACE_TICKS = 40;
     // A vehicle that stops reporting entirely (unloaded, contraption disassembled)
-    // is swept out and its sound force-stopped after this many ticks of silence.
+    // is swept out and its voices force-stopped after this many ticks of silence.
     private static final long STALE_AFTER_TICKS = 40;
+    // Each vehicle costs VOICES_PER_VEHICLE sound channels, so cap how many sound at once.
+    private static final int MAX_VEHICLES = 8;
 
-    // Speed (blocks/tick) at and beyond which the whine reaches its top gear; a typical
-    // cruising train sits well under this, so most of the range is used in practice.
-    private static final double SPEED_AT_MAX_PITCH = 0.5;
-    private static final float MIN_PITCH = 0.85f;
-    // Real IGBT traction inverters hold their switching frequency fairly steady within a
-    // speed band, then drop to a lower frequency and climb again each time the controller
-    // shifts pulse pattern -- a rising staircase, not one smooth glide. GEAR_RISE is how far
-    // pitch climbs across one band; GEAR_DROP is the step back down at the start of the next.
+    // Speed (blocks/tick) at and beyond which the drive reaches its top gear.
+    private static final double SPEED_AT_TOP_GEAR = 0.5;
+
+    // Switching frequency: the carrier sample is cut at this, and gear stepping scales it.
+    private static final double CARRIER_REFERENCE_HZ = 1500;
+    // Real IGBT drives hold switching frequency fairly steady within a speed band, then drop
+    // and climb again at each pulse-pattern shift -- a rising staircase, not one smooth glide.
     private static final int GEAR_COUNT = 4;
-    private static final float GEAR_RISE = 0.22f;
-    private static final float GEAR_DROP = 0.08f;
+    private static final double GEAR_BASE = 0.85;
+    private static final double GEAR_RISE = 0.22;
+    private static final double GEAR_DROP = 0.08;
+
+    // Electrical frequency tracks motor RPM, so it climbs continuously with speed.
+    private static final double FE_AT_REST_HZ = 20;
+    private static final double FE_AT_TOP_HZ = 80;
+
+    // The sideband sample is a bare tone cut at this; chosen so fc +/- 4fe across every
+    // gear stays inside the engine's [0.5, 2.0] playback pitch clamp.
+    private static final double SIDEBAND_REFERENCE_HZ = 1600;
+    private static final double TEXTURE_REFERENCE_HZ = 1;
+
+    // Sideband orders and their level relative to the carrier: the inner pair (fc +/- 2fe)
+    // sits ~15dB down, the outer pair (fc +/- 4fe) ~23dB down.
+    private static final int[] SIDEBAND_ORDERS = { -4, -2, 2, 4 };
+    private static final float INNER_SIDEBAND_LEVEL = 0.178f;
+    private static final float OUTER_SIDEBAND_LEVEL = 0.0708f;
 
     private static final ElectricTrainStateTracker TRACKER =
         new ElectricTrainStateTracker(CONTACT_GRACE_TICKS, CAPABILITY_GRACE_TICKS);
@@ -59,61 +86,117 @@ public final class TractionSoundManager {
 
         if (!snapshot.powered()) {
             if (entry != null) {
-                entry.sound.requestStop();
+                entry.stop();
                 ACTIVE.remove(vehicleId);
             }
             return;
         }
 
-        if (entry == null || entry.sound.isStopped()) {
-            TractionHumSoundInstance sound = new TractionHumSoundInstance(x, y, z);
-            entry = new Entry(sound);
+        if (entry == null || entry.isStopped()) {
+            if (entry == null && ACTIVE.size() >= MAX_VEHICLES) {
+                return;
+            }
+            entry = startVoices(x, y, z);
             ACTIVE.put(vehicleId, entry);
-            Minecraft.getInstance().getSoundManager().play(sound);
         }
         if (touching) {
-            entry.sound.updatePosition(x, y, z);
+            entry.updatePosition(x, y, z);
         }
-        entry.sound.setTargetPitch(pitchForSpeed(speed));
+        entry.updateFrequencies(speed);
         entry.lastObservedTick = gameTime;
     }
 
-    private static float pitchForSpeed(double speed) {
-        double fraction = Math.min(1, Math.max(0, Math.abs(speed) / SPEED_AT_MAX_PITCH));
+    private static Entry startVoices(double x, double y, double z) {
+        Entry entry = new Entry();
+        entry.carrier = new TractionHumSoundInstance(
+            ModSounds.TRACTION_CARRIER.get(), 1.0f, CARRIER_REFERENCE_HZ, x, y, z);
+        entry.voices.add(entry.carrier);
+
+        for (int order : SIDEBAND_ORDERS) {
+            float level = Math.abs(order) == 2 ? INNER_SIDEBAND_LEVEL : OUTER_SIDEBAND_LEVEL;
+            TractionHumSoundInstance sideband = new TractionHumSoundInstance(
+                ModSounds.TRACTION_SIDEBAND.get(), level, SIDEBAND_REFERENCE_HZ, x, y, z);
+            entry.sidebands.add(sideband);
+            entry.voices.add(sideband);
+        }
+
+        TractionHumSoundInstance texture = new TractionHumSoundInstance(
+            ModSounds.TRACTION_TEXTURE.get(), 1.0f, TEXTURE_REFERENCE_HZ, x, y, z);
+        // Motor-body resonances are a property of the structure, not the excitation, so this
+        // voice never moves: tonal lines slide past fixed resonances instead of dragging them.
+        texture.setTargetFrequency(TEXTURE_REFERENCE_HZ);
+        entry.voices.add(texture);
+
+        entry.voices.forEach(voice -> Minecraft.getInstance().getSoundManager().play(voice));
+        return entry;
+    }
+
+    /** Switching frequency in Hz: stepped by gear, holding within each band. */
+    static double switchingFrequency(double speed) {
+        double fraction = speedFraction(speed);
         double gearProgress = fraction * GEAR_COUNT;
         int gearIndex = Math.min(GEAR_COUNT - 1, (int) gearProgress);
         double withinGear = gearProgress - gearIndex;
-        return (float) (MIN_PITCH + gearIndex * (GEAR_RISE - GEAR_DROP) + withinGear * GEAR_RISE);
+        double factor = GEAR_BASE + gearIndex * (GEAR_RISE - GEAR_DROP) + withinGear * GEAR_RISE;
+        return CARRIER_REFERENCE_HZ * factor;
+    }
+
+    /** Electrical frequency in Hz: climbs continuously with motor RPM. */
+    static double electricalFrequency(double speed) {
+        return FE_AT_REST_HZ + (FE_AT_TOP_HZ - FE_AT_REST_HZ) * speedFraction(speed);
+    }
+
+    private static double speedFraction(double speed) {
+        return Math.min(1, Math.max(0, Math.abs(speed) / SPEED_AT_TOP_GEAR));
     }
 
     /** Call once per client tick to sweep vehicles that stopped reporting entirely. */
     public static void tick(long gameTime) {
         ACTIVE.entrySet().removeIf(mapEntry -> {
             Entry entry = mapEntry.getValue();
-            if (entry.sound.isStopped()) {
+            if (entry.isStopped()) {
                 return true;
             }
             if (gameTime - entry.lastObservedTick > STALE_AFTER_TICKS) {
-                entry.sound.requestStop();
+                entry.stop();
                 return true;
             }
             return false;
         });
     }
 
-    /** Call on disconnect/world unload so no hum survives into the next session. */
+    /** Call on disconnect/world unload so no voice survives into the next session. */
     public static void stopAll() {
-        ACTIVE.values().forEach(entry -> entry.sound.requestStop());
+        ACTIVE.values().forEach(Entry::stop);
         ACTIVE.clear();
         TRACKER.clear();
     }
 
     private static final class Entry {
-        private final TractionHumSoundInstance sound;
+        private final List<TractionHumSoundInstance> voices = new ArrayList<>();
+        private final List<TractionHumSoundInstance> sidebands = new ArrayList<>();
+        private TractionHumSoundInstance carrier;
         private long lastObservedTick;
 
-        private Entry(TractionHumSoundInstance sound) {
-            this.sound = sound;
+        private void updateFrequencies(double speed) {
+            double fc = switchingFrequency(speed);
+            double fe = electricalFrequency(speed);
+            carrier.setTargetFrequency(fc);
+            for (int i = 0; i < sidebands.size(); i++) {
+                sidebands.get(i).setTargetFrequency(fc + SIDEBAND_ORDERS[i] * fe);
+            }
+        }
+
+        private void updatePosition(double x, double y, double z) {
+            voices.forEach(voice -> voice.updatePosition(x, y, z));
+        }
+
+        private void stop() {
+            voices.forEach(TractionHumSoundInstance::requestStop);
+        }
+
+        private boolean isStopped() {
+            return carrier == null || carrier.isStopped();
         }
     }
 }

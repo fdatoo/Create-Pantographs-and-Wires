@@ -1,9 +1,25 @@
 {
-    "electric.traction_hum": {
+    "electric.traction_carrier": {
         "subtitle": "subtitle.pantographsandwires.electric_traction_hum",
         "sounds": [
             {
-                "name": "pantographsandwires:electric/traction_hum",
+                "name": "pantographsandwires:electric/traction_carrier",
+                "stream": false
+            }
+        ]
+    },
+    "electric.traction_sideband": {
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/traction_sideband",
+                "stream": false
+            }
+        ]
+    },
+    "electric.traction_texture": {
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/traction_texture",
                 "stream": false
             }
         ]
