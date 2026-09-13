@@ -56,6 +56,26 @@ public final class ModClientEvents {
                     net.connectionsInSection(here).size(),
                     net.debug_text()
                 ));
+
+                // Wires hang far above head height, so the section the player stands in is
+                // usually two or three cubes below the one holding the wire. Reporting only
+                // that cube would read known=false for a perfectly healthy wire. Sweep the
+                // surrounding column instead so this can be read from the foot of a pole.
+                StringBuilder found = new StringBuilder();
+                int sections = 0;
+                for (int dy = -2; dy <= 5 && sections < 6; dy++) {
+                    for (int dx = -1; dx <= 1 && sections < 6; dx++) {
+                        for (int dz = -1; dz <= 1 && sections < 6; dz++) {
+                            SectionPos at = SectionPos.of(here.x() + dx, here.y() + dy, here.z() + dz);
+                            int batches = net.connectionsInSection(at).size();
+                            if (batches > 0) {
+                                found.append(String.format(" %d,%d,%d(%d)", at.x(), at.y(), at.z(), batches));
+                                sections++;
+                            }
+                        }
+                    }
+                }
+                lines.add("[PaW] wires nearby:" + (found.length() == 0 ? " none" : found.toString()));
             }
 
             if (!PantographsAndWires.useAdvancedLogging()) {
