@@ -128,13 +128,50 @@ public final class WireClientNetwork implements IWireNetwork {
     // Mutators run on the network thread while the render thread reads. They share the
     // readers' monitor so writes are not lost or seen half-applied.
     public synchronized void createClientConnection(@Nullable ChunkPos chunk, WireSyncDataEntry in) {
+        try {
+            createClientConnectionUnguarded(chunk, in);
+        } catch (Exception e) {
+            // Nothing guarded this before. A connection that throws here gets no render
+            // data while the server still has it, so the wire is invisible but solid, and
+            // refuses to be replaced because the server says one is already there. It also
+            // fails identically on every rejoin, since the same data rebuilds the same way.
+            // Whatever else goes wrong, it should not do so silently.
+            WiresApi.LOGGER.error(
+                "Failed to build client wire {} ({}) from {} to {}; it will not render.",
+                in.data().getConnectionId(),
+                in.data().getWireType(),
+                in.data().getStartPos(),
+                in.data().getEndPos(),
+                e
+            );
+        }
+    }
+
+    private void createClientConnectionUnguarded(@Nullable ChunkPos chunk, WireSyncDataEntry in) {
         if (in.forceUpdate()) {
             removeClientConnection(in.data().getConnectionId());
         } else if (renderDataById.containsKey(in.data().getConnectionId())) {
-            if (chunk != null && renderDataByChunk.containsKey(chunk)) {
-                for (WireSegmentRenderDataBatch renderdata : renderDataByChunk.get(chunk)) {
+            // A connection the client already knows, re-sent because its chunk came back
+            // into view. Vanilla rebuilds a reloaded chunk's render sections from scratch,
+            // and wires are baked into that geometry when the section compiles, so the
+            // wire is gone from the section even though every map here still lists it.
+            //
+            // This branch used to flip the unloaded flag and return without marking
+            // anything dirty, so nothing ever rebaked the wire: it stayed invisible for
+            // the rest of the session while still being solid and still counting as
+            // present, which is why re-wiring answered "already a wire there". Only a
+            // relog cleared the network and took the full build path below.
+            Collection<WireSegmentRenderDataBatch> known = renderDataById.get(in.data().getConnectionId());
+            for (WireSegmentRenderDataBatch renderdata : known) {
+                if (chunk == null || chunk.equals(renderdata.getSection().chunk())) {
                     renderdata.setUnloaded(false);
                 }
+            }
+            // Every section the wire occupies, not just the ones in the chunk that
+            // triggered this: a wire crossing a chunk border is rebuilt section by
+            // section, and the neighbours lose their half of it just the same.
+            for (WireSegmentRenderDataBatch renderdata : known) {
+                setSectionDirty(renderdata.getSection());
             }
             return;
         }

@@ -169,15 +169,30 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
     public Collection<WireConnection> getConnectionsTroughBlock(BlockPos pos) {
         Collection<WireConnection> connections = new LinkedList<>();
         for (WireCollision c : collisionByBlock.get(pos)) {
-            connections.add(connectionsById.get(c.getId()));
+            addIfKnown(connections, c);
         }
         return connections;
+    }
+
+    /**
+     * Collision is indexed separately from the connections themselves, so a collision can
+     * outlive its connection. Adding the null straight to the list pushed the failure out
+     * to the caller, where onChunkLoad would throw and quietly send that whole chunk's
+     * wires to nobody. One stale entry should cost its own wire, not every wire near it.
+     */
+    private void addIfKnown(Collection<WireConnection> out, WireCollision collision) {
+        WireConnection connection = connectionsById.get(collision.getId());
+        if (connection == null) {
+            WiresApi.LOGGER.warn("Wire collision {} has no matching connection; skipping it.", collision.getId());
+            return;
+        }
+        out.add(connection);
     }
 
     public Collection<WireConnection> getConnectionsTroughSection(SectionPos pos) {
         Collection<WireConnection> connections = new LinkedList<>();
         for (WireCollision c : collisionBySection.get(pos)) {
-            connections.add(connectionsById.get(c.getId()));
+            addIfKnown(connections, c);
         }
         return connections;
     }
@@ -185,7 +200,7 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
     public Collection<WireConnection> getConnectionsTroughChunk(ChunkPos pos) {
         Collection<WireConnection> connections = new LinkedList<>();
         for (WireCollision c : collisionByChunk.get(pos)) {
-            connections.add(connectionsById.get(c.getId()));
+            addIfKnown(connections, c);
         }
         return connections;
     }
