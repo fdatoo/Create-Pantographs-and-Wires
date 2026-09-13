@@ -37,8 +37,15 @@ public final class TractionSoundManager {
     // Each vehicle costs one channel per voice, so cap how many sound at once.
     private static final int MAX_VEHICLES = 8;
 
-    // Speed (blocks/tick) at and beyond which the drive reaches its top gear.
-    private static final double SPEED_AT_TOP_GEAR = 0.5;
+    // Speed (blocks/tick) at and beyond which the drive reaches its top gear. Create's
+    // trainTopSpeed defaults to 28 m/s, which at 20 ticks a second is 1.4 blocks/tick;
+    // calibrating below that pins every train in top gear for most of its speed range and
+    // crowds all the gear changes into the first moments of acceleration.
+    private static final double SPEED_AT_TOP_GEAR = 1.4;
+
+    // A standing train has no traction whine and no rolling noise, since nothing is
+    // turning. Below this the whole bank fades out instead of humming at the platform.
+    private static final double SPEED_AT_FULL_MOTION = 0.08;
 
     // Switching frequency: the carrier sample is cut at this, and gear stepping scales it.
     private static final double CARRIER_REFERENCE_HZ = 1500;
@@ -139,12 +146,12 @@ public final class TractionSoundManager {
             ModSounds.TRACTION_BASS.get(), BASS_LEVEL, BASS_REFERENCE_HZ, x, y, z);
         entry.voices.add(entry.bass);
 
-        TractionHumSoundInstance texture = new TractionHumSoundInstance(
+        entry.texture = new TractionHumSoundInstance(
             ModSounds.TRACTION_TEXTURE.get(), TEXTURE_LEVEL, TEXTURE_REFERENCE_HZ, x, y, z);
         // Motor-body resonances are a property of the structure, not the excitation, so this
         // voice never moves: tonal lines slide past fixed resonances instead of dragging them.
-        texture.setTargetFrequency(TEXTURE_REFERENCE_HZ);
-        entry.voices.add(texture);
+        entry.texture.setTargetFrequency(TEXTURE_REFERENCE_HZ);
+        entry.voices.add(entry.texture);
 
         // Frequencies are set before playback so no voice starts at its sample's own pitch
         // and audibly slides to where the vehicle's speed actually puts it.
@@ -180,6 +187,11 @@ public final class TractionSoundManager {
     /** Electrical frequency in Hz: climbs continuously with motor RPM. */
     public static double electricalFrequency(double speed) {
         return FE_AT_REST_HZ + (FE_AT_TOP_HZ - FE_AT_REST_HZ) * speedFraction(speed);
+    }
+
+    /** Overall level from speed, so a train standing at a platform falls silent. */
+    static float motionScale(double speed) {
+        return (float) Math.min(1, Math.max(0, Math.abs(speed) / SPEED_AT_FULL_MOTION));
     }
 
     /** Tonal level while pulling versus coasting, from acceleration in blocks/tick^2. */
@@ -219,6 +231,7 @@ public final class TractionSoundManager {
         private final List<TractionHumSoundInstance> sidebands = new ArrayList<>();
         private TractionHumSoundInstance carrier;
         private TractionHumSoundInstance bass;
+        private TractionHumSoundInstance texture;
         private long lastObservedTick;
         private double previousSpeed;
         private boolean hasPreviousSpeed;
@@ -235,10 +248,14 @@ public final class TractionSoundManager {
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;
             hasPreviousSpeed = true;
-            float load = loadScaleFor(acceleration);
-            carrier.setLoadScale(load);
-            sidebands.forEach(sideband -> sideband.setLoadScale(load));
-            bass.setLoadScale(load);
+            // Motion gates everything; the load envelope rides on top of it, but only on
+            // the electrical layer, so mechanical noise stays steady while rolling.
+            float motion = motionScale(speed);
+            float tonal = motion * loadScaleFor(acceleration);
+            carrier.setLoadScale(tonal);
+            sidebands.forEach(sideband -> sideband.setLoadScale(tonal));
+            bass.setLoadScale(tonal);
+            texture.setLoadScale(motion);
         }
 
         private void updatePosition(double x, double y, double z) {

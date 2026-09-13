@@ -1,5 +1,6 @@
 package de.mrjulsen.paw.client.sound;
 
+import de.mrjulsen.paw.config.ModClientConfig;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
@@ -22,13 +23,17 @@ import net.minecraft.sounds.SoundSource;
 @Environment(EnvType.CLIENT)
 public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
 
-    // Create's own train loops play in SoundSource.NEUTRAL at up to 1.5x on full-scale
-    // samples, so anything much below unity here is simply buried underneath them.
-    private static final float MASTER_VOLUME = 1.0f;
+    // Read from config rather than fixed, so loudness can be tuned in game instead of
+    // by rebuilding. Applied once at construction; voices are rebuilt per contact anyway.
+    private static float masterVolume() {
+        return ModClientConfig.TRACTION_VOLUME.get().floatValue();
+    }
     // 10 ticks (0.5s) to fade fully in or out.
     private static final float FADE_STEP = 1f / 10f;
-    // How quickly pitch glides toward its target each tick; smaller = slower spool-up.
-    private static final float PITCH_SMOOTHING = 0.08f;
+    // How quickly pitch glides toward its target each tick. Fast enough that a gear step
+    // lands in about a fifth of a second and reads as a step; slower than this and the
+    // steps smear together into one continuous rise.
+    private static final float PITCH_SMOOTHING = 0.22f;
     // Load responds slower than pitch, so per-tick speed jitter doesn't pump the level.
     private static final float LOAD_SMOOTHING = 0.05f;
     // Minecraft's sound engine clamps playback pitch to this window, so every voice's
@@ -60,7 +65,7 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
         double z
     ) {
         super(event, SoundSource.BLOCKS, SoundInstance.createUnseededRandom());
-        this.baseVolume = MASTER_VOLUME * level;
+        this.baseVolume = masterVolume() * level;
         this.referenceFrequency = referenceFrequency;
         this.looping = true;
         this.delay = 0;
