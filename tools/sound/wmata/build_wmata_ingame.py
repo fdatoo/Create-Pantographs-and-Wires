@@ -12,6 +12,11 @@ Level scale: every tonal sample is baked so that a unit-amplitude tone in the of
 volume 1.0 in game, at the 0.30 amplitude the MP 89 samples use. The whole bank is then scaled
 so no voice ever asks the engine for more than volume 1.0, and so its mean mix power over a
 standstill-to-cruise ramp matches the MP 89 profile, keeping the two variants equally loud.
+
+Noise: the tuned noise matched the whole recording, which was made on a platform, so it carried
+station background and came out far louder than the traction tones. Here the background is
+subtracted from its envelope and the bed trimmed to a level chosen by ear from in-game renders
+(simulate_ingame.py). Also writes wmata_ingame_tables.json for that simulator.
 """
 import json, os, subprocess, tempfile
 import numpy as np
@@ -38,6 +43,23 @@ L = {x["name"]: x for x in spec["layers"]}
 A, B, C, D = (L[k] for k in ("A_upper_cluster", "B_rising_low_tone", "C_brief_upper_cluster_optional", "D_later_mid_tone_optional"))
 assert st2["a_diffuse"] and st2["a_diffuse"]["width_hz"] == 160
 
+# Untonal floor of the platform before the train moves (source 0-4 s and 6-8 s, 80 Hz-6 kHz),
+# relative to the floor at the end of the crop, where the tuned noise envelope is 0 dB.
+PLATFORM_BACKGROUND_DB = -8.74
+# The noise bed relative to its tuned level. The tuned level put it 14 dB over the tones at
+# cruise in game; this puts it about 4 dB under, close to the MP 89 balance.
+NOISE_TRIM_DB = -18.0
+
+
+def without_background(knots, background_db):
+    """Remove a constant background power from a dB envelope, keeping its peak at 0 dB."""
+    k = np.asarray(knots, dtype=float)
+    power = np.maximum(10 ** (k[:, 1] / 10) - 10 ** (background_db / 10), 1e-6)
+    db = 10 * np.log10(power)
+    db -= db.max()
+    return [[float(a), float(b)] for a, b in zip(k[:, 0], db)]
+
+
 KNOTS = {
     "UPPER_FREQUENCY_KNOTS": A["frequency_knots_s_hz"],
     "LOW_FREQUENCY_KNOTS": B["frequency_knots_s_hz"],
@@ -49,12 +71,15 @@ KNOTS = {
     "LOW_LEVEL_KNOTS_DB": tun["B_rising_low_tone_level_knots_s_db"],
     "BRIEF_LEVEL_KNOTS_DB": C["level_knots_s_db"],
     "MID_LEVEL_KNOTS_DB": D["level_knots_s_db"],
-    "NOISE_LEVEL_KNOTS_DB": tun["noise_env_knots_s_db"],
+    "NOISE_LEVEL_KNOTS_DB": without_background(tun["noise_env_knots_s_db"], PLATFORM_BACKGROUND_DB),
 }
+# The single-sine loops are baked this much hotter than AMP and their gains lowered to match, so
+# the low sweep does not reach volume 1.0 first and hold the whole bank below MP 89's loudness.
+SINE_SAMPLE_BOOST_DB = 8.0
 GAINS = {
-    "LOW_GAIN_DB": float(st2["layer_gains_db"]["B_rising_low_tone"]),
-    "BRIEF_GAIN_DB": float(st2["layer_gains_db"]["C_brief_upper_cluster_optional"]),
-    "MID_GAIN_DB": float(st2["layer_gains_db"]["D_later_mid_tone_optional"]),
+    "LOW_GAIN_DB": float(st2["layer_gains_db"]["B_rising_low_tone"]) - SINE_SAMPLE_BOOST_DB,
+    "BRIEF_GAIN_DB": float(st2["layer_gains_db"]["C_brief_upper_cluster_optional"]) - SINE_SAMPLE_BOOST_DB,
+    "MID_GAIN_DB": float(st2["layer_gains_db"]["D_later_mid_tone_optional"]) - SINE_SAMPLE_BOOST_DB,
 }
 
 
@@ -106,7 +131,7 @@ def encode(name, x):
 def sine_loop(freq, seconds=1.0):
     assert float(freq * seconds).is_integer(), "loop must hold whole cycles to be seamless"
     t = np.arange(int(SR * seconds)) / SR
-    return AMP * np.sin(2 * np.pi * freq * t)
+    return AMP * 10 ** (SINE_SAMPLE_BOOST_DB / 20) * np.sin(2 * np.pi * freq * t)
 
 
 def upper_line_loop():
@@ -163,21 +188,7 @@ def noise_loop():
     am = sum(np.exp(-(k / seconds / 0.8) ** 2) * rng.normal() * np.sin(2 * np.pi * k / seconds * t + rng.uniform(0, 2 * np.pi))
              for k in range(1, 15))
     x = x * (1 + nz["irregular_am_depth_fraction"] * am / np.max(np.abs(am)))
-    # Baked hot, with the rare Gaussian peaks softly limited, because this voice plays well
-    # above the tones and would otherwise hit volume 1.0 first and hold the whole bank down.
-    # Limiting a fraction of a percent of noise samples is inaudible.
-    return soft_limit(x, rms_dbfs=-12.0, peak_dbfs=-1.5)
-
-
-def soft_limit(x, rms_dbfs, peak_dbfs, knee=0.75):
-    ceiling = 10 ** (peak_dbfs / 20); k = knee * ceiling
-    for _ in range(8):
-        x = x / rms(x) * 10 ** (rms_dbfs / 20)
-        a = np.abs(x)
-        over = a > k
-        a[over] = k + (ceiling - k) * np.tanh((a[over] - k) / (ceiling - k))
-        x = np.sign(x) * a
-    return x
+    return x / rms(x) * 10 ** (-16.74 / 20)  # the MP 89 texture's level
 
 
 samples = {
@@ -189,8 +200,6 @@ samples = {
     "wmata_noise": encode("wmata_noise", noise_loop()),
 }
 print("samples (decoded back from Vorbis):")
-_k = 0.75 * 10 ** (-1.5 / 20)
-print(f"  noise samples touched by the limiter: {100 * np.mean(np.abs(samples['wmata_noise']) > _k):.2f}%")
 for name, y in samples.items():
     sp = np.abs(np.fft.rfft(y * np.hanning(len(y)))); fr = np.fft.rfftfreq(len(y), 1 / SR)
     seam = abs(y[0] - y[-1]) / np.percentile(np.abs(np.diff(y)), 99)  # below 1: no click at the loop point
@@ -199,11 +208,12 @@ for name, y in samples.items():
 
 # ---------------------------------------------------------------- scales
 res = S.render(level_overrides={"A_upper_cluster": KNOTS["UPPER_LEVEL_KNOTS_DB"], "B_rising_low_tone": KNOTS["LOW_LEVEL_KNOTS_DB"]},
-               noise_env_knots=KNOTS["NOISE_LEVEL_KNOTS_DB"], noise_db=tun["noise_db_rel_tones"],
+               noise_env_knots=tun["noise_env_knots_s_db"], noise_db=tun["noise_db_rel_tones"],
                broadband_db=tun["broadband_db_rel_body"], layer_gains_db=st2["layer_gains_db"], a_diffuse=st2["a_diffuse"])
 t48 = np.arange(len(res["noise"])) / 48000
-noise_k = rms(res["noise"] / res["gain"] / lin(KNOTS["NOISE_LEVEL_KNOTS_DB"], t48))
-noise_unit = noise_k * AMP / rms(samples["wmata_noise"])  # volume that reproduces the offline noise level
+noise_k = rms(res["noise"] / res["gain"] / lin(tun["noise_env_knots_s_db"], t48))
+# Volume that reproduces the tuned noise level at the envelope's 0 dB, then trimmed.
+noise_unit = noise_k * AMP / rms(samples["wmata_noise"]) * 10 ** (NOISE_TRIM_DB / 20)
 
 grid = np.linspace(0, 10, 20001)
 raw = curves(grid, 1.0, noise_unit)
@@ -253,7 +263,8 @@ lines = [
     "/**",
     " * Generated by tools/sound/wmata/build_wmata_ingame.py. Do not edit by hand; change the",
     " * tuning there and regenerate. Frequencies are the brief's measured features; level knots,",
-    " * gains and scales were tuned offline against the reference recording.",
+    " * gains and scales were tuned offline against the reference recording, except the noise bed,",
+    " * which has the platform background removed and a level chosen by ear.",
     " */",
     "public final class WmataTractionData {",
     "    private WmataTractionData() {}",
@@ -272,6 +283,8 @@ for k, v in GAINS.items():
     lines.append(f"    static final double {k} = {v!r};")
 lines += ["", f"    static final double TONAL_VOICE_SCALE = {TONAL_SCALE!r};", f"    static final double NOISE_VOICE_SCALE = {NOISE_SCALE!r};", "}", ""]
 open(JAVA_DATA, "w").write("\n".join(lines))
+json.dump({"knots": KNOTS, "gains": GAINS, "reference_hz": REF, "tonal_voice_scale": TONAL_SCALE, "noise_voice_scale": NOISE_SCALE},
+          open(os.path.join(HERE, "wmata_ingame_tables.json"), "w"), indent=1)
 
 times = [-1.0, 0.0, 0.13, 0.5, 0.7, 0.85, 1.0, 1.7, 2.5, 2.8, 2.9, 3.0, 3.1, 3.33, 3.8, 4.1, 4.5, 4.9, 5.25,
          5.4, 5.6, 6.1, 6.33, 6.9, 7.3, 7.6, 7.8, 8.1, 8.6, 8.9, 9.1, 9.5, 10.0, 12.0]
