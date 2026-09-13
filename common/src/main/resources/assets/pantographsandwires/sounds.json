@@ -16,6 +16,14 @@
             }
         ]
     },
+    "electric.traction_bass": {
+        "sounds": [
+            {
+                "name": "pantographsandwires:electric/traction_bass",
+                "stream": false
+            }
+        ]
+    },
     "electric.traction_texture": {
         "sounds": [
             {

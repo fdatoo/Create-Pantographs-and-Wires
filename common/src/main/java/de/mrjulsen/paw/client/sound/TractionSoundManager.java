@@ -21,10 +21,10 @@ import net.minecraft.client.Minecraft;
  *
  * Each vehicle gets a small bank of independently pitched voices rather than a
  * single sample: a carrier at the switching frequency, one voice per PWM
- * sideband, and a fixed-pitch texture bed. Sidebands sit at fc +/- k*fe, so as
- * electrical frequency rises with speed they spread apart around a carrier that
- * is meanwhile holding steady within its gear -- the real behaviour, and not
- * something one pitch-shifted sample can reproduce.
+ * sideband, a bass voice on the 2fe motor order, and a fixed-pitch texture bed.
+ * Sidebands sit at fc +/- k*fe, so as electrical frequency rises with speed they
+ * spread apart around a carrier that is meanwhile holding steady within its gear
+ * -- the real behaviour, and not something one pitch-shifted sample can do.
  */
 @Environment(EnvType.CLIENT)
 public final class TractionSoundManager {
@@ -34,7 +34,7 @@ public final class TractionSoundManager {
     // A vehicle that stops reporting entirely (unloaded, contraption disassembled)
     // is swept out and its voices force-stopped after this many ticks of silence.
     private static final long STALE_AFTER_TICKS = 40;
-    // Each vehicle costs VOICES_PER_VEHICLE sound channels, so cap how many sound at once.
+    // Each vehicle costs one channel per voice, so cap how many sound at once.
     private static final int MAX_VEHICLES = 8;
 
     // Speed (blocks/tick) at and beyond which the drive reaches its top gear.
@@ -50,12 +50,14 @@ public final class TractionSoundManager {
     private static final double GEAR_DROP = 0.08;
 
     // Electrical frequency tracks motor RPM, so it climbs continuously with speed.
-    private static final double FE_AT_REST_HZ = 20;
+    private static final double FE_AT_REST_HZ = 25;
     private static final double FE_AT_TOP_HZ = 80;
 
     // The sideband sample is a bare tone cut at this; chosen so fc +/- 4fe across every
     // gear stays inside the engine's [0.5, 2.0] playback pitch clamp.
     private static final double SIDEBAND_REFERENCE_HZ = 1600;
+    // Likewise for the bass voice: 2fe spans 50-160Hz, which against 90Hz is 0.56-1.78.
+    private static final double BASS_REFERENCE_HZ = 90;
     private static final double TEXTURE_REFERENCE_HZ = 1;
 
     // Sideband orders and their level relative to the carrier: the inner pair (fc +/- 2fe)
@@ -63,6 +65,14 @@ public final class TractionSoundManager {
     private static final int[] SIDEBAND_ORDERS = { -4, -2, 2, 4 };
     private static final float INNER_SIDEBAND_LEVEL = 0.178f;
     private static final float OUTER_SIDEBAND_LEVEL = 0.0708f;
+    // The bass voice rides the same 2fe order the inner sidebands are spaced by.
+    private static final int BASS_ORDER = 2;
+    private static final float BASS_LEVEL = 1.0f;
+
+    // Load envelope: the tonal layer swells while pulling and eases back once the vehicle
+    // stops accelerating, leaving the mechanical texture underneath at a constant level.
+    private static final double ACCEL_AT_FULL_LOAD = 0.004;
+    private static final float CRUISE_LOAD = 0.55f;
 
     private static final ElectricTrainStateTracker TRACKER =
         new ElectricTrainStateTracker(CONTACT_GRACE_TICKS, CAPABILITY_GRACE_TICKS);
@@ -96,17 +106,18 @@ public final class TractionSoundManager {
             if (entry == null && ACTIVE.size() >= MAX_VEHICLES) {
                 return;
             }
-            entry = startVoices(x, y, z);
+            entry = startVoices(speed, x, y, z);
             ACTIVE.put(vehicleId, entry);
+        } else {
+            entry.updateFrequencies(speed);
         }
         if (touching) {
             entry.updatePosition(x, y, z);
         }
-        entry.updateFrequencies(speed);
         entry.lastObservedTick = gameTime;
     }
 
-    private static Entry startVoices(double x, double y, double z) {
+    private static Entry startVoices(double speed, double x, double y, double z) {
         Entry entry = new Entry();
         entry.carrier = new TractionHumSoundInstance(
             ModSounds.TRACTION_CARRIER.get(), 1.0f, CARRIER_REFERENCE_HZ, x, y, z);
@@ -120,6 +131,10 @@ public final class TractionSoundManager {
             entry.voices.add(sideband);
         }
 
+        entry.bass = new TractionHumSoundInstance(
+            ModSounds.TRACTION_BASS.get(), BASS_LEVEL, BASS_REFERENCE_HZ, x, y, z);
+        entry.voices.add(entry.bass);
+
         TractionHumSoundInstance texture = new TractionHumSoundInstance(
             ModSounds.TRACTION_TEXTURE.get(), 1.0f, TEXTURE_REFERENCE_HZ, x, y, z);
         // Motor-body resonances are a property of the structure, not the excitation, so this
@@ -127,6 +142,9 @@ public final class TractionSoundManager {
         texture.setTargetFrequency(TEXTURE_REFERENCE_HZ);
         entry.voices.add(texture);
 
+        // Frequencies are set before playback so no voice starts at its sample's own pitch
+        // and audibly slides to where the vehicle's speed actually puts it.
+        entry.updateFrequencies(speed);
         entry.voices.forEach(voice -> Minecraft.getInstance().getSoundManager().play(voice));
         return entry;
     }
@@ -144,6 +162,12 @@ public final class TractionSoundManager {
     /** Electrical frequency in Hz: climbs continuously with motor RPM. */
     static double electricalFrequency(double speed) {
         return FE_AT_REST_HZ + (FE_AT_TOP_HZ - FE_AT_REST_HZ) * speedFraction(speed);
+    }
+
+    /** Tonal level while pulling versus coasting, from acceleration in blocks/tick^2. */
+    static float loadScaleFor(double acceleration) {
+        double pull = Math.min(1, Math.max(0, acceleration / ACCEL_AT_FULL_LOAD));
+        return (float) (CRUISE_LOAD + (1 - CRUISE_LOAD) * pull);
     }
 
     private static double speedFraction(double speed) {
@@ -176,7 +200,10 @@ public final class TractionSoundManager {
         private final List<TractionHumSoundInstance> voices = new ArrayList<>();
         private final List<TractionHumSoundInstance> sidebands = new ArrayList<>();
         private TractionHumSoundInstance carrier;
+        private TractionHumSoundInstance bass;
         private long lastObservedTick;
+        private double previousSpeed;
+        private boolean hasPreviousSpeed;
 
         private void updateFrequencies(double speed) {
             double fc = switchingFrequency(speed);
@@ -185,6 +212,15 @@ public final class TractionSoundManager {
             for (int i = 0; i < sidebands.size(); i++) {
                 sidebands.get(i).setTargetFrequency(fc + SIDEBAND_ORDERS[i] * fe);
             }
+            bass.setTargetFrequency(BASS_ORDER * fe);
+
+            double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
+            previousSpeed = speed;
+            hasPreviousSpeed = true;
+            float load = loadScaleFor(acceleration);
+            carrier.setLoadScale(load);
+            sidebands.forEach(sideband -> sideband.setLoadScale(load));
+            bass.setLoadScale(load);
         }
 
         private void updatePosition(double x, double y, double z) {

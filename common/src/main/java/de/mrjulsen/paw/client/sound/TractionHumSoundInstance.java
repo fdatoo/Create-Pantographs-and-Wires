@@ -15,28 +15,34 @@ import net.minecraft.sounds.SoundSource;
  * still -- something a single pitch-shifted sample cannot do, since shifting a
  * sample scales every frequency in it by the same ratio.
  *
- * Fades in on start and out on {@link #requestStop()}, and glides toward its
- * target frequency rather than jumping, so gear steps read as quick slides.
+ * Output level is base * fade * load: the fade envelope handles start and stop,
+ * while the load scale lets the tonal voices swell under acceleration and ease
+ * back at cruise without touching the mechanical texture underneath.
  */
 @Environment(EnvType.CLIENT)
 public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
 
     private static final float MASTER_VOLUME = 0.6f;
     // 10 ticks (0.5s) to fade fully in or out.
-    private static final float FADE_TICKS = 10f;
+    private static final float FADE_STEP = 1f / 10f;
     // How quickly pitch glides toward its target each tick; smaller = slower spool-up.
     private static final float PITCH_SMOOTHING = 0.08f;
+    // Load responds slower than pitch, so per-tick speed jitter doesn't pump the level.
+    private static final float LOAD_SMOOTHING = 0.05f;
     // Minecraft's sound engine clamps playback pitch to this window, so every voice's
     // reference frequency is chosen to keep its working range inside it.
     private static final float MIN_ENGINE_PITCH = 0.5f;
     private static final float MAX_ENGINE_PITCH = 2.0f;
 
-    private final float targetVolume;
-    private final float fadeStep;
+    private final float baseVolume;
     private final double referenceFrequency;
 
     private boolean active = true;
+    private float fade = 0f;
     private float targetPitch = 1.0f;
+    private boolean pitchInitialised = false;
+    private float loadScale = 1.0f;
+    private float targetLoadScale = 1.0f;
 
     /**
      * @param level              this voice's share of the mix, 0-1, relative to the carrier
@@ -52,8 +58,7 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
         double z
     ) {
         super(event, SoundSource.BLOCKS, SoundInstance.createUnseededRandom());
-        this.targetVolume = MASTER_VOLUME * level;
-        this.fadeStep = this.targetVolume / FADE_TICKS;
+        this.baseVolume = MASTER_VOLUME * level;
         this.referenceFrequency = referenceFrequency;
         this.looping = true;
         this.delay = 0;
@@ -71,10 +76,23 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
         this.z = z;
     }
 
-    /** Drives this voice to an absolute frequency in Hz, clamped to what the engine can play. */
+    /**
+     * Drives this voice to an absolute frequency in Hz, clamped to what the engine can play.
+     * The first call snaps rather than glides, so a voice never audibly slides from its
+     * sample's own pitch down to whatever the vehicle's actual speed calls for.
+     */
     public void setTargetFrequency(double frequencyHz) {
         float ratio = (float) (frequencyHz / referenceFrequency);
         this.targetPitch = Math.min(MAX_ENGINE_PITCH, Math.max(MIN_ENGINE_PITCH, ratio));
+        if (!pitchInitialised) {
+            this.pitch = this.targetPitch;
+            this.pitchInitialised = true;
+        }
+    }
+
+    /** Scales this voice's level, for swelling the tonal layer under acceleration. */
+    public void setLoadScale(float scale) {
+        this.targetLoadScale = scale;
     }
 
     public void requestStop() {
@@ -84,13 +102,13 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
     @Override
     public void tick() {
         this.pitch += (this.targetPitch - this.pitch) * PITCH_SMOOTHING;
+        this.loadScale += (this.targetLoadScale - this.loadScale) * LOAD_SMOOTHING;
+        this.fade = active
+            ? Math.min(1f, this.fade + FADE_STEP)
+            : Math.max(0f, this.fade - FADE_STEP);
+        this.volume = baseVolume * this.fade * this.loadScale;
 
-        if (active) {
-            this.volume = Math.min(targetVolume, this.volume + fadeStep);
-            return;
-        }
-        this.volume = Math.max(0f, this.volume - fadeStep);
-        if (this.volume <= 0f) {
+        if (!active && this.fade <= 0f) {
             this.stop();
         }
     }

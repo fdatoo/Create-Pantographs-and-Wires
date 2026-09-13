@@ -15,7 +15,9 @@ public class ModSounds {
     public static final RegistrySupplier<SoundEvent> TRACTION_CARRIER = register("electric.traction_carrier");
     /** A bare reference tone, played once per PWM sideband at its own independently computed pitch. */
     public static final RegistrySupplier<SoundEvent> TRACTION_SIDEBAND = register("electric.traction_sideband");
-    /** Motor-body resonances and low-end vibration; pitch stays fixed as the tonal lines move past it. */
+    /** The 2fe motor order; driven by the same electrical frequency that spreads the sidebands. */
+    public static final RegistrySupplier<SoundEvent> TRACTION_BASS = register("electric.traction_bass");
+    /** Motor-body resonances and broadband vibration; pitch stays fixed as the tonal lines move past. */
     public static final RegistrySupplier<SoundEvent> TRACTION_TEXTURE = register("electric.traction_texture");
 
     private static RegistrySupplier<SoundEvent> register(String name) {
