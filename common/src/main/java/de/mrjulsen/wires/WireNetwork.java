@@ -3,6 +3,8 @@ package de.mrjulsen.wires;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.WeakHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -51,6 +53,8 @@ import net.minecraft.world.level.storage.LevelResource;
 public final class WireNetwork extends SavedData implements IWireNetwork {
 
     private static final Map<ResourceLocation, WireNetwork> NETWORKS = new HashMap<>();
+    /** Networks for levels that are not the server's own level for their dimension. */
+    private static final Map<Level, WireNetwork> DETACHED = Collections.synchronizedMap(new WeakHashMap<>());
     private static final int VERSION = 1;
 
     private static final String NBT_CONNECTIONS = "Connections"; 
@@ -60,7 +64,6 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
 
     protected WireNetwork(Level level) {
         this.level = level;
-        NETWORKS.put(level.dimensionTypeId().location(), this);
     }
 
     // Chunks Loading
@@ -96,11 +99,50 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
         NETWORKS.clear();
     }
     
-    public static WireNetwork get(Level level) {
-        if (!NETWORKS.containsKey(level.dimensionTypeId().location())) {
-            return new WireNetwork(level);
+    /**
+     * Networks used to be keyed by dimension type, and every constructor registered itself.
+     * Any other server level sharing the overworld type, such as a fake level a mod builds for
+     * its own simulations, therefore replaced the overworld's network the moment it loaded
+     * one. From then on every lookup for the real overworld returned an empty network: wires
+     * stopped syncing to players, lost server-side collision, and wires placed afterwards
+     * went into a network that was never saved. Only a server restart restored them.
+     *
+     * Only the server's own level for a dimension may own that dimension's entry now. Any
+     * other level gets a separate network that nothing else can reach.
+     */
+    private static boolean isCanonical(Level level) {
+        return level instanceof ServerLevel serverLevel && serverLevel.getServer().getLevel(serverLevel.dimension()) == serverLevel;
+    }
+
+    private static WireNetwork register(WireNetwork network) {
+        if (!isCanonical(network.level)) {
+            if (network.level instanceof ServerLevel && DETACHED.put(network.level, network) == null) {
+                WiresApi.LOGGER.info("Keeping the wire network for {} ({}, type {}) separate: it is not the server's level for that dimension",
+                    network.level.dimension().location(), network.level.getClass().getName(), network.level.dimensionTypeId().location());
+            }
+            DETACHED.put(network.level, network);
+            return network;
         }
-        return NETWORKS.get(level.dimensionTypeId().location());
+        ResourceLocation key = network.level.dimension().location();
+        WireNetwork previous = NETWORKS.put(key, network);
+        if (previous != null && previous != network) {
+            WiresApi.LOGGER.warn("Replaced the wire network for {}: {} connections before, {} now", key, previous.connectionsById.size(), network.connectionsById.size());
+        }
+        return network;
+    }
+
+    public static WireNetwork get(Level level) {
+        if (!isCanonical(level)) {
+            return DETACHED.computeIfAbsent(level, WireNetwork::new);
+        }
+        WireNetwork network = NETWORKS.get(level.dimension().location());
+        if (network == null || network.level != level) {
+            // A network loaded before the level became reachable through the server was
+            // parked as detached; adopt it rather than starting an empty one.
+            WireNetwork parked = DETACHED.remove(level);
+            network = register(parked != null ? parked : new WireNetwork(level));
+        }
+        return network;
     }
 
     public static WireNetwork create(ServerLevel level) {
@@ -109,13 +151,13 @@ public final class WireNetwork extends SavedData implements IWireNetwork {
             applyData(network, x);
             network.setDirty();
         });
-        return network;
+        return register(network);
     }
 
     public static WireNetwork load(ServerLevel level, CompoundTag nbt) {
         WireNetwork network = new WireNetwork(level);
         applyData(network, nbt);
-        return network;
+        return register(network);
     }
 
     private static void applyData(WireNetwork network, CompoundTag nbt) {
