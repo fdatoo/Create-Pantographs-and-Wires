@@ -80,7 +80,7 @@ def render(bank, noise_db=0.0):
             tonal = motion * (0.75 + 0.25 * min(1.0, max(0.0, acceleration / 0.004)))
             voices = bank(min(1.0, speed / 0.7), noise_db)
         for name, (sample, ref, freq, volume, loaded) in voices.items():
-            s = state.setdefault(name, {"pitch": None, "load": 1.0, "fade": 0.0, "target_pitch": 1.0, "target_load": 1.0})
+            s = state.setdefault(name, {"pitch": None, "load": None, "fade": 0.0, "target_pitch": 1.0, "target_load": 1.0})
             if name not in loops:
                 loops[name] = sf.read(os.path.join(SOUNDS, sample + ".ogg"))[0]
             if not stopping:
@@ -88,6 +88,8 @@ def render(bank, noise_db=0.0):
                 if s["pitch"] is None:
                     s["pitch"] = s["target_pitch"]
                 s["target_load"] = (tonal if loaded else motion) * volume
+                if s["load"] is None:
+                    s["load"] = s["target_load"]  # first setLoadScale snaps, as in TractionHumSoundInstance
             s["pitch"] += (s["target_pitch"] - s["pitch"]) * 0.22
             s["load"] += (s["target_load"] - s["load"]) * (0.25 if s["target_load"] < s["load"] else 0.05)
             s["fade"] = max(0.0, s["fade"] - 0.1) if stopping else min(1.0, s["fade"] + 0.1)

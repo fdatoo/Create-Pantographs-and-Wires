@@ -51,6 +51,7 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
     private float fade = 0f;
     private float targetPitch = 1.0f;
     private boolean pitchInitialised = false;
+    private boolean loadInitialised = false;
     private float loadScale = 1.0f;
     private float targetLoadScale = 1.0f;
 
@@ -100,9 +101,18 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
         }
     }
 
-    /** Scales this voice's level, for swelling the tonal layer under acceleration. */
+    /**
+     * Scales this voice's level, for swelling the tonal layer under acceleration. The first
+     * call snaps rather than glides, as with frequency: gliding down from full level would
+     * sound every voice at once while the bank fades in, even voices meant to be silent,
+     * and their decay together is heard as a bell.
+     */
     public void setLoadScale(float scale) {
         this.targetLoadScale = scale;
+        if (!loadInitialised) {
+            this.loadScale = scale;
+            this.loadInitialised = true;
+        }
     }
 
     /**
