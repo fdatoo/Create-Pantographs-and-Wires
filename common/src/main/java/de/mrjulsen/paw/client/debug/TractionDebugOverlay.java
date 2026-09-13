@@ -46,13 +46,14 @@ public final class TractionDebugOverlay {
             return null;
         }
         return String.format(
-            "[PaW] raised=%s touching=%s height=%.2f speed=%.3f | sweep=%d blocks, %d collisions | fc=%.0f fe=%.0f voices=%d",
+            "[PaW] raised=%s touching=%s height=%.2f speed=%.3f | sweep=%d blocks, %d collisions | gear=%d fc=%.0f fe=%.0f voices=%d",
             expandable,
             touching,
             wireHeight,
             speed,
             CatenaryContactDetector.lastSweepBlocks,
             CatenaryContactDetector.lastCollisionCount,
+            TractionSoundManager.gearFor(speed),
             TractionSoundManager.switchingFrequency(speed),
             TractionSoundManager.electricalFrequency(speed),
             TractionSoundManager.activeVoiceCount()

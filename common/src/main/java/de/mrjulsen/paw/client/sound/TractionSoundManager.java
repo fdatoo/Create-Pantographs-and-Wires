@@ -47,15 +47,21 @@ public final class TractionSoundManager {
     // A standing train has no traction whine and no rolling noise, since nothing is
     // turning. Below this the whole bank fades out instead of humming at the platform.
     private static final double SPEED_AT_FULL_MOTION = 0.08;
+    // Below this the vehicle counts as stopped and its voices are released outright,
+    // so the sound ends on the half-second stop fade rather than trailing away.
+    private static final double SPEED_CONSIDERED_STOPPED = 0.01;
 
     // Switching frequency: the carrier sample is cut at this, and gear stepping scales it.
     private static final double CARRIER_REFERENCE_HZ = 1500;
     // Real IGBT drives hold switching frequency fairly steady within a speed band, then drop
     // and climb again at each pulse-pattern shift -- a rising staircase, not one smooth glide.
+    // The step has to survive being heard during acceleration, where it lands in the
+    // middle of a continuous rise: a drop much smaller than the climb around it is
+    // simply not perceived as a step at all. Drop is 270Hz against a 240Hz net climb.
     private static final int GEAR_COUNT = 4;
     private static final double GEAR_BASE = 0.85;
-    private static final double GEAR_RISE = 0.22;
-    private static final double GEAR_DROP = 0.08;
+    private static final double GEAR_RISE = 0.34;
+    private static final double GEAR_DROP = 0.18;
 
     // Electrical frequency tracks motor RPM, so it climbs continuously with speed.
     private static final double FE_AT_REST_HZ = 25;
@@ -106,7 +112,7 @@ public final class TractionSoundManager {
         ElectricTrainSnapshot snapshot = TRACKER.snapshot(vehicleId, gameTime);
         Entry entry = ACTIVE.get(vehicleId);
 
-        if (!snapshot.powered()) {
+        if (!snapshot.powered() || Math.abs(speed) < SPEED_CONSIDERED_STOPPED) {
             if (entry != null) {
                 entry.stop();
                 ACTIVE.remove(vehicleId);
@@ -175,11 +181,15 @@ public final class TractionSoundManager {
         return ACTIVE.values().stream().mapToInt(entry -> entry.voices.size()).sum();
     }
 
+    /** Which gear a given speed sits in; exposed so the F3 readout can show it. */
+    public static int gearFor(double speed) {
+        return Math.min(GEAR_COUNT - 1, (int) (speedFraction(speed) * GEAR_COUNT));
+    }
+
     /** Switching frequency in Hz: stepped by gear, holding within each band. */
     public static double switchingFrequency(double speed) {
-        double fraction = speedFraction(speed);
-        double gearProgress = fraction * GEAR_COUNT;
-        int gearIndex = Math.min(GEAR_COUNT - 1, (int) gearProgress);
+        double gearProgress = speedFraction(speed) * GEAR_COUNT;
+        int gearIndex = gearFor(speed);
         double withinGear = gearProgress - gearIndex;
         double factor = GEAR_BASE + gearIndex * (GEAR_RISE - GEAR_DROP) + withinGear * GEAR_RISE;
         return CARRIER_REFERENCE_HZ * factor;
@@ -236,6 +246,7 @@ public final class TractionSoundManager {
         private long lastObservedTick;
         private double previousSpeed;
         private boolean hasPreviousSpeed;
+        private int previousGear = -1;
 
         private void updateFrequencies(double speed) {
             double fc = switchingFrequency(speed);
@@ -245,6 +256,14 @@ public final class TractionSoundManager {
                 sidebands.get(i).setTargetFrequency(fc + SIDEBAND_ORDERS[i] * fe);
             }
             bass.setTargetFrequency(BASS_ORDER * fe);
+
+            // Gear changes jump rather than glide. Gliding spreads the drop across the
+            // same window the climb is happening in, which cancels it out perceptually.
+            int gear = gearFor(speed);
+            if (previousGear >= 0 && gear != previousGear) {
+                voices.forEach(TractionHumSoundInstance::snapToTarget);
+            }
+            previousGear = gear;
 
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;

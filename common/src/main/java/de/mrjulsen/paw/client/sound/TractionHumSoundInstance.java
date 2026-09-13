@@ -35,7 +35,10 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
     // steps smear together into one continuous rise.
     private static final float PITCH_SMOOTHING = 0.22f;
     // Load responds slower than pitch, so per-tick speed jitter doesn't pump the level.
-    private static final float LOAD_SMOOTHING = 0.05f;
+    // Falling is much faster than rising: a train that stops should go quiet promptly,
+    // not coast down over several seconds the way a symmetric filter would.
+    private static final float LOAD_RISE = 0.05f;
+    private static final float LOAD_FALL = 0.25f;
     // Minecraft's sound engine clamps playback pitch to this window, so every voice's
     // reference frequency is chosen to keep its working range inside it.
     private static final float MIN_ENGINE_PITCH = 0.5f;
@@ -102,6 +105,14 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
         this.targetLoadScale = scale;
     }
 
+    /**
+     * Jumps straight to the pending frequency instead of gliding to it. Used at gear
+     * changes, where a glide turns the step into part of one continuous rise.
+     */
+    public void snapToTarget() {
+        this.pitch = this.targetPitch;
+    }
+
     public void requestStop() {
         this.active = false;
     }
@@ -119,7 +130,8 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
     @Override
     public void tick() {
         this.pitch += (this.targetPitch - this.pitch) * PITCH_SMOOTHING;
-        this.loadScale += (this.targetLoadScale - this.loadScale) * LOAD_SMOOTHING;
+        float loadCoefficient = this.targetLoadScale < this.loadScale ? LOAD_FALL : LOAD_RISE;
+        this.loadScale += (this.targetLoadScale - this.loadScale) * loadCoefficient;
         this.fade = active
             ? Math.min(1f, this.fade + FADE_STEP)
             : Math.max(0f, this.fade - FADE_STEP);
