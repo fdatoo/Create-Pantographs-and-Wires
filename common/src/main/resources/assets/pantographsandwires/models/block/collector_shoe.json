@@ -1,5 +1,5 @@
 {
-	"credit": "Collector shoe, facing north: the shoe reaches out past the north face and hangs low toward the rail.",
+	"credit": "Collector shoe, facing north. Mounted at bogey level, the arm reaches out past the north face and a hanger drops into the block below, where the shoe slides between the conductor and the cover board of a third rail laid one block out.",
 	"parent": "block/block",
 	"textures": {
 		"0": "pantographsandwires:block/treated_metal",
@@ -59,38 +59,38 @@
 		},
 		{
 			"name": "arm_outer",
-			"from": [7, 8.5, 1],
+			"from": [7, 8.5, -1],
 			"to": [9, 10.5, 6],
 			"faces": {
-				"north": {"uv": [7, 5, 9, 7], "texture": "#0"},
-				"east": {"uv": [1, 5, 6, 7], "texture": "#0"},
-				"west": {"uv": [10, 5, 15, 7], "texture": "#0"},
-				"up": {"uv": [7, 1, 9, 6], "texture": "#0"},
-				"down": {"uv": [7, 10, 9, 15], "texture": "#0"}
+				"east": {"uv": [1, 5, 8, 7], "texture": "#0"},
+				"west": {"uv": [8, 5, 15, 7], "texture": "#0"},
+				"up": {"uv": [7, 1, 9, 8], "texture": "#0"},
+				"down": {"uv": [7, 8, 9, 15], "texture": "#0"}
 			}
 		},
 		{
 			"name": "hanger",
-			"from": [7, 2, 1],
-			"to": [9, 8.5, 3],
+			"from": [7, -8.5, -3],
+			"to": [9, 10.5, -1],
 			"faces": {
-				"north": {"uv": [7, 7, 9, 13.5], "texture": "#2"},
-				"east": {"uv": [3, 7, 5, 13.5], "texture": "#2"},
-				"south": {"uv": [7, 7, 9, 13.5], "texture": "#2"},
-				"west": {"uv": [11, 7, 13, 13.5], "texture": "#2"}
+				"north": {"uv": [7, 0, 9, 16], "texture": "#2"},
+				"east": {"uv": [3, 0, 5, 16], "texture": "#2"},
+				"south": {"uv": [7, 0, 9, 16], "texture": "#2"},
+				"west": {"uv": [11, 0, 13, 16], "texture": "#2"},
+				"up": {"uv": [7, 3, 9, 5], "texture": "#2"}
 			}
 		},
 		{
 			"name": "shoe",
-			"from": [3, 0, -3],
-			"to": [13, 2, 4],
+			"from": [3, -10, -11],
+			"to": [13, -8.5, -1],
 			"faces": {
-				"north": {"uv": [3, 14, 13, 16], "texture": "#2"},
-				"east": {"uv": [0, 14, 7, 16], "texture": "#2"},
-				"south": {"uv": [3, 14, 13, 16], "texture": "#2"},
-				"west": {"uv": [9, 14, 16, 16], "texture": "#2"},
-				"up": {"uv": [3, 0, 13, 7], "texture": "#2"},
-				"down": {"uv": [3, 9, 13, 16], "texture": "#2"}
+				"north": {"uv": [3, 14, 13, 15.5], "texture": "#2"},
+				"east": {"uv": [0, 14, 10, 15.5], "texture": "#2"},
+				"south": {"uv": [3, 14, 13, 15.5], "texture": "#2"},
+				"west": {"uv": [6, 14, 16, 15.5], "texture": "#2"},
+				"up": {"uv": [3, 3, 13, 13], "texture": "#2"},
+				"down": {"uv": [3, 3, 13, 13], "texture": "#2"}
 			}
 		}
 	]

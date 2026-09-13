@@ -26,10 +26,21 @@ public class CollectorShoeBlock extends Block implements IWrenchable {
 
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
 
-    private static final VoxelShaper SHAPES = VoxelShaper.forHorizontal(Shapes.or(
+    /** The mount, arm and insulator, all inside the shoe's own block. */
+    private static final VoxelShaper MOUNT = VoxelShaper.forHorizontal(Shapes.or(
         Block.box(3, 3, 14, 13, 14, 16),
-        Block.box(5.5, 6.5, 1, 10.5, 13.5, 14),
-        Block.box(3, 0, -3, 13, 8.5, 4)
+        Block.box(5.5, 6.5, 0, 10.5, 13.5, 14)
+    ), Direction.NORTH);
+
+    /**
+     * The whole shoe, including the hanger and shoe that reach out and down into the block where a
+     * third rail runs, to sit between its conductor and cover board.
+     */
+    private static final VoxelShaper OUTLINE = VoxelShaper.forHorizontal(Shapes.or(
+        Block.box(3, 3, 14, 13, 14, 16),
+        Block.box(5.5, 6.5, -1, 10.5, 13.5, 14),
+        Block.box(7, -8.5, -3, 9, 10.5, -1),
+        Block.box(3, -10, -11, 13, -8.5, -1)
     ), Direction.NORTH);
 
     public CollectorShoeBlock(Properties properties) {
@@ -53,7 +64,13 @@ public class CollectorShoeBlock extends Block implements IWrenchable {
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return SHAPES.get(state.getValue(FACING));
+        return OUTLINE.get(state.getValue(FACING));
+    }
+
+    /** Only the part inside the block collides, so the hanging shoe never snags a platform edge or the rail. */
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return MOUNT.get(state.getValue(FACING));
     }
 
     @Override

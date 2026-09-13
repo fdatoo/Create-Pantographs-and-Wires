@@ -1,3 +1,20 @@
 {
-    "parent": "pantographsandwires:block/collector_shoe"
+	"parent": "pantographsandwires:block/collector_shoe",
+	"display": {
+		"gui": {
+			"rotation": [30, 225, 0],
+			"translation": [-1.94, 3.57, 0],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"fixed": {
+			"rotation": [0, 0, 0],
+			"translation": [0, 3, 2.75],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"ground": {
+			"rotation": [0, 0, 0],
+			"translation": [0, 4.5, 1.4],
+			"scale": [0.25, 0.25, 0.25]
+		}
+	}
 }
