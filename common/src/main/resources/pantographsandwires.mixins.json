@@ -9,6 +9,8 @@
     "sodium.RenderSectionManagerMixin",
     "sodium.WorldSliceMixin",
     
+    "create.CarriageSoundsMixin",
+
     "client.RebuildTaskMixin",
     "client.CompiledChunkAccess",
     "client.CompiledChunkMixin",

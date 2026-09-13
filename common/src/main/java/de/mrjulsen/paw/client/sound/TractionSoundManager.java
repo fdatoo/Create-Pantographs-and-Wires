@@ -153,6 +153,15 @@ public final class TractionSoundManager {
         return entry;
     }
 
+    /**
+     * Whether this vehicle has a pantograph reporting at all, regardless of whether it is
+     * currently touching wire. Used to decide that a train is electric rather than steam,
+     * which should not flicker just because the collector crossed an insulator gap.
+     */
+    public static boolean isElectric(UUID vehicleId, long gameTime) {
+        return TRACKER.snapshot(vehicleId, gameTime).capable();
+    }
+
     /** Total voices currently sounding across all vehicles; for the F3 overlay. */
     public static int activeVoiceCount() {
         return ACTIVE.values().stream().mapToInt(entry -> entry.voices.size()).sum();
