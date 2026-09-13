@@ -104,9 +104,12 @@ public final class TractionSoundManager {
             }
             entry = start(profile, speed, x, y, z);
             ACTIVE.put(vehicleId, entry);
-        } else {
+        } else if (entry.lastUpdateTick != gameTime) {
+            // A train reports once per collector each tick. Only the first report moves the sound, or
+            // the rest would see no change in speed and hold the tonal load at its coasting level.
             entry.update(speed);
         }
+        entry.lastUpdateTick = gameTime;
         if (touching) {
             entry.updatePosition(x, y, z);
         }
@@ -196,6 +199,7 @@ public final class TractionSoundManager {
         private final TractionSoundProfile profile;
         private final VoiceBank bank;
         private long lastObservedTick;
+        private long lastUpdateTick = Long.MIN_VALUE;
         private double previousSpeed;
         private boolean hasPreviousSpeed;
 

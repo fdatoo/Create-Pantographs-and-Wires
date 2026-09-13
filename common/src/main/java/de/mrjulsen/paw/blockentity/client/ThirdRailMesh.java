@@ -2,28 +2,26 @@ package de.mrjulsen.paw.blockentity.client;
 
 import org.joml.Vector3d;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.blockentity.ThirdRailBlockEntity;
 import de.mrjulsen.paw.traction.ThirdRailConnection;
 import de.mrjulsen.paw.traction.ThirdRailCurve;
+import it.unimi.dsi.fastutil.floats.FloatArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Builds a third rail's geometry. A rail is a fixed cross-section swept along its centreline: the
- * steel conductor, and above it the cover board, with a brown insulator pedestal under the conductor
- * and a treated metal support holding up the cover every two blocks. At a rail block with no rail
- * leaving one side, the conductor and cover dip down into an end ramp, which is how shoes ride on.
+ * Builds a third rail's geometry once, into a BakedRailMesh the renderer replays every frame. A rail
+ * is a fixed cross-section swept along its centreline: the steel conductor, and above it the cover
+ * board, with a brown insulator pedestal under the conductor and a treated metal support holding up
+ * the cover every two blocks. At a rail block with no rail leaving one side, the conductor and cover
+ * dip down into an end ramp, which is how shoes ride on.
  */
 @Environment(EnvType.CLIENT)
 final class ThirdRailMesh {
@@ -57,22 +55,40 @@ final class ThirdRailMesh {
     /** A point on the centreline with its orientation; ramp is 0 on the running rail and 1 at the tip of an end ramp. */
     private record Frame(Vector3d pos, Vector3d tangent, Vector3d right, Vector3d up, double ramp) {}
 
-    private final Level level;
     private final BlockPos origin;
-    private final PoseStack.Pose pose;
-    private final VertexConsumer consumer;
-    private final TextureAtlasSprite sprite;
+    private final FloatArrayList positions = new FloatArrayList();
+    private final FloatArrayList normals = new FloatArrayList();
+    private final FloatArrayList texels = new FloatArrayList();
+    private final FloatArrayList shades = new FloatArrayList();
+    private final IntArrayList lightSlots = new IntArrayList();
+    private final LongArrayList lightPositions = new LongArrayList();
+    private final Long2IntOpenHashMap lightSlotByPosition = new Long2IntOpenHashMap();
 
-    ThirdRailMesh(Level level, BlockPos origin, PoseStack.Pose pose, VertexConsumer consumer, TextureAtlasSprite sprite) {
-        this.level = level;
+    private ThirdRailMesh(BlockPos origin) {
         this.origin = origin;
-        this.pose = pose;
-        this.consumer = consumer;
-        this.sprite = sprite;
+        lightSlotByPosition.defaultReturnValue(-1);
     }
 
-    /** The straight piece of rail running through a rail block, with end ramps where no rail leaves. */
-    void blockPiece(ThirdRailBlockEntity rail) {
+    /** Everything a rail block draws: its own piece and every rail it is the primary end of. */
+    static BakedRailMesh bake(ThirdRailBlockEntity rail) {
+        ThirdRailMesh mesh = new ThirdRailMesh(rail.getBlockPos());
+        mesh.blockPiece(rail);
+        for (ThirdRailConnection connection : rail.getConnections()) {
+            if (connection.primary()) {
+                mesh.connection(connection);
+            }
+        }
+        return new BakedRailMesh(
+            positions(mesh), mesh.normals.toFloatArray(), mesh.texels.toFloatArray(), mesh.shades.toFloatArray(),
+            mesh.lightSlots.toIntArray(), mesh.lightPositions.toLongArray()
+        );
+    }
+
+    private static float[] positions(ThirdRailMesh mesh) {
+        return mesh.positions.toFloatArray();
+    }
+
+    private void blockPiece(ThirdRailBlockEntity rail) {
         Vec3 axis = rail.shape().axis();
         boolean forward = false;
         boolean backward = false;
@@ -95,8 +111,7 @@ final class ThirdRailMesh {
         supports(frames[PIECE_STEPS / 2], rail.pieceSupportsOnRight() ? 1 : -1);
     }
 
-    /** A laid rail between two rail blocks. */
-    void connection(ThirdRailConnection connection) {
+    private void connection(ThirdRailConnection connection) {
         ThirdRailCurve curve = connection.curve();
         double[] parameters = curve.evenParameters(curve.segmentCount(PIECE_LENGTH));
         Frame[] frames = new Frame[parameters.length];
@@ -195,27 +210,48 @@ final class ThirdRailMesh {
      * normal, so back-face culling keeps the outside.
      */
     private void quad(Vector3d c0, Vector3d c1, Vector3d c2, Vector3d c3, Vector3d normal, int band, double texelsU, double texelsV) {
-        float u0 = sprite.getU(0);
-        float u1 = sprite.getU(Math.max(1, Math.min(16, texelsU)));
-        float v0 = sprite.getV(band * BAND_ROWS);
-        float v1 = sprite.getV(band * BAND_ROWS + Math.max(1, Math.min(BAND_ROWS, texelsV)));
+        float u1 = (float) Math.max(1, Math.min(16, texelsU));
+        float v0 = band * BAND_ROWS;
+        float v1 = v0 + (float) Math.max(1, Math.min(BAND_ROWS, texelsV));
 
         Vector3d winding = new Vector3d(c1).sub(c0).cross(new Vector3d(c2).sub(c0));
-        Vector3d centre = new Vector3d(c0).add(c2).mul(0.5);
-        int light = LevelRenderer.getLightColor(level, BlockPos.containing(origin.getX() + centre.x, origin.getY() + centre.y + 0.05, origin.getZ() + centre.z));
-        float shade = shade(normal);
-
         if (winding.dot(normal) >= 0) {
-            vertex(c0, normal, u0, v0, light, shade);
-            vertex(c1, normal, u1, v0, light, shade);
-            vertex(c2, normal, u1, v1, light, shade);
-            vertex(c3, normal, u0, v1, light, shade);
+            corner(c0, 0, v0);
+            corner(c1, u1, v0);
+            corner(c2, u1, v1);
+            corner(c3, 0, v1);
         } else {
-            vertex(c0, normal, u0, v0, light, shade);
-            vertex(c3, normal, u0, v1, light, shade);
-            vertex(c2, normal, u1, v1, light, shade);
-            vertex(c1, normal, u1, v0, light, shade);
+            corner(c0, 0, v0);
+            corner(c3, 0, v1);
+            corner(c2, u1, v1);
+            corner(c1, u1, v0);
         }
+        normals.add((float) normal.x);
+        normals.add((float) normal.y);
+        normals.add((float) normal.z);
+        shades.add(shade(normal));
+
+        Vector3d centre = new Vector3d(c0).add(c2).mul(0.5);
+        long light = BlockPos.asLong(
+            (int) Math.floor(origin.getX() + centre.x),
+            (int) Math.floor(origin.getY() + centre.y + 0.05),
+            (int) Math.floor(origin.getZ() + centre.z)
+        );
+        int slot = lightSlotByPosition.get(light);
+        if (slot < 0) {
+            slot = lightPositions.size();
+            lightPositions.add(light);
+            lightSlotByPosition.put(light, slot);
+        }
+        lightSlots.add(slot);
+    }
+
+    private void corner(Vector3d p, float u, float v) {
+        positions.add((float) p.x);
+        positions.add((float) p.y);
+        positions.add((float) p.z);
+        texels.add(u);
+        texels.add(v);
     }
 
     /** Vanilla's directional block shading, since the block shaders don't light by normal. */
@@ -227,15 +263,5 @@ final class ThirdRailMesh {
             return n.y > 0 ? 1.0f : 0.5f;
         }
         return (float) (0.6 + 0.2 * az / (ax + az));
-    }
-
-    private void vertex(Vector3d p, Vector3d n, float u, float v, int light, float shade) {
-        consumer.vertex(pose.pose(), (float) p.x, (float) p.y, (float) p.z)
-            .color(shade, shade, shade, 1f)
-            .uv(u, v)
-            .overlayCoords(OverlayTexture.NO_OVERLAY)
-            .uv2(light)
-            .normal(pose.normal(), (float) n.x, (float) n.y, (float) n.z)
-            .endVertex();
     }
 }

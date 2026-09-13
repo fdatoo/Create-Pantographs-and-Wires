@@ -21,6 +21,11 @@ import net.minecraft.world.phys.Vec3;
 public final class ThirdRailConnection {
     /** Longest straight piece of the conductor used for contact and shock checks. */
     public static final double CONDUCTOR_PIECE_LENGTH = 0.5;
+    /** The furthest apart two connected rail blocks can be, matching the largest allowed max_length. */
+    public static final int MAX_SPAN = 128;
+
+    /** A curve end must sit within this distance of its block's base centre (a diagonal corner is 0.71 away). */
+    private static final double END_TOLERANCE = 1.0;
 
     private static final String NBT_OTHER = "Other";
     private static final String NBT_START1 = "Start1";
@@ -29,6 +34,7 @@ public final class ThirdRailConnection {
     private static final String NBT_AXIS2 = "Axis2";
     private static final String NBT_PRIMARY = "Primary";
     private static final String NBT_SUPPORTS_ON_RIGHT = "SupportsOnRight";
+    private static final String NBT_RAIL_COST = "RailCost";
 
     private final BlockPos owner;
     private final BlockPos other;
@@ -38,6 +44,8 @@ public final class ThirdRailConnection {
     private final Vec3 axis2;
     private final boolean primary;
     private final boolean supportsOnRight;
+    /** Rails paid when this rail was laid, refunded on removal; 0 when unknown. */
+    private final int railCost;
 
     private ThirdRailCurve curve;
     private double[] conductor;
@@ -47,7 +55,7 @@ public final class ThirdRailConnection {
      * @param supportsOnRight whether the cover's supports stand on the right of the rail, travelling
      *                        from owner to other (right is the tangent crossed with up)
      */
-    public ThirdRailConnection(BlockPos owner, BlockPos other, Vec3 start1, Vec3 axis1, Vec3 start2, Vec3 axis2, boolean primary, boolean supportsOnRight) {
+    public ThirdRailConnection(BlockPos owner, BlockPos other, Vec3 start1, Vec3 axis1, Vec3 start2, Vec3 axis2, boolean primary, boolean supportsOnRight, int railCost) {
         this.owner = owner;
         this.other = other;
         this.start1 = start1;
@@ -56,6 +64,7 @@ public final class ThirdRailConnection {
         this.axis2 = axis2;
         this.primary = primary;
         this.supportsOnRight = supportsOnRight;
+        this.railCost = Math.max(0, railCost);
     }
 
     public BlockPos owner() {
@@ -84,11 +93,15 @@ public final class ThirdRailConnection {
 
     /** The same rail seen from the other end. */
     public ThirdRailConnection secondary() {
-        return new ThirdRailConnection(other, owner, start2, axis2, start1, axis1, !primary, !supportsOnRight);
+        return new ThirdRailConnection(other, owner, start2, axis2, start1, axis1, !primary, !supportsOnRight, railCost);
     }
 
     public ThirdRailConnection withSupportsOnRight(boolean onRight) {
-        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, onRight);
+        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, onRight, railCost);
+    }
+
+    public ThirdRailConnection withRailCost(int cost) {
+        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, supportsOnRight, cost);
     }
 
     public ThirdRailCurve curve() {
@@ -117,9 +130,14 @@ public final class ThirdRailConnection {
         return new Vec3(p.x, p.y, p.z);
     }
 
-    /** Rails used up laying this curve, and handed back when it is removed. */
+    /** Rails refunded when this rail is removed: what was paid, or what it would cost for older data. */
     public int railCost() {
-        return Math.max(1, (int) Math.ceil(curve().length() / 2));
+        return railCost > 0 ? railCost : computedRailCost();
+    }
+
+    /** Rails needed to lay this curve: one per two blocks of length. */
+    public int computedRailCost() {
+        return Math.max(1, (int) Math.min(MAX_SPAN, Math.ceil(curve().length() / 2)));
     }
 
     public CompoundTag write() {
@@ -131,24 +149,47 @@ public final class ThirdRailConnection {
         tag.put(NBT_AXIS2, writeVec(axis2));
         tag.putBoolean(NBT_PRIMARY, primary);
         tag.putBoolean(NBT_SUPPORTS_ON_RIGHT, supportsOnRight);
+        tag.putInt(NBT_RAIL_COST, railCost());
         return tag;
     }
 
+    /**
+     * Reads a stored rail, or null when the data doesn't describe a rail between its two blocks. That
+     * rejects damaged or crafted data, and rails whose owner block has been carried off somewhere else.
+     */
     @Nullable
     public static ThirdRailConnection read(BlockPos owner, CompoundTag tag) {
-        if (!tag.contains(NBT_OTHER) || !tag.contains(NBT_START1) || !tag.contains(NBT_START2)) {
+        if (!tag.contains(NBT_OTHER) || !tag.contains(NBT_START1) || !tag.contains(NBT_START2)
+            || !tag.contains(NBT_AXIS1) || !tag.contains(NBT_AXIS2)) {
+            return null;
+        }
+        BlockPos other = NbtUtils.readBlockPos(tag.getCompound(NBT_OTHER));
+        Vec3 start1 = readVec(tag.getList(NBT_START1, Tag.TAG_DOUBLE));
+        Vec3 axis1 = readVec(tag.getList(NBT_AXIS1, Tag.TAG_DOUBLE));
+        Vec3 start2 = readVec(tag.getList(NBT_START2, Tag.TAG_DOUBLE));
+        Vec3 axis2 = readVec(tag.getList(NBT_AXIS2, Tag.TAG_DOUBLE));
+        if (!isPlausible(owner, other, start1, axis1, start2, axis2)) {
             return null;
         }
         return new ThirdRailConnection(
-            owner,
-            NbtUtils.readBlockPos(tag.getCompound(NBT_OTHER)),
-            readVec(tag.getList(NBT_START1, Tag.TAG_DOUBLE)),
-            readVec(tag.getList(NBT_AXIS1, Tag.TAG_DOUBLE)),
-            readVec(tag.getList(NBT_START2, Tag.TAG_DOUBLE)),
-            readVec(tag.getList(NBT_AXIS2, Tag.TAG_DOUBLE)),
+            owner, other, start1, axis1, start2, axis2,
             tag.getBoolean(NBT_PRIMARY),
-            tag.getBoolean(NBT_SUPPORTS_ON_RIGHT)
+            tag.getBoolean(NBT_SUPPORTS_ON_RIGHT),
+            Math.min(MAX_SPAN, tag.getInt(NBT_RAIL_COST))
         );
+    }
+
+    static boolean isPlausible(BlockPos owner, BlockPos other, Vec3 start1, Vec3 axis1, Vec3 start2, Vec3 axis2) {
+        if (owner.equals(other) || owner.distSqr(other) > (double) MAX_SPAN * MAX_SPAN) {
+            return false;
+        }
+        if (!finite(start1) || !finite(axis1) || !finite(start2) || !finite(axis2)) {
+            return false;
+        }
+        if (start1.distanceTo(Vec3.atBottomCenterOf(owner)) > END_TOLERANCE || start2.distanceTo(Vec3.atBottomCenterOf(other)) > END_TOLERANCE) {
+            return false;
+        }
+        return horizontalLength(axis1) > 0.5 && horizontalLength(axis2) > 0.5;
     }
 
     /** The smallest box around a flattened polyline. */
@@ -166,6 +207,14 @@ public final class ThirdRailConnection {
         return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
+    private static boolean finite(Vec3 v) {
+        return Double.isFinite(v.x) && Double.isFinite(v.y) && Double.isFinite(v.z);
+    }
+
+    private static double horizontalLength(Vec3 v) {
+        return Math.sqrt(v.x * v.x + v.z * v.z);
+    }
+
     private static Vector3d joml(Vec3 v) {
         return new Vector3d(v.x, v.y, v.z);
     }
@@ -179,6 +228,9 @@ public final class ThirdRailConnection {
     }
 
     private static Vec3 readVec(ListTag list) {
+        if (list.size() != 3) {
+            return new Vec3(Double.NaN, Double.NaN, Double.NaN);
+        }
         return new Vec3(list.getDouble(0), list.getDouble(1), list.getDouble(2));
     }
 }

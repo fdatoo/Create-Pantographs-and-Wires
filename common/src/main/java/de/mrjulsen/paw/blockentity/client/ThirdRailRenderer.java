@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
 
 import de.mrjulsen.paw.blockentity.ThirdRailBlockEntity;
-import de.mrjulsen.paw.traction.ThirdRailConnection;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -16,8 +15,9 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.Level;
 
 /**
- * Draws a rail block's own piece of rail and every rail it is the primary end of. Rendered off-screen
- * like Create's track, since a curve reaches far beyond the block that owns it.
+ * Draws a rail block's own piece of rail and every rail it is the primary end of, from geometry baked
+ * when the rails last changed. Blocks with rails laid from them render off-screen like Create's track,
+ * since a curve reaches far beyond the block that owns it; a lone rail block renders with its chunk.
  */
 @Environment(EnvType.CLIENT)
 public class ThirdRailRenderer extends SafeBlockEntityRenderer<ThirdRailBlockEntity> {
@@ -30,19 +30,20 @@ public class ThirdRailRenderer extends SafeBlockEntityRenderer<ThirdRailBlockEnt
         if (level == null) {
             return;
         }
-        TextureAtlasSprite sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(ThirdRailMesh.TEXTURE);
-        ThirdRailMesh mesh = new ThirdRailMesh(level, rail.getBlockPos(), ms.last(), buffer.getBuffer(RenderType.cutoutMipped()), sprite);
-        mesh.blockPiece(rail);
-        for (ThirdRailConnection connection : rail.getConnections()) {
-            if (connection.primary()) {
-                mesh.connection(connection);
-            }
+        long key = rail.renderKey();
+        BakedRailMesh mesh = rail.renderCache instanceof BakedRailMesh baked && rail.renderCacheKey == key ? baked : null;
+        if (mesh == null) {
+            mesh = ThirdRailMesh.bake(rail);
+            rail.renderCache = mesh;
+            rail.renderCacheKey = key;
         }
+        TextureAtlasSprite sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(ThirdRailMesh.TEXTURE);
+        mesh.render(level, ms.last(), buffer.getBuffer(RenderType.cutoutMipped()), sprite);
     }
 
     @Override
     public boolean shouldRenderOffScreen(ThirdRailBlockEntity rail) {
-        return true;
+        return !rail.getConnections().isEmpty();
     }
 
     @Override

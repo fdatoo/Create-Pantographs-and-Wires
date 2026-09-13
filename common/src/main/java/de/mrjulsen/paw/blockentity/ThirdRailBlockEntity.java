@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
@@ -51,9 +52,17 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
 
     private final Map<BlockPos, ThirdRailConnection> connections = new HashMap<>();
     private double[] blockConductor;
+    private AABB blockConductorBounds;
     private EThirdRailShape blockConductorShape;
     private int shockTicker;
     private boolean cancelDrops;
+    private boolean indexed;
+    /** Bumped whenever the rails change, so cached client geometry knows to rebuild. */
+    private int geometryVersion;
+
+    /** Client-side render cache owned by ThirdRailRenderer; kept here so it lives and dies with the block entity. */
+    public Object renderCache;
+    public long renderCacheKey = Long.MIN_VALUE;
 
     public ThirdRailBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -62,8 +71,18 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
 
+    /** Rail data decides where geometry is built and what is refunded, so only operators may paste it onto an item. */
+    @Override
+    public boolean onlyOpCanSetNbt() {
+        return true;
+    }
+
     public Collection<ThirdRailConnection> getConnections() {
         return Collections.unmodifiableCollection(connections.values());
+    }
+
+    public boolean hasConnectionTo(BlockPos other) {
+        return connections.containsKey(other);
     }
 
     public EThirdRailShape shape() {
@@ -71,13 +90,20 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
         return state.hasProperty(ThirdRailBlock.SHAPE) ? state.getValue(ThirdRailBlock.SHAPE) : EThirdRailShape.Z;
     }
 
+    /** Identifies the current rail geometry, for the renderer's cache. */
+    public long renderKey() {
+        return ((long) geometryVersion << 3) | shape().ordinal();
+    }
+
     public void addConnection(ThirdRailConnection connection) {
         connections.put(connection.other(), connection);
+        railsChanged();
         notifyUpdate();
     }
 
     public void removeConnection(BlockPos other) {
         if (connections.remove(other) != null) {
+            railsChanged();
             notifyUpdate();
         }
     }
@@ -100,6 +126,7 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
             }
         }
         connections.clear();
+        railsChanged();
         notifyUpdate();
     }
 
@@ -112,6 +139,7 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
                 other.addConnection(flipped.secondary());
             }
         }
+        railsChanged();
         notifyUpdate();
     }
 
@@ -137,9 +165,24 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
             double y = worldPosition.getY() + ThirdRailCurve.CONDUCTOR_HEIGHT;
             double z = worldPosition.getZ() + 0.5;
             blockConductor = new double[] {x - half.x, y, z - half.z, x + half.x, y, z + half.z};
+            blockConductorBounds = ThirdRailConnection.bounds(blockConductor);
             blockConductorShape = shape;
         }
         return blockConductor;
+    }
+
+    private AABB blockConductorBounds() {
+        blockConductor();
+        return blockConductorBounds;
+    }
+
+    /** A box around every conductor this block knows about. */
+    public AABB conductorExtent() {
+        AABB extent = blockConductorBounds();
+        for (ThirdRailConnection connection : connections.values()) {
+            extent = extent.minmax(connection.conductorBounds());
+        }
+        return extent;
     }
 
     /** Every conductor this block owns: its own piece and the rails it is the primary end of. */
@@ -154,26 +197,36 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
         return conductors;
     }
 
-    /** Conductors known to this block whose bounds reach into the query box, secondary copies included. */
-    public List<double[]> conductorsNear(AABB query) {
-        List<double[]> near = new ArrayList<>();
-        double[] piece = blockConductor();
-        if (ThirdRailConnection.bounds(piece).intersects(query)) {
-            near.add(piece);
+    /**
+     * Whether any conductor known to this block, secondary copies included, reaches into the query box
+     * and satisfies the test. Secondary copies count so a rail whose primary end is unloaded still
+     * powers shoes; both copies describe the same curve.
+     */
+    public boolean anyConductorNear(AABB query, Predicate<double[]> test) {
+        if (blockConductorBounds().intersects(query) && test.test(blockConductor)) {
+            return true;
         }
         for (ThirdRailConnection connection : connections.values()) {
-            if (connection.conductorBounds().intersects(query)) {
-                near.add(connection.conductor());
+            if (connection.conductorBounds().intersects(query) && test.test(connection.conductor())) {
+                return true;
             }
         }
-        return near;
+        return false;
+    }
+
+    private void railsChanged() {
+        geometryVersion++;
+        if (level != null && level.isClientSide && indexed) {
+            ThirdRailIndex.update(level, this);
+        }
     }
 
     @Override
     public void initialize() {
         super.initialize();
         if (level.isClientSide) {
-            ThirdRailIndex.add(level, this);
+            indexed = true;
+            ThirdRailIndex.update(level, this);
         }
     }
 
@@ -181,6 +234,7 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
     public void invalidate() {
         super.invalidate();
         if (level != null && level.isClientSide) {
+            indexed = false;
             ThirdRailIndex.remove(level, this);
         }
     }
@@ -271,14 +325,11 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
                 connections.put(connection.other(), connection);
             }
         }
+        railsChanged();
     }
 
     /** Forge culls block entity renderers by this box; the rail can reach far beyond its block. */
     public AABB getRenderBoundingBox() {
-        AABB box = new AABB(worldPosition).inflate(1);
-        for (ThirdRailConnection connection : connections.values()) {
-            box = box.minmax(connection.conductorBounds().inflate(1));
-        }
-        return box;
+        return conductorExtent().inflate(1).minmax(new AABB(worldPosition));
     }
 }

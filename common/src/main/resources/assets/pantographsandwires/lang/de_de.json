@@ -79,5 +79,6 @@
     "pantographsandwires.third_rail.not_enough_rails": "Nicht genug Stromschienen dabei",
     "pantographsandwires.third_rail.supports_moved": "Abdeckungshalter auf die andere Seite versetzt",
     "death.attack.pantographsandwires.third_rail": "%1$s hat die Stromschiene berührt",
-    "death.attack.pantographsandwires.third_rail.player": "%1$s hat auf der Flucht vor %2$s die Stromschiene berührt"
+    "death.attack.pantographsandwires.third_rail.player": "%1$s hat auf der Flucht vor %2$s die Stromschiene berührt",
+    "pantographsandwires.third_rail.already_connected": "Diese Schienen sind bereits verbunden"
 }

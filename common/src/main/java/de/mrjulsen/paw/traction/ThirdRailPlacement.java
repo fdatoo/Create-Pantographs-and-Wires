@@ -43,8 +43,8 @@ public final class ThirdRailPlacement {
     public record Target(BlockPos pos, EThirdRailShape shape, boolean existing, @Nullable BlockState placementState) {}
 
     /**
-     * @param connection the rail from the selected block to the target, for previewing, or null when
-     *                   the problem leaves nothing sensible to draw
+     * @param connection  the rail from the selected block to the target, for previewing, or null when
+     *                    the problem leaves nothing sensible to draw
      * @param railsNeeded rails used up, including the new end block when one is placed
      */
     public record Attempt(boolean valid, @Nullable Component message, @Nullable ThirdRailConnection connection, int railsNeeded) {}
@@ -82,6 +82,9 @@ public final class ThirdRailPlacement {
             return null;
         }
         BlockPos pos = place.getClickedPos();
+        if (level.isOutsideBuildHeight(pos)) {
+            return null;
+        }
         BlockState existing = level.getBlockState(pos);
         if (existing.getBlock() instanceof ThirdRailBlock) {
             return new Target(pos, existing.getValue(ThirdRailBlock.SHAPE), true, null);
@@ -96,12 +99,16 @@ public final class ThirdRailPlacement {
     public static Attempt tryConnect(Level level, Player player, ItemStack stack, Target target) {
         CompoundTag selection = stack.getTag().getCompound(NBT_SELECTION);
         BlockPos pos1 = NbtUtils.readBlockPos(selection.getCompound(NBT_POS));
-        ListTag axisTag = selection.getList(NBT_AXIS, Tag.TAG_DOUBLE);
-        Vector3d axis1 = new Vector3d(axisTag.getDouble(0), axisTag.getDouble(1), axisTag.getDouble(2));
-
-        if (!(level.getBlockState(pos1).getBlock() instanceof ThirdRailBlock)) {
+        BlockState state1 = level.getBlockState(pos1);
+        if (!(state1.getBlock() instanceof ThirdRailBlock)) {
             return new Attempt(false, Component.translatable("create.track.original_missing").withStyle(ChatFormatting.RED), null, 0);
         }
+
+        // Only the stored direction's sign is trusted: the axis itself always comes from the block.
+        ListTag axisTag = selection.getList(NBT_AXIS, Tag.TAG_DOUBLE);
+        Vec3 blockAxis = state1.getValue(ThirdRailBlock.SHAPE).axis();
+        double storedDot = axisTag.size() == 3 ? axisTag.getDouble(0) * blockAxis.x + axisTag.getDouble(2) * blockAxis.z : 1;
+        Vector3d axis1 = joml(storedDot < 0 ? blockAxis.scale(-1) : blockAxis);
 
         Vector3d axis2 = ThirdRailPlacementRules.alongLook(joml(target.shape().axis()), joml(player.getLookAngle()));
         BlockPos pos2 = target.pos();
@@ -113,13 +120,18 @@ public final class ThirdRailPlacement {
 
         ThirdRailConnection connection = null;
         if (outcome.hasCurve()) {
-            connection = new ThirdRailConnection(pos1, pos2, vec(outcome.end1()), vec(outcome.axis1()), vec(outcome.end2()), vec(outcome.axis2()), true, true);
+            connection = new ThirdRailConnection(pos1, pos2, vec(outcome.end1()), vec(outcome.axis1()), vec(outcome.end2()), vec(outcome.axis2()), true, true, 0);
             connection = connection.withSupportsOnRight(supportsAwayFrom(connection, player.position()));
+            connection = connection.withRailCost(connection.computedRailCost());
         }
 
         if (!outcome.valid()) {
             ChatFormatting colour = "second_point".equals(outcome.problem()) ? ChatFormatting.WHITE : ChatFormatting.RED;
             return new Attempt(false, Component.translatable("create.track." + outcome.problem()).withStyle(colour), connection, 0);
+        }
+
+        if (target.existing() && level.getBlockEntity(pos1) instanceof ThirdRailBlockEntity first && first.hasConnectionTo(pos2)) {
+            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.already_connected").withStyle(ChatFormatting.RED), connection, 0);
         }
 
         int needed = connection.railCost() + (target.existing() ? 0 : 1);
@@ -129,17 +141,27 @@ public final class ThirdRailPlacement {
         return new Attempt(true, Component.translatable("create.track.valid_connection").withStyle(ChatFormatting.GREEN), connection, needed);
     }
 
-    /** Places the end block if needed, lays the rail at both ends and uses up the rails. Server only. */
-    public static void commit(Level level, Player player, InteractionHand hand, Target target, Attempt attempt) {
+    /**
+     * Places the end block if needed, lays the rail at both ends and uses up the rails. Server only.
+     * Takes nothing and returns false if the rail couldn't be laid.
+     */
+    public static boolean commit(Level level, Player player, InteractionHand hand, Target target, Attempt attempt) {
         ThirdRailConnection connection = attempt.connection();
-        if (!target.existing()) {
-            level.setBlock(target.pos(), target.placementState(), 3);
+        if (connection == null) {
+            return false;
         }
-        if (level.getBlockEntity(connection.owner()) instanceof ThirdRailBlockEntity first
-            && level.getBlockEntity(connection.other()) instanceof ThirdRailBlockEntity second) {
-            first.addConnection(connection);
-            second.addConnection(connection.secondary());
+        if (!target.existing() && !level.setBlock(target.pos(), target.placementState(), 3)) {
+            return false;
         }
+        if (!(level.getBlockEntity(connection.owner()) instanceof ThirdRailBlockEntity first)
+            || !(level.getBlockEntity(connection.other()) instanceof ThirdRailBlockEntity second)) {
+            if (!target.existing()) {
+                level.removeBlock(target.pos(), false);
+            }
+            return false;
+        }
+        first.addConnection(connection);
+        second.addConnection(connection.secondary());
 
         ItemStack held = player.getItemInHand(hand);
         Item rail = held.getItem();
@@ -151,6 +173,7 @@ public final class ThirdRailPlacement {
         BlockState placed = level.getBlockState(target.pos());
         SoundType sound = placed.getSoundType();
         level.playSound(null, target.pos(), sound.getPlaceSound(), SoundSource.BLOCKS, (sound.getVolume() + 1.0F) / 2.0F, sound.getPitch() * 0.8F);
+        return true;
     }
 
     /**

@@ -72,8 +72,9 @@ public class ThirdRailItem extends BlockItem {
             AllSoundEvents.DENY.playFrom(player, 1, 1);
             return InteractionResult.FAIL;
         }
-        if (!level.isClientSide) {
-            ThirdRailPlacement.commit(level, player, context.getHand(), target, attempt);
+        if (!level.isClientSide && !ThirdRailPlacement.commit(level, player, context.getHand(), target, attempt)) {
+            AllSoundEvents.DENY.playFrom(player, 1, 1);
+            return InteractionResult.FAIL;
         }
         return InteractionResult.SUCCESS;
     }
