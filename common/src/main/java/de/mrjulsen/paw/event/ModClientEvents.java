@@ -16,6 +16,7 @@ import dev.architectury.event.events.client.ClientLifecycleEvent;
 import dev.architectury.event.events.client.ClientPlayerEvent;
 import dev.architectury.event.events.client.ClientTickEvent;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.SectionPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
@@ -39,6 +40,24 @@ public final class ModClientEvents {
                     lines.add(traction);
                 }
             }
+            // Deliberately outside the useAdvancedLogging gate below. That gate is
+            // Platform.isDevelopmentEnvironment(), so the two lines after it have never once
+            // appeared on a real client, which is exactly where wires go missing. This line
+            // answers the question that separates "the client never received the wire" from
+            // "the client has it and still will not draw it".
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level != null && mc.player != null) {
+                SectionPos here = SectionPos.of(mc.player.blockPosition());
+                WireClientNetwork net = WireClientNetwork.get(mc.level);
+                lines.add(String.format(
+                    "[PaW] sec %d,%d,%d known=%s batches=%d | %s",
+                    here.x(), here.y(), here.z(),
+                    net.hasConnectionsInSection(here),
+                    net.connectionsInSection(here).size(),
+                    net.debug_text()
+                ));
+            }
+
             if (!PantographsAndWires.useAdvancedLogging()) {
                 return;
             }
