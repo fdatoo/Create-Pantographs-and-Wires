@@ -49,10 +49,10 @@
             }
         ]
     },
-    "electric.wmata_low": {
+    "electric.wmata_ridge": {
         "sounds": [
             {
-                "name": "pantographsandwires:electric/wmata_low",
+                "name": "pantographsandwires:electric/wmata_ridge",
                 "stream": false
             }
         ]
@@ -61,14 +61,6 @@
         "sounds": [
             {
                 "name": "pantographsandwires:electric/wmata_brief",
-                "stream": false
-            }
-        ]
-    },
-    "electric.wmata_mid": {
-        "sounds": [
-            {
-                "name": "pantographsandwires:electric/wmata_mid",
                 "stream": false
             }
         ]

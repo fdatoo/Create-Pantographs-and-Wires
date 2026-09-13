@@ -24,12 +24,10 @@ public class ModSounds {
     public static final RegistrySupplier<SoundEvent> WMATA_UPPER_LINE = register("electric.wmata_upper_line");
     /** Narrowband noise centred on the upper cluster, for where it turns diffuse. */
     public static final RegistrySupplier<SoundEvent> WMATA_UPPER_DIFFUSE = register("electric.wmata_upper_diffuse");
-    /** The independent low sweep, cut at 700Hz. */
-    public static final RegistrySupplier<SoundEvent> WMATA_LOW = register("electric.wmata_low");
+    /** The rising ridge, cut at 850Hz. */
+    public static final RegistrySupplier<SoundEvent> WMATA_RIDGE = register("electric.wmata_ridge");
     /** The brief upper event, cut at 2890Hz. */
     public static final RegistrySupplier<SoundEvent> WMATA_BRIEF = register("electric.wmata_brief");
-    /** The later mid ridge, cut at 1350Hz. */
-    public static final RegistrySupplier<SoundEvent> WMATA_MID = register("electric.wmata_mid");
     /** The rising noise bed: 400/650/900Hz body bands over broadband rolling noise. */
     public static final RegistrySupplier<SoundEvent> WMATA_NOISE = register("electric.wmata_noise");
 

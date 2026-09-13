@@ -50,9 +50,8 @@ def wmata(fraction, noise_db):
     return {
         "upper_line": ("wmata_upper_line", REF["UPPER"], upper, TONAL * level * lin(K["UPPER_LINE_CUT_KNOTS_DB"], t), True),
         "upper_diffuse": ("wmata_upper_diffuse", REF["UPPER"], upper, TONAL * level * lin(K["UPPER_DIFFUSE_LEVEL_KNOTS_DB"], t), True),
-        "low": ("wmata_low", REF["LOW"], pchip(K["LOW_FREQUENCY_KNOTS"], t), TONAL * lin(K["LOW_LEVEL_KNOTS_DB"], t, G["LOW_GAIN_DB"]), True),
+        "ridge": ("wmata_ridge", REF["RIDGE"], pchip(K["RIDGE_FREQUENCY_KNOTS"], t), TONAL * lin(K["RIDGE_LEVEL_KNOTS_DB"], t, G["RIDGE_GAIN_DB"]), True),
         "brief": ("wmata_brief", REF["BRIEF"], pchip(K["BRIEF_FREQUENCY_KNOTS"], t), TONAL * lin(K["BRIEF_LEVEL_KNOTS_DB"], t, G["BRIEF_GAIN_DB"]), True),
-        "mid": ("wmata_mid", REF["MID"], pchip(K["MID_FREQUENCY_KNOTS"], t), TONAL * lin(K["MID_LEVEL_KNOTS_DB"], t, G["MID_GAIN_DB"]), True),
         "noise": ("wmata_noise", None, None, NOISE * lin(K["NOISE_LEVEL_KNOTS_DB"], t) * 10 ** (noise_db / 20), False),
     }
 

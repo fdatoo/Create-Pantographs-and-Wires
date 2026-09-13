@@ -293,26 +293,24 @@ public final class TractionSoundManager {
 
     /**
      * WMATA 6000-series: an upper cluster near 2.4-2.6kHz that turns diffuse as the train
-     * gathers speed, a low sweep from 556 to 843Hz, a brief upper event, a later mid ridge,
-     * and a rising noise bed. Curves and levels live in {@link WmataTraction}.
+     * gathers speed, a ridge climbing from about 440Hz to 1.6kHz that swells twice, a brief
+     * upper event, and a rising noise bed. Curves and levels live in {@link WmataTraction}.
      */
     private static final class WmataBank implements VoiceBank {
         private final TractionHumSoundInstance upperLine;
         private final TractionHumSoundInstance upperDiffuse;
-        private final TractionHumSoundInstance low;
+        private final TractionHumSoundInstance ridge;
         private final TractionHumSoundInstance brief;
-        private final TractionHumSoundInstance mid;
         private final TractionHumSoundInstance noise;
         private final List<TractionHumSoundInstance> voices;
 
         private WmataBank(double x, double y, double z) {
             upperLine = voice(ModSounds.WMATA_UPPER_LINE.get(), 1.0f, WmataTractionData.UPPER_REFERENCE_HZ, x, y, z);
             upperDiffuse = voice(ModSounds.WMATA_UPPER_DIFFUSE.get(), 1.0f, WmataTractionData.UPPER_REFERENCE_HZ, x, y, z);
-            low = voice(ModSounds.WMATA_LOW.get(), 1.0f, WmataTractionData.LOW_REFERENCE_HZ, x, y, z);
+            ridge = voice(ModSounds.WMATA_RIDGE.get(), 1.0f, WmataTractionData.RIDGE_REFERENCE_HZ, x, y, z);
             brief = voice(ModSounds.WMATA_BRIEF.get(), 1.0f, WmataTractionData.BRIEF_REFERENCE_HZ, x, y, z);
-            mid = voice(ModSounds.WMATA_MID.get(), 1.0f, WmataTractionData.MID_REFERENCE_HZ, x, y, z);
             noise = voice(ModSounds.WMATA_NOISE.get(), 1.0f, UNPITCHED_REFERENCE_HZ, x, y, z);
-            voices = List.of(upperLine, upperDiffuse, low, brief, mid, noise);
+            voices = List.of(upperLine, upperDiffuse, ridge, brief, noise);
             noise.setTargetFrequency(UNPITCHED_REFERENCE_HZ);
         }
 
@@ -331,12 +329,10 @@ public final class TractionSoundManager {
             upperDiffuse.setTargetFrequency(upper);
             upperDiffuse.setLoadScale(tonal * (float) WmataTraction.upperDiffuseVolume(t));
 
-            low.setTargetFrequency(WmataTraction.lowFrequency(t));
-            low.setLoadScale(tonal * (float) WmataTraction.lowVolume(t));
+            ridge.setTargetFrequency(WmataTraction.ridgeFrequency(t));
+            ridge.setLoadScale(tonal * (float) WmataTraction.ridgeVolume(t));
             brief.setTargetFrequency(WmataTraction.briefFrequency(t));
             brief.setLoadScale(tonal * (float) WmataTraction.briefVolume(t));
-            mid.setTargetFrequency(WmataTraction.midFrequency(t));
-            mid.setLoadScale(tonal * (float) WmataTraction.midVolume(t));
 
             noise.setLoadScale(motion * (float) WmataTraction.noiseVolume(t));
         }

@@ -33,7 +33,7 @@ JAVA_TEST = os.path.join(REPO, "common/src/test/java/de/mrjulsen/paw/traction/Wm
 
 SR = 44100
 AMP = 0.30
-REF = {"UPPER": 2440.0, "LOW": 700.0, "BRIEF": 2890.0, "MID": 1350.0}
+REF = {"UPPER": 2440.0, "RIDGE": 850.0, "BRIEF": 2890.0}
 rng = np.random.default_rng(6001)
 
 spec = S.load_spec()
@@ -60,26 +60,46 @@ def without_background(knots, background_db):
     return [[float(a), float(b)] for a, b in zip(k[:, 0], db)]
 
 
+# The low sweep (B) and the later mid ridge (D) are one component. Both lie within about 20 Hz of
+# RIDGE_LINE, and along that line the reference holds a tone above chance (checked against parallel
+# control lines) from about 2 s to 10.5 s, weaker between the two measured stretches. Played as two
+# events that faded to silence, each went "woop" and ended. So they are one rising voice: B's and
+# D's knots where they were measured, the line between and after, holding at cruise (chosen by ear
+# over fading out).
+RIDGE_LINE = (92.0, 152.6)  # f = a + b * t, Hz, fitted through the B and D knots
+
+
+def ridge_line(t):
+    return RIDGE_LINE[0] + RIDGE_LINE[1] * t
+
+
+RIDGE_FREQUENCY_KNOTS = ([[2.25, ridge_line(2.25)], [2.5, ridge_line(2.5)]] + B["frequency_knots_s_hz"]
+                         + [[t, ridge_line(t)] for t in (5.5, 6.0, 6.5, 7.0, 7.5)] + D["frequency_knots_s_hz"]
+                         + [[t, ridge_line(t)] for t in (9.25, 9.75, 10.0)])
+assert all(b[0] > a[0] and b[1] > a[1] for a, b in zip(RIDGE_FREQUENCY_KNOTS, RIDGE_FREQUENCY_KNOTS[1:]))
+# In B's tuned dB frame (peak +3 dB at 4 s). The B peak and the D peak (D's knots plus its +6 dB tuned
+# gain) keep their tuned values; the rest follows the tone power measured along the line.
+RIDGE_LEVEL_KNOTS_DB = [[0, -60], [2.0, -60], [2.5, -12], [3.0, -9], [3.5, 0], [4.0, 3], [4.5, 0], [5.0, -2], [5.5, -6],
+                        [6.0, -8], [6.5, -8.5], [7.0, -8], [7.5, -7], [8.0, -4], [8.25, -3], [8.5, -3], [8.75, -6],
+                        [9.25, -10], [9.75, -11], [10.0, -11]]
+
 KNOTS = {
     "UPPER_FREQUENCY_KNOTS": A["frequency_knots_s_hz"],
-    "LOW_FREQUENCY_KNOTS": B["frequency_knots_s_hz"],
+    "RIDGE_FREQUENCY_KNOTS": RIDGE_FREQUENCY_KNOTS,
     "BRIEF_FREQUENCY_KNOTS": C["frequency_knots_s_hz"],
-    "MID_FREQUENCY_KNOTS": D["frequency_knots_s_hz"],
     "UPPER_LEVEL_KNOTS_DB": tun["A_upper_cluster_level_knots_s_db"],
     "UPPER_LINE_CUT_KNOTS_DB": st2["a_diffuse"]["line_cut_knots_s_db"],
     "UPPER_DIFFUSE_LEVEL_KNOTS_DB": st2["a_diffuse"]["level_knots_s_db"],
-    "LOW_LEVEL_KNOTS_DB": tun["B_rising_low_tone_level_knots_s_db"],
+    "RIDGE_LEVEL_KNOTS_DB": RIDGE_LEVEL_KNOTS_DB,
     "BRIEF_LEVEL_KNOTS_DB": C["level_knots_s_db"],
-    "MID_LEVEL_KNOTS_DB": D["level_knots_s_db"],
     "NOISE_LEVEL_KNOTS_DB": without_background(tun["noise_env_knots_s_db"], PLATFORM_BACKGROUND_DB),
 }
 # The single-sine loops are baked this much hotter than AMP and their gains lowered to match, so
-# the low sweep does not reach volume 1.0 first and hold the whole bank below MP 89's loudness.
+# the ridge does not reach volume 1.0 first and hold the whole bank below MP 89's loudness.
 SINE_SAMPLE_BOOST_DB = 8.0
 GAINS = {
-    "LOW_GAIN_DB": float(st2["layer_gains_db"]["B_rising_low_tone"]) - SINE_SAMPLE_BOOST_DB,
+    "RIDGE_GAIN_DB": float(st2["layer_gains_db"]["B_rising_low_tone"]) - SINE_SAMPLE_BOOST_DB,
     "BRIEF_GAIN_DB": float(st2["layer_gains_db"]["C_brief_upper_cluster_optional"]) - SINE_SAMPLE_BOOST_DB,
-    "MID_GAIN_DB": float(st2["layer_gains_db"]["D_later_mid_tone_optional"]) - SINE_SAMPLE_BOOST_DB,
 }
 
 
@@ -102,14 +122,12 @@ def curves(t, tonal_scale, noise_scale):
     K, G = KNOTS, GAINS
     return {
         "upperFrequency": pchip(K["UPPER_FREQUENCY_KNOTS"], t),
-        "lowFrequency": pchip(K["LOW_FREQUENCY_KNOTS"], t),
+        "ridgeFrequency": pchip(K["RIDGE_FREQUENCY_KNOTS"], t),
         "briefFrequency": pchip(K["BRIEF_FREQUENCY_KNOTS"], t),
-        "midFrequency": pchip(K["MID_FREQUENCY_KNOTS"], t),
         "upperLineVolume": tonal_scale * lin(K["UPPER_LEVEL_KNOTS_DB"], t) * lin(K["UPPER_LINE_CUT_KNOTS_DB"], t),
         "upperDiffuseVolume": tonal_scale * lin(K["UPPER_LEVEL_KNOTS_DB"], t) * lin(K["UPPER_DIFFUSE_LEVEL_KNOTS_DB"], t),
-        "lowVolume": tonal_scale * lin(K["LOW_LEVEL_KNOTS_DB"], t, G["LOW_GAIN_DB"]),
+        "ridgeVolume": tonal_scale * lin(K["RIDGE_LEVEL_KNOTS_DB"], t, G["RIDGE_GAIN_DB"]),
         "briefVolume": tonal_scale * lin(K["BRIEF_LEVEL_KNOTS_DB"], t, G["BRIEF_GAIN_DB"]),
-        "midVolume": tonal_scale * lin(K["MID_LEVEL_KNOTS_DB"], t, G["MID_GAIN_DB"]),
         "noiseVolume": noise_scale * lin(K["NOISE_LEVEL_KNOTS_DB"], t),
     }
 
@@ -194,9 +212,8 @@ def noise_loop():
 samples = {
     "wmata_upper_line": encode("wmata_upper_line", upper_line_loop()),
     "wmata_upper_diffuse": encode("wmata_upper_diffuse", upper_diffuse_loop()),
-    "wmata_low": encode("wmata_low", sine_loop(REF["LOW"])),
+    "wmata_ridge": encode("wmata_ridge", sine_loop(REF["RIDGE"])),
     "wmata_brief": encode("wmata_brief", sine_loop(REF["BRIEF"])),
-    "wmata_mid": encode("wmata_mid", sine_loop(REF["MID"])),
     "wmata_noise": encode("wmata_noise", noise_loop()),
 }
 print("samples (decoded back from Vorbis):")
@@ -207,7 +224,8 @@ for name, y in samples.items():
           f"strongest {fr[np.argmax(sp)]:7.1f} Hz  seam/p99-step {seam:4.2f}")
 
 # ---------------------------------------------------------------- scales
-res = S.render(level_overrides={"A_upper_cluster": KNOTS["UPPER_LEVEL_KNOTS_DB"], "B_rising_low_tone": KNOTS["LOW_LEVEL_KNOTS_DB"]},
+# The approved offline mix, the reference the noise level is measured against.
+res = S.render(level_overrides={"A_upper_cluster": KNOTS["UPPER_LEVEL_KNOTS_DB"], "B_rising_low_tone": tun["B_rising_low_tone_level_knots_s_db"]},
                noise_env_knots=tun["noise_env_knots_s_db"], noise_db=tun["noise_db_rel_tones"],
                broadband_db=tun["broadband_db_rel_body"], layer_gains_db=st2["layer_gains_db"], a_diffuse=st2["a_diffuse"])
 t48 = np.arange(len(res["noise"])) / 48000
@@ -222,8 +240,8 @@ peak = max(float(np.max(v)) for v in vols.values())
 scale = 0.999 / peak  # a hair of margin so no stepping between grid points crosses 1.0
 
 voice_rms = {"upperLineVolume": rms(samples["wmata_upper_line"]), "upperDiffuseVolume": rms(samples["wmata_upper_diffuse"]),
-             "lowVolume": rms(samples["wmata_low"]), "briefVolume": rms(samples["wmata_brief"]),
-             "midVolume": rms(samples["wmata_mid"]), "noiseVolume": rms(samples["wmata_noise"])}
+             "ridgeVolume": rms(samples["wmata_ridge"]), "briefVolume": rms(samples["wmata_brief"]),
+             "noiseVolume": rms(samples["wmata_noise"])}
 wmata_power = np.mean(sum((voice_rms[k] * v * scale) ** 2 for k, v in vols.items()))
 
 
@@ -324,7 +342,7 @@ test += ["        }", "    }", "",
          "    @Test",
          "    void pitchRatiosStayInsideTheEngineClamp() {",
          "        for (double t = 0; t <= WmataTractionData.TIMELINE_SECONDS; t += 0.005) {"]
-for nm, ref in (("upperFrequency", "UPPER"), ("lowFrequency", "LOW"), ("briefFrequency", "BRIEF"), ("midFrequency", "MID")):
+for nm, ref in (("upperFrequency", "UPPER"), ("ridgeFrequency", "RIDGE"), ("briefFrequency", "BRIEF")):
     test.append(f"            double {nm}Ratio = WmataTraction.{nm}(t) / WmataTractionData.{ref}_REFERENCE_HZ;")
     test.append(f'            assertTrue({nm}Ratio >= 0.5 && {nm}Ratio <= 2.0, "{nm} ratio at t=" + t);')
 test += ["        }", "    }", "}", ""]

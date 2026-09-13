@@ -13,14 +13,12 @@ import org.junit.jupiter.api.Test;
 class WmataTractionTest {
     private static final double[] TIMES = {-1.0, 0.0, 0.13, 0.5, 0.7, 0.85, 1.0, 1.7, 2.5, 2.8, 2.9, 3.0, 3.1, 3.33, 3.8, 4.1, 4.5, 4.9, 5.25, 5.4, 5.6, 6.1, 6.33, 6.9, 7.3, 7.6, 7.8, 8.1, 8.6, 8.9, 9.1, 9.5, 10.0, 12.0};
     private static final double[] UPPERFREQUENCY = {2495.0, 2495.0, 2495.0, 2495.0, 2495.0, 2437.5, 2380.0, 2380.0, 2380.0, 2380.0, 2380.0, 2380.0, 2380.547692307692, 2385.5533415384616, 2407.700512820513, 2429.183210175651, 2501.177064405411, 2568.4642761962446, 2582.6859142607173, 2586.225756780402, 2589.260157480315, 2570.8704, 2545.3906688, 2491.8176000000003, 2508.3599999999997, 2545.08, 2566.16, 2574.993125, 2573.515, 2569.988125, 2565.849375, 2551.796875, 2520.0, 2520.0};
-    private static final double[] LOWFREQUENCY = {556.0, 556.0, 556.0, 556.0, 556.0, 556.0, 556.0, 556.0, 556.0, 556.0, 556.0, 556.0, 568.9033513513513, 602.4666974679943, 672.6823918999404, 714.6524712328766, 775.4501077005924, 830.0223586429727, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0, 843.0};
+    private static final double[] RIDGEFREQUENCY = {435.34999999999997, 435.34999999999997, 435.34999999999997, 435.34999999999997, 435.34999999999997, 435.34999999999997, 435.34999999999997, 435.34999999999997, 473.5, 523.9161979267225, 540.5044497106607, 556.0, 569.7502059897737, 602.4666974679943, 672.6823918999404, 714.6524712328766, 775.4501077005924, 829.3015387988904, 886.2102680143774, 914.0174213212798, 947.2720097205346, 1022.8599999999999, 1057.958, 1144.94, 1204.8967549295776, 1253.8920225352113, 1292.9962666666668, 1339.5411764705882, 1391.0740188267366, 1457.5231757806516, 1483.4927268740366, 1541.3265534559073, 1618.0, 1618.0};
     private static final double[] BRIEFFREQUENCY = {2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.0, 2940.7839999999997, 2928.5044693333334, 2845.0, 2845.0, 2845.0, 2845.0, 2845.0, 2845.0, 2845.0, 2845.0, 2845.0, 2845.0, 2845.0};
-    private static final double[] MIDFREQUENCY = {1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1282.0, 1296.0, 1339.5411764705882, 1387.309793103448, 1433.0, 1433.0, 1433.0, 1433.0, 1433.0};
     private static final double[] UPPERLINEVOLUME = {0.3579903564788657, 0.3579903564788657, 0.3579903564788657, 0.3725886472485741, 0.3960379019066144, 0.4148915209843722, 0.43865383557504006, 0.5953384783854252, 0.732273550990203, 0.695105717856814, 0.6517357079298117, 0.6037874915295751, 0.5547933449453906, 0.4531861832506707, 0.3380430284776569, 0.3023154845661383, 0.29871736529788445, 0.3027453360145125, 0.30503463995502433, 0.3146017559900822, 0.34151409878988803, 0.3923160349814641, 0.39730718579601626, 0.38130620426175743, 0.3594917319556962, 0.3396844796971745, 0.33545937519517627, 0.3353342030752385, 0.31750096462592264, 0.29952016348596777, 0.28873321114973605, 0.2761290592289259, 0.2729245521277745, 0.2729245521277745};
     private static final double[] UPPERDIFFUSEVOLUME = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001569100861967739, 0.0025731002167509297, 0.004595847327328271, 0.008728331711665621, 0.04238820982191491, 0.5804397802508843, 0.7593821637169268, 0.7503440967480467, 0.7604619017376626, 0.7662123732434357, 0.7902438822005754, 0.8578446309195421, 0.9854533251335776, 0.9979905291422692, 0.9577978807355291, 0.9030024037393924, 0.8532488355457242, 0.8426358528754447, 0.8423214347257697, 0.7975263650350584, 0.7523606346239337, 0.7252650354132126, 0.6936048372226442, 0.6855554793155859, 0.6855554793155859};
-    private static final double[] LOWVOLUME = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.006707823354395714, 0.14111250070781317, 0.20511820055161226, 0.33019860686992075, 0.5228360058215714, 0.5467710202895807, 0.3977090633829437, 0.34049678970136005, 0.06151050461678548, 0.0028238754751473715, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    private static final double[] RIDGEVOLUME = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0999, 0.12344439358725029, 0.13007708093625847, 0.14111250070781317, 0.16518305281589815, 0.2902166256288868, 0.5228360058215714, 0.5467710202895807, 0.3977090633829437, 0.3335739709183266, 0.2509374545078071, 0.21536022100705896, 0.18766307209233546, 0.15554121540497953, 0.15073650735764793, 0.15584713452690285, 0.1676353047212665, 0.18664182246922517, 0.21730070753822653, 0.2664511887431072, 0.25618122994941, 0.16800556598717614, 0.13774056238997634, 0.11602871652265026, 0.11208964358476617, 0.11208964358476617};
     private static final double[] BRIEFVOLUME = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0031591153825081464, 0.06303263871357132, 0.0019991099220252576, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    private static final double[] MIDVOLUME = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.004588363284319627, 0.16159753024112827, 0.26547237451366407, 0.26290902114723536, 0.10644759329457774, 0.005043740559910381, 0.0, 0.0, 0.0};
     private static final double[] NOISEVOLUME = {0.16498878679859444, 0.16498878679859444, 0.16498878679859444, 0.17023314899434253, 0.1783746999227679, 0.1844822541512229, 0.19165504701221733, 0.2381211419043962, 0.2876589015362311, 0.31798515788445747, 0.32788527774976844, 0.33793881639509626, 0.348100513932953, 0.37163081908519685, 0.42063733238290146, 0.4555700068035716, 0.48124673540814045, 0.4889421862184699, 0.4898971916713509, 0.4862652027583354, 0.47684240251612386, 0.4744646509252371, 0.47354001174710525, 0.45761302194520886, 0.4635367561602697, 0.47554063512746414, 0.4857241858702204, 0.5067734934542296, 0.5145970690617258, 0.518200296776419, 0.5236258627924744, 0.5359780826191775, 0.5410191384420775, 0.5410191384420775};
 
     @Test
@@ -28,14 +26,12 @@ class WmataTractionTest {
         for (int i = 0; i < TIMES.length; i++) {
             double t = TIMES[i];
             assertEquals(UPPERFREQUENCY[i], WmataTraction.upperFrequency(t), 1e-9, "upperFrequency at t=" + t);
-            assertEquals(LOWFREQUENCY[i], WmataTraction.lowFrequency(t), 1e-9, "lowFrequency at t=" + t);
+            assertEquals(RIDGEFREQUENCY[i], WmataTraction.ridgeFrequency(t), 1e-9, "ridgeFrequency at t=" + t);
             assertEquals(BRIEFFREQUENCY[i], WmataTraction.briefFrequency(t), 1e-9, "briefFrequency at t=" + t);
-            assertEquals(MIDFREQUENCY[i], WmataTraction.midFrequency(t), 1e-9, "midFrequency at t=" + t);
             assertEquals(UPPERLINEVOLUME[i], WmataTraction.upperLineVolume(t), 1e-9, "upperLineVolume at t=" + t);
             assertEquals(UPPERDIFFUSEVOLUME[i], WmataTraction.upperDiffuseVolume(t), 1e-9, "upperDiffuseVolume at t=" + t);
-            assertEquals(LOWVOLUME[i], WmataTraction.lowVolume(t), 1e-9, "lowVolume at t=" + t);
+            assertEquals(RIDGEVOLUME[i], WmataTraction.ridgeVolume(t), 1e-9, "ridgeVolume at t=" + t);
             assertEquals(BRIEFVOLUME[i], WmataTraction.briefVolume(t), 1e-9, "briefVolume at t=" + t);
-            assertEquals(MIDVOLUME[i], WmataTraction.midVolume(t), 1e-9, "midVolume at t=" + t);
             assertEquals(NOISEVOLUME[i], WmataTraction.noiseVolume(t), 1e-9, "noiseVolume at t=" + t);
         }
     }
@@ -47,12 +43,10 @@ class WmataTractionTest {
             assertTrue(upperLineVolume >= 0 && upperLineVolume <= 1.0 + 1e-12, "upperLineVolume at t=" + t + " was " + upperLineVolume);
             double upperDiffuseVolume = WmataTraction.upperDiffuseVolume(t);
             assertTrue(upperDiffuseVolume >= 0 && upperDiffuseVolume <= 1.0 + 1e-12, "upperDiffuseVolume at t=" + t + " was " + upperDiffuseVolume);
-            double lowVolume = WmataTraction.lowVolume(t);
-            assertTrue(lowVolume >= 0 && lowVolume <= 1.0 + 1e-12, "lowVolume at t=" + t + " was " + lowVolume);
+            double ridgeVolume = WmataTraction.ridgeVolume(t);
+            assertTrue(ridgeVolume >= 0 && ridgeVolume <= 1.0 + 1e-12, "ridgeVolume at t=" + t + " was " + ridgeVolume);
             double briefVolume = WmataTraction.briefVolume(t);
             assertTrue(briefVolume >= 0 && briefVolume <= 1.0 + 1e-12, "briefVolume at t=" + t + " was " + briefVolume);
-            double midVolume = WmataTraction.midVolume(t);
-            assertTrue(midVolume >= 0 && midVolume <= 1.0 + 1e-12, "midVolume at t=" + t + " was " + midVolume);
             double noiseVolume = WmataTraction.noiseVolume(t);
             assertTrue(noiseVolume >= 0 && noiseVolume <= 1.0 + 1e-12, "noiseVolume at t=" + t + " was " + noiseVolume);
         }
@@ -63,12 +57,10 @@ class WmataTractionTest {
         for (double t = 0; t <= WmataTractionData.TIMELINE_SECONDS; t += 0.005) {
             double upperFrequencyRatio = WmataTraction.upperFrequency(t) / WmataTractionData.UPPER_REFERENCE_HZ;
             assertTrue(upperFrequencyRatio >= 0.5 && upperFrequencyRatio <= 2.0, "upperFrequency ratio at t=" + t);
-            double lowFrequencyRatio = WmataTraction.lowFrequency(t) / WmataTractionData.LOW_REFERENCE_HZ;
-            assertTrue(lowFrequencyRatio >= 0.5 && lowFrequencyRatio <= 2.0, "lowFrequency ratio at t=" + t);
+            double ridgeFrequencyRatio = WmataTraction.ridgeFrequency(t) / WmataTractionData.RIDGE_REFERENCE_HZ;
+            assertTrue(ridgeFrequencyRatio >= 0.5 && ridgeFrequencyRatio <= 2.0, "ridgeFrequency ratio at t=" + t);
             double briefFrequencyRatio = WmataTraction.briefFrequency(t) / WmataTractionData.BRIEF_REFERENCE_HZ;
             assertTrue(briefFrequencyRatio >= 0.5 && briefFrequencyRatio <= 2.0, "briefFrequency ratio at t=" + t);
-            double midFrequencyRatio = WmataTraction.midFrequency(t) / WmataTractionData.MID_REFERENCE_HZ;
-            assertTrue(midFrequencyRatio >= 0.5 && midFrequencyRatio <= 2.0, "midFrequency ratio at t=" + t);
         }
     }
 }

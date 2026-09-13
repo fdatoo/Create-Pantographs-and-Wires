@@ -4,8 +4,9 @@ import static de.mrjulsen.paw.traction.WmataTractionData.*;
 
 /**
  * The WMATA 6000-series traction sound as a function of time along the reference departure:
- * an upper cluster that drops and plateaus then rises and turns diffuse, an independent low
- * sweep, a brief upper event, a later mid ridge, and a rising noise bed.
+ * an upper cluster that drops and plateaus then rises and turns diffuse, a ridge climbing
+ * steadily from about 440Hz to 1.6kHz that swells near 4s and again near 8s, a brief upper
+ * event, and a rising noise bed.
  *
  * Frequencies are features measured in the recording. Levels, the diffuse upper band and the
  * voice scales were tuned offline against it (tools/sound/wmata). None of it is a recovered
@@ -19,16 +20,14 @@ public final class WmataTraction {
     private static final double SILENT_DB = -59.999;
 
     private static final MonotoneCubic UPPER_FREQUENCY = new MonotoneCubic(UPPER_FREQUENCY_KNOTS);
-    private static final MonotoneCubic LOW_FREQUENCY = new MonotoneCubic(LOW_FREQUENCY_KNOTS);
+    private static final MonotoneCubic RIDGE_FREQUENCY = new MonotoneCubic(RIDGE_FREQUENCY_KNOTS);
     private static final MonotoneCubic BRIEF_FREQUENCY = new MonotoneCubic(BRIEF_FREQUENCY_KNOTS);
-    private static final MonotoneCubic MID_FREQUENCY = new MonotoneCubic(MID_FREQUENCY_KNOTS);
 
     private static final MonotoneCubic UPPER_LEVEL = new MonotoneCubic(UPPER_LEVEL_KNOTS_DB);
     private static final MonotoneCubic UPPER_LINE_CUT = new MonotoneCubic(UPPER_LINE_CUT_KNOTS_DB);
     private static final MonotoneCubic UPPER_DIFFUSE_LEVEL = new MonotoneCubic(UPPER_DIFFUSE_LEVEL_KNOTS_DB);
-    private static final MonotoneCubic LOW_LEVEL = new MonotoneCubic(LOW_LEVEL_KNOTS_DB);
+    private static final MonotoneCubic RIDGE_LEVEL = new MonotoneCubic(RIDGE_LEVEL_KNOTS_DB);
     private static final MonotoneCubic BRIEF_LEVEL = new MonotoneCubic(BRIEF_LEVEL_KNOTS_DB);
-    private static final MonotoneCubic MID_LEVEL = new MonotoneCubic(MID_LEVEL_KNOTS_DB);
     private static final MonotoneCubic NOISE_LEVEL = new MonotoneCubic(NOISE_LEVEL_KNOTS_DB);
 
     private WmataTraction() {}
@@ -42,16 +41,12 @@ public final class WmataTraction {
         return UPPER_FREQUENCY.at(t);
     }
 
-    public static double lowFrequency(double t) {
-        return LOW_FREQUENCY.at(t);
+    public static double ridgeFrequency(double t) {
+        return RIDGE_FREQUENCY.at(t);
     }
 
     public static double briefFrequency(double t) {
         return BRIEF_FREQUENCY.at(t);
-    }
-
-    public static double midFrequency(double t) {
-        return MID_FREQUENCY.at(t);
     }
 
     /** The clean upper line, which gives way to the diffuse band once the cluster broadens. */
@@ -64,16 +59,13 @@ public final class WmataTraction {
         return TONAL_VOICE_SCALE * linear(UPPER_LEVEL, t, 0) * linear(UPPER_DIFFUSE_LEVEL, t, 0);
     }
 
-    public static double lowVolume(double t) {
-        return TONAL_VOICE_SCALE * linear(LOW_LEVEL, t, LOW_GAIN_DB);
+    /** The rising ridge: one continuous voice, since its two swells are one component. */
+    public static double ridgeVolume(double t) {
+        return TONAL_VOICE_SCALE * linear(RIDGE_LEVEL, t, RIDGE_GAIN_DB);
     }
 
     public static double briefVolume(double t) {
         return TONAL_VOICE_SCALE * linear(BRIEF_LEVEL, t, BRIEF_GAIN_DB);
-    }
-
-    public static double midVolume(double t) {
-        return TONAL_VOICE_SCALE * linear(MID_LEVEL, t, MID_GAIN_DB);
     }
 
     public static double noiseVolume(double t) {
