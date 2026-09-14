@@ -31,6 +31,21 @@ class TractionPackPreviewRenderTest {
         });
         render(loaded, out.resolve("render_14mps.wav"), 14, 14, 5, 14);
         render(loaded, out.resolve("render_40mps.wav"), 40, 32, 5, 32);
+        cruise(loaded, out.resolve("render_cruising_14mps.wav"), 14, 8);
+    }
+
+    /** Holds a steady speed with no traction demand, as the cruising addon's preview does. */
+    private static void cruise(TractionPack pack, Path file, double speed, double seconds) throws IOException {
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        int blocks = (int) Math.round(seconds * RATE / BLOCK);
+        float[] all = new float[blocks * BLOCK];
+        float[] block = new float[BLOCK];
+        for (int b = 0; b < blocks; b++) {
+            mixer.setState(speed, TractionMode.COAST);
+            mixer.render(block, BLOCK);
+            System.arraycopy(block, 0, all, b * BLOCK, BLOCK);
+        }
+        writeFloatWav(file, all);
     }
 
     /** Accelerates to top speed over accelerate seconds, coasts, then brakes to rest over brake seconds. */

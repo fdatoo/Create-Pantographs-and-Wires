@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -135,6 +136,32 @@ class TractionPackTest {
         assertEquals(PackSettings.Shape.SMOOTHSTEP, s.brakeOffShape());
         assertTrue(s.continuousLayers().contains("coast/gear_high"));
         assertEquals(1.0, s.mechanicalGain(), 0);
+    }
+
+    @Test
+    void parsesCruisingAddonSettings() throws IOException {
+        String json = "{\"ducked_layers\":[\"coast/cruising\"],\"duck_depth\":0.85,\"mode_persistence_seconds\":0.2,"
+            + "\"mode_blend_seconds\":0.25,\"mode_blend_curve\":\"smoothstep\",\"departure_speed_mps\":1.0}";
+        PackSettings s = PackSettings.parse(new StringReader(json));
+        assertEquals(Set.of("coast/cruising"), s.duckedLayers());
+        assertEquals(0.85, s.duckDepth(), 0);
+        assertEquals(0.2, s.modePersistenceSeconds(), 0);
+        assertEquals(0.25, s.modeBlendSeconds(), 0);
+        assertEquals(PackSettings.Shape.SMOOTHSTEP, s.modeBlendShape());
+        assertEquals(1.0, s.departureSpeedMps(), 0);
+        PackSettings none = PackSettings.parse(new StringReader("{}"));
+        assertEquals(0, none.modePersistenceSeconds(), 0, "persistence is off unless a pack asks");
+        assertEquals(0, none.modeBlendSeconds(), 0);
+    }
+
+    @Test
+    void settingsNamingAMissingLayerAreRejected() {
+        Map<String, byte[]> files = new HashMap<>();
+        files.put("curves.csv", "layer,mode,speed_mps,pitch,volume\npower/tone,power,0,1,1\n".getBytes(StandardCharsets.UTF_8));
+        files.put("player_settings.json", "{\"ducked_layers\":[\"coast/cruising\"]}".getBytes(StandardCharsets.UTF_8));
+        files.put("power/tone.wav", wav(1, 16, 1, 48000, new byte[16], false));
+        IOException e = assertThrows(IOException.class, () -> TractionPack.load(path -> files.containsKey(path) ? new ByteArrayInputStream(files.get(path)) : null));
+        assertTrue(e.getMessage().contains("coast/cruising"), e.getMessage());
     }
 
     // ---------------------------------------------------------------- loading

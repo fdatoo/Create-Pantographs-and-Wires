@@ -50,6 +50,55 @@ class TractionModeDetectorTest {
     }
 
     @Test
+    void persistenceIgnoresABriefBlipWhileMoving() {
+        TractionModeDetector quick = new TractionModeDetector();
+        TractionModeDetector persistent = new TractionModeDetector();
+        persistent.configure(4, 0.05);
+        run(quick, 0.5, 0, 20);
+        run(persistent, 0.5, 0, 20);
+        boolean quickPowered = false;
+        boolean persistentPowered = false;
+        double[] blip = {0.5, 0.5075, 0.5075, 0.5075, 0.5075, 0.5075, 0.5075, 0.5075, 0.5075};
+        for (double speed : blip) {
+            quickPowered |= quick.update(speed) == TractionMode.POWER;
+            persistentPowered |= persistent.update(speed) == TractionMode.POWER;
+        }
+        assertEquals(true, quickPowered, "without persistence a one-tick blip squeaks power in");
+        assertEquals(false, persistentPowered);
+    }
+
+    @Test
+    void persistenceDelaysARealChangeByItsTicks() {
+        TractionModeDetector quick = new TractionModeDetector();
+        TractionModeDetector persistent = new TractionModeDetector();
+        persistent.configure(4, 0.05);
+        run(quick, 0.5, 0, 20);
+        run(persistent, 0.5, 0, 20);
+        int quickTick = -1;
+        int persistentTick = -1;
+        double speed = 0.5;
+        for (int tick = 0; tick < 20; tick++) {
+            speed += CREATE_ACCELERATION;
+            if (quick.update(speed) == TractionMode.POWER && quickTick < 0) quickTick = tick;
+            if (persistent.update(speed) == TractionMode.POWER && persistentTick < 0) persistentTick = tick;
+        }
+        assertEquals(quickTick + 3, persistentTick, "the first tick counts toward the four");
+    }
+
+    @Test
+    void departingFromRestIsNotDelayed() {
+        TractionModeDetector quick = new TractionModeDetector();
+        TractionModeDetector persistent = new TractionModeDetector();
+        persistent.configure(4, 0.05);
+        double speed = 0;
+        for (int tick = 0; tick < 4; tick++) {
+            assertEquals(quick.update(speed), persistent.update(speed), "tick " + tick);
+            speed += CREATE_ACCELERATION;
+        }
+        assertEquals(TractionMode.POWER, persistent.mode());
+    }
+
+    @Test
     void reversingFromPowerToBrakeGoesStraightToBraking() {
         TractionModeDetector detector = new TractionModeDetector();
         run(detector, 0.02, CREATE_ACCELERATION, 20);

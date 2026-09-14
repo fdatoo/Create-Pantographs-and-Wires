@@ -398,6 +398,8 @@ public final class TractionSoundManager {
                     return;
                 }
                 mixer = new TractionMixer(pack, SynthAudioStream.SAMPLE_RATE);
+                detector.configure((int) Math.round(pack.settings().modePersistenceSeconds() * 20),
+                    pack.settings().departureSpeedMps() / METRES_PER_SECOND_PER_BLOCK_PER_TICK);
                 mixer.setState(speedMps, detector.mode());
             }
             instance = new TractionSynthSoundInstance(x, y, z, VOICE_FADE_TICKS);

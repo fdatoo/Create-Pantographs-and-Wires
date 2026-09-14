@@ -159,11 +159,64 @@ class TractionMixerTest {
     void mechanicalLayersIgnoreTheMode() {
         float[] loop = sine(96000, 200);
         PackSettings settings = new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
-            PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0);
+            PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0,
+            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0);
         TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
         float[] powering = render(new TractionMixer(pack, RATE), 12, TractionMode.POWER, 4);
         float[] braking = render(new TractionMixer(pack, RATE), 12, TractionMode.BRAKE, 4);
         assertArrayEquals(powering, braking, 0f);
+    }
+
+    private static float[] ones() {
+        float[] dc = new float[48000];
+        java.util.Arrays.fill(dc, 1f);
+        return dc;
+    }
+
+    private static PackSettings cruisingSettings(double blendSeconds) {
+        return new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
+            PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of(), 1.0,
+            Set.of("coast/cruising"), 0.85, 0.2, blendSeconds, PackSettings.Shape.SMOOTHSTEP, 1.0);
+    }
+
+    @Test
+    void cruisingDucksUnderPowerAndBrakeAndReturnsWhenCoasting() {
+        float[] dc = ones();
+        TractionPack pack = new TractionPack(List.of(
+            new TractionPack.Layer("coast/cruising", TractionMode.COAST, new LayerCurve(List.of(new double[] {0, 1.0, 0.2}, new double[] {40, 1.0, 0.2})), dc, RATE, false, true),
+            layer("power/t", TractionMode.POWER, dc, 1.0, 0.0, false),
+            layer("brake/t", TractionMode.BRAKE, dc, 1.0, 0.0, false)
+        ), cruisingSettings(0));
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        float[] coasting = render(mixer, 14, TractionMode.COAST, 2);
+        assertEquals(0.2, coasting[coasting.length - 1], 1e-6, "full CSV volume at neutral demand");
+        float[] powering = render(mixer, 14, TractionMode.POWER, 4);
+        assertEquals(0.2 * 0.15, powering[powering.length - 1], 1e-6, "a faint 15 % remains under full power");
+        float[] braking = render(mixer, 14, TractionMode.BRAKE, 10);
+        double lowest = 1;
+        for (float sample : braking) lowest = Math.min(lowest, sample);
+        assertTrue(lowest > 0.2 * 0.15 - 1e-6, "never dips below the floor while handing over from power to brake");
+        assertEquals(0.2 * 0.15, braking[braking.length - 1], 1e-6);
+        float[] coastingAgain = render(mixer, 14, TractionMode.COAST, 10);
+        assertEquals(0.2, coastingAgain[coastingAgain.length - 1], 1e-6);
+    }
+
+    @Test
+    void modeChangesBlendWhileMovingButDeparturesKeepTheirOnset() {
+        float[] dc = ones();
+        TractionPack pack = new TractionPack(List.of(layer("power/t", TractionMode.POWER, dc, 1.0, 1.0, false)), cruisingSettings(0.25));
+
+        TractionMixer moving = new TractionMixer(pack, RATE);
+        render(moving, 10, TractionMode.COAST, 2);
+        float[] blend = render(moving, 10, TractionMode.POWER, 6);   // 250 ms = 12000 samples
+        assertEquals(0.5, blend[5999], 1e-6, "smoothstep midpoint of the 250 ms blend");
+        assertEquals(1.0, blend[11999], 1e-6);
+
+        TractionMixer departing = new TractionMixer(pack, RATE);
+        render(departing, 0.5, TractionMode.COAST, 2);
+        float[] onset = render(departing, 0.5, TractionMode.POWER, 2);
+        assertEquals(0.5, onset[1439], 1e-6, "accepted 60 ms linear onset from rest");
+        assertEquals(1.0, onset[2879], 1e-6);
     }
 
     @Test

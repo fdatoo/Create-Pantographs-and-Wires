@@ -37,7 +37,11 @@ public final class TractionPack {
         InputStream open(String path) throws IOException;
     }
 
-    public record Layer(String name, TractionMode mode, LayerCurve curve, float[] samples, int sampleRate, boolean continuous) {}
+    public record Layer(String name, TractionMode mode, LayerCurve curve, float[] samples, int sampleRate, boolean continuous, boolean ducked) {
+        public Layer(String name, TractionMode mode, LayerCurve curve, float[] samples, int sampleRate, boolean continuous) {
+            this(name, mode, curve, samples, sampleRate, continuous, false);
+        }
+    }
 
     public record CurveEntry(TractionMode mode, LayerCurve curve) {}
 
@@ -68,6 +72,16 @@ public final class TractionPack {
                 settings = PackSettings.parse(new InputStreamReader(in, StandardCharsets.UTF_8));
             }
         }
+        for (String named : settings.continuousLayers()) {
+            if (!curves.containsKey(named)) {
+                throw new IOException("player_settings.json names layer " + named + ", which curves.csv doesn't have");
+            }
+        }
+        for (String named : settings.duckedLayers()) {
+            if (!curves.containsKey(named)) {
+                throw new IOException("player_settings.json names layer " + named + ", which curves.csv doesn't have");
+            }
+        }
         List<Layer> layers = new ArrayList<>();
         for (Map.Entry<String, CurveEntry> entry : curves.entrySet()) {
             String name = entry.getKey();
@@ -81,7 +95,7 @@ public final class TractionPack {
                 throw new IOException("layer " + name + " is too short to loop");
             }
             layers.add(new Layer(name, entry.getValue().mode(), entry.getValue().curve(), wav.samples(), wav.sampleRate(),
-                settings.continuousLayers().contains(name)));
+                settings.continuousLayers().contains(name), settings.duckedLayers().contains(name)));
         }
         return new TractionPack(layers, settings);
     }

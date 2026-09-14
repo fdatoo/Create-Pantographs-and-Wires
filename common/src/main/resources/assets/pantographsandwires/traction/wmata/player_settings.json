@@ -28,5 +28,15 @@
   "outside_curve": "silent",
   "smoothstep": "s(u)=3*u*u-2*u*u*u, u clamped to [0,1]; interpolate from current envelope gain to its new target",
   "existing_player_modified": false,
-  "power_layer_selection": "Every layer with CSV mode power, including upper_ layers"
+  "power_layer_selection": "Every layer with CSV mode power, including upper_ layers",
+  "ducked_layers": [
+    "coast/cruising"
+  ],
+  "duck_depth": 0.85,
+  "ducked_rule": "wmata-cruising-addon: play continuously while moving, not gated by coast mode, at CSV volume x (1 - duck_depth x max(power_gain, brake_gain)) using the smoothed envelope gains.",
+  "mode_persistence_seconds": 0.2,
+  "mode_blend_seconds": 0.25,
+  "mode_blend_curve": "smoothstep",
+  "departure_speed_mps": 1.0,
+  "mode_change_rule": "wmata-cruising-addon: above departure_speed_mps a new mode must persist for mode_persistence_seconds, then every mode envelope blends from its current gain over mode_blend_seconds. Below it (departing from rest) the accepted power_on, power_off and brake_on timings apply unchanged."
 }

@@ -6,7 +6,8 @@ import java.util.List;
 /**
  * Plays a traction pack for one train: mixes every layer at the pitch and volume its curve gives for
  * the train's speed, gated by its mode's envelope. Mechanical layers named in the settings play in
- * every mode at their curve volume.
+ * every mode at their curve volume. Ducked layers (a cruising tone) also play in every mode, dipping
+ * as the power or brake envelope rises so the whine isn't counted twice.
  *
  * Every layer keeps its own read head, which keeps moving while the layer is silent, so a layer that
  * fades out and back in continues its loop instead of restarting. Pitch is playback rate, read with
@@ -34,6 +35,8 @@ public final class TractionMixer {
     private double[] powerGain = new double[0];
     private double[] brakeGain = new double[0];
     private double[] coastGain = new double[0];
+    private double[] duckGain = new double[0];
+    private final boolean hasDucked;
     private double[] boundarySpeed = new double[0];
     private double[] pitchAt = new double[0];
     private double[] volumeAt = new double[0];
@@ -51,6 +54,7 @@ public final class TractionMixer {
         this.brake = new Envelope(outputRate);
         this.coast = new Envelope(outputRate);
         this.head = new double[layers.size()];
+        this.hasDucked = layers.stream().anyMatch(TractionPack.Layer::ducked);
     }
 
     /** @param speedMps train speed in metres per second */
@@ -77,10 +81,20 @@ public final class TractionMixer {
             powerGain = new double[count];
             brakeGain = new double[count];
             coastGain = new double[count];
+            duckGain = new double[count];
         }
         boolean powerAudible = fill(power, powerGain, count);
         boolean brakeAudible = fill(brake, brakeGain, count);
         boolean coastAudible = fill(coast, coastGain, count);
+        boolean duckAudible = false;
+        if (hasDucked) {
+            double depth = settings.duckDepth();
+            for (int s = 0; s < count; s++) {
+                double traction = Math.min(1, Math.max(0, Math.max(powerGain[s], brakeGain[s])));
+                duckGain[s] = 1 - depth * traction;
+                duckAudible |= duckGain[s] != 0;
+            }
+        }
 
         int subBlocks = (count + SUB_BLOCK - 1) / SUB_BLOCK;
         if (boundarySpeed.length < subBlocks + 1) {
@@ -116,7 +130,10 @@ public final class TractionMixer {
             }
 
             double[] gate = null;
-            if (!layer.continuous()) {
+            if (layer.ducked()) {
+                gate = duckGain;
+                audible &= duckAudible;
+            } else if (!layer.continuous()) {
                 gate = switch (layer.mode()) {
                     case POWER -> powerGain;
                     case BRAKE -> brakeGain;
@@ -140,7 +157,7 @@ public final class TractionMixer {
                 continue;
             }
 
-            double gain = layer.continuous() ? settings.mechanicalGain() : 1.0;
+            double gain = layer.continuous() && !layer.ducked() ? settings.mechanicalGain() : 1.0;
             int s = 0;
             for (int j = 0; j < subBlocks; j++) {
                 int subLength = Math.min(SUB_BLOCK, count - j * SUB_BLOCK);
@@ -168,6 +185,13 @@ public final class TractionMixer {
 
     private void applyMode(TractionMode mode) {
         PackSettings s = settings;
+        if (s.modeBlendSeconds() > 0 && renderedSpeed >= s.departureSpeedMps()) {
+            // Moving: every envelope blends from its current gain over the same time.
+            power.setTarget(mode == TractionMode.POWER ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
+            brake.setTarget(mode == TractionMode.BRAKE ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
+            coast.setTarget(mode == TractionMode.COAST ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
+            return;
+        }
         switch (mode) {
             case POWER -> {
                 power.setTarget(1, s.powerOnSeconds(), s.powerOnShape());
