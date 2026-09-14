@@ -43,8 +43,9 @@ import net.minecraft.sounds.SoundEvent;
  */
 @Environment(EnvType.CLIENT)
 public final class TractionSoundManager {
-    // Bridges brief insulator gaps between wire spans without audibly cutting the sound.
-    private static final long CONTACT_GRACE_TICKS = 10;
+    // Bridges brief contact gaps (insulators between wire spans, a pantograph leaving the wire for a
+    // moment on a curving slope) without the traction dropping out. Longer gaps drop to cruising.
+    private static final long CONTACT_GRACE_TICKS = 30;
     private static final long CAPABILITY_GRACE_TICKS = 40;
     // A vehicle that stops reporting entirely (unloaded, contraption disassembled)
     // is swept out and its voices force-stopped after this many ticks of silence.
