@@ -1,5 +1,5 @@
 {
-  "baseline": "Original through 28m/s; decomposed upper acceleration above 28m/s",
+  "baseline": "C mix: gear -9 dB, rolling +2 dB in CSV; steady whine and residual reductions baked into WAVs",
   "continuous_mechanical_layers": [
     "coast/rolling_low",
     "coast/rolling_high",
@@ -16,10 +16,10 @@
   "brake_on_curve": "smoothstep attack",
   "gain_matching_or_master_processing": "none",
   "scope": "Requires explicit support in the player; loading only curves.csv with coast-only gating will not reproduce the accepted previews.",
-  "not_yet_tested": "No rapid mode toggles or brake-to-power reversals occur in these previews. Restart envelopes from current gain when implementing interruption handling.",
-  "pack_id": "wmata-alstom-upper-v3",
+  "not_yet_tested": "C mix has been approved in the 14 m/s demos. Other speeds and in-game C playback still need listening checks.",
+  "pack_id": "wmata-alstom-C-v4",
   "settings_format": "proposed custom player metadata, not an existing game standard",
-  "status": "Original lower-speed tone and transitions accepted; revised upper acceleration awaiting feedback",
+  "status": "C balance accepted at 14 m/s; extension to other steady speeds awaits listening",
   "speed_domain_mps": [
     0,
     40
@@ -29,22 +29,6 @@
   "smoothstep": "s(u)=3*u*u-2*u*u*u, u clamped to [0,1]; interpolate from current envelope gain to its new target",
   "existing_player_modified": false,
   "power_layer_selection": "Every layer with CSV mode power, including upper_ layers",
-  "ducked_layers": [
-    "coast/cruising"
-  ],
-  "duck_depth": 0.85,
-  "ducked_rule": "wmata-cruising-addon: play continuously while moving, not gated by coast mode, at CSV volume x (1 - duck_depth x max(power_gain, brake_gain)) using the smoothed envelope gains.",
-  "mode_persistence_seconds": 0.2,
-  "mode_blend_seconds": 0.25,
-  "mode_blend_curve": "smoothstep",
-  "departure_speed_mps": 1.0,
-  "mode_change_rule": "wmata-cruising-addon: above departure_speed_mps a new mode must persist for mode_persistence_seconds, then every mode envelope blends from its current gain over mode_blend_seconds. Below it (departing from rest) the accepted power_on, power_off and brake_on timings apply unchanged.",
-  "slope_power_blend_seconds": 1.0,
-  "slope_rule": "Create doesn't slow trains on hills, so gravity along the slope counts as traction demand: holding speed on a climb powers, on a descent brakes. Power brought in by a climb (not by speeding up) swells in over slope_power_blend_seconds. While a driver holds a direction, slowing imposed by Create's speed limits counts as neither braking nor powering.",
-  "mode_end_persistence_seconds": 0.6,
-  "mode_end_rule": "While moving, the end of power or brake demand must hold for mode_end_persistence_seconds before cruising takes over, so demand handing from a slope to speeding up (at a crest, or as Create lifts a speed cap) doesn't dip to cruise.",
-  "mode_power_persistence_seconds": 0.5,
-  "mode_power_rule": "While moving, powering must hold for mode_power_persistence_seconds before it takes effect, so the moment Create lifts a speed cap on a short straight between track pieces doesn't swell the power layers in and out.",
   "steady_settings_format": "Addon keys to merge into existing player settings; plain-language rules are normative for this proposed extension.",
   "steady_blend_seconds": 1.5,
   "steady_blend_rule": "Within each existing power/brake family, smoothstep from the current steady fraction to the new target over 1.5 seconds, both entering and leaving steady load. Keep independent power and brake steady fractions. Do not use an equal-power crossfade or restart from an endpoint after an interruption.",
@@ -62,9 +46,27 @@
   "steady_speed_rule": "Eligibility includes 5 and 40 m/s. The extra zero-volume rows below 5 m/s provide a fade guard during exit; they do not enable steady load below 5 m/s.",
   "steady_gain_rule": "Let P and B be existing smoothed demand/mode/availability gains in [0,1], and SP and SB the separate steady fractions. Original power gain is P*(1-SP); power_steady is P*SP. Original brake gain is B*(1-SB); brake_steady is B*SB. Multiply each by its own speed-table volume. Do not add a second copy at full gain or lower the family gain just because measured acceleration is zero.",
   "steady_cruising_duck_rule": "Keep cruising gain = its CSV volume * (1 - 0.85 * max(P,B)), using total family gains before steady partitioning. Do not use only the original sweep gains, or sum the steady gains a second time.",
-  "steady_mechanical_rule": "Existing continuous rolling and gear layers are unchanged, are played once, and are not partitioned, restarted, or demand-scaled by steady blending. The cruising loop also retains its read head.",
+  "steady_mechanical_rule": "Continuous mechanical layers use updated CSV gains. Do not partition, restart or demand-scale them. Cruising also retains its read head.",
   "steady_loop_rule": "Play every nonzero-volume row in the active steady family. The a/b/c files are simultaneous components, not alternatives. Keep their independent read heads continuous across entry, speed changes, and exit. Retain phase while inaudible, for example by advancing a virtual read head. Never align or restart all components at a loop boundary.",
-  "steady_existing_mode_timing_rule": "Keep the player's existing 0.25-second mode blend and 1-second slope-load ramp. The 1.5-second steady blend is an additional within-family change, not a replacement for either. No source pack or cruising-addon rows are changed.",
+  "steady_existing_mode_timing_rule": "Keep existing 0.25-second mode blend and 1-second slope-load ramp, with the additional 1.5-second steady blend. Curves are already combined; do not append older addon rows.",
   "steady_contact_rule": "Honor the player's existing availability gate for each family. Loss of contact disables power as it already does. Use the existing electrical-braking availability rule for brake_steady; do not invent a new brake availability rule from this addon. Driver direction input alone is not a steady-load requirement.",
-  "steady_status": "Synthesized steady-load approximation derived from the accepted pack; technical validation provided, listening and in-game approval pending. Game code has not been modified."
+  "steady_status": "Updated C balance; 14 m/s approved, other anchors extrapolated using the same spectral treatment",
+  "mix_rule": "Use files and CSV exactly once. Do not apply additional C EQ or gear/rolling gain changes: they are already baked into assets or CSV.",
+  "player_keys_note": "Keys from here on are not in the wmata-alstom-C-v4 delivery. They carry the player's existing cruising duck, mode timing and slope ramp, which INTEGRATION.md says to keep; steady_exit_hold_seconds, steady_exit_speed_deviation_mps and steady_exit_rule above also keep the player's tested exit revision in place of the delivery's 0.15 s rule.",
+  "ducked_layers": [
+    "coast/cruising"
+  ],
+  "duck_depth": 0.85,
+  "ducked_rule": "wmata-cruising-addon: play continuously while moving, not gated by coast mode, at CSV volume x (1 - duck_depth x max(power_gain, brake_gain)) using the smoothed envelope gains.",
+  "mode_persistence_seconds": 0.2,
+  "mode_blend_seconds": 0.25,
+  "mode_blend_curve": "smoothstep",
+  "departure_speed_mps": 1.0,
+  "mode_change_rule": "wmata-cruising-addon: above departure_speed_mps a new mode must persist for mode_persistence_seconds, then every mode envelope blends from its current gain over mode_blend_seconds. Below it (departing from rest) the accepted power_on, power_off and brake_on timings apply unchanged.",
+  "slope_power_blend_seconds": 1.0,
+  "slope_rule": "Create doesn't slow trains on hills, so gravity along the slope counts as traction demand: holding speed on a climb powers, on a descent brakes. Power brought in by a climb (not by speeding up) swells in over slope_power_blend_seconds. While a driver holds a direction, slowing imposed by Create's speed limits counts as neither braking nor powering.",
+  "mode_end_persistence_seconds": 0.6,
+  "mode_end_rule": "While moving, the end of power or brake demand must hold for mode_end_persistence_seconds before cruising takes over, so demand handing from a slope to speeding up (at a crest, or as Create lifts a speed cap) doesn't dip to cruise.",
+  "mode_power_persistence_seconds": 0.5,
+  "mode_power_rule": "While moving, powering must hold for mode_power_persistence_seconds before it takes effect, so the moment Create lifts a speed cap on a short straight between track pieces doesn't swell the power layers in and out."
 }
