@@ -63,16 +63,17 @@ public record PackSettings(
      * @param holdSeconds              how long a load must qualify before its steady fraction targets 1
      * @param enterAbsAccelerationMps2 largest actual acceleration that qualifies
      * @param speedSpanMps             largest spread of speed over the hold time that qualifies
-     * @param exitAbsAccelerationMps2  actual acceleration that, held for exitHoldSeconds, ends steady load
-     * @param exitHoldSeconds          how long that acceleration must last
+     * @param exitAbsAccelerationMps2  net acceleration over exitHoldSeconds that, with the deviation, ends steady load
+     * @param exitHoldSeconds          the window that acceleration is measured over
      * @param minSpeedMps              lowest speed at which steady load applies (inclusive)
      * @param maxSpeedMps              highest speed at which steady load applies (inclusive)
+     * @param exitSpeedDeviationMps    how far the speed must move from the held speed before steady load can end
      */
     public record Steady(double blendSeconds, double holdSeconds, double enterAbsAccelerationMps2, double speedSpanMps,
-        double exitAbsAccelerationMps2, double exitHoldSeconds, double minSpeedMps, double maxSpeedMps) {
+        double exitAbsAccelerationMps2, double exitHoldSeconds, double minSpeedMps, double maxSpeedMps, double exitSpeedDeviationMps) {
 
         public static Steady defaults() {
-            return new Steady(1.5, 1.25, 0.08, 0.18, 0.15, 0.15, 5, 40);
+            return new Steady(1.5, 1.25, 0.08, 0.18, 0.15, 0.4, 5, 40, 0.5);
         }
     }
 
@@ -121,7 +122,8 @@ public record PackSettings(
                 number(json, "steady_exit_abs_acceleration_mps2", ds.exitAbsAccelerationMps2()),
                 number(json, "steady_exit_hold_seconds", ds.exitHoldSeconds()),
                 number(json, "steady_min_speed_mps", ds.minSpeedMps()),
-                number(json, "steady_max_speed_mps", ds.maxSpeedMps()))
+                number(json, "steady_max_speed_mps", ds.maxSpeedMps()),
+                number(json, "steady_exit_speed_deviation_mps", ds.exitSpeedDeviationMps()))
         );
     }
 

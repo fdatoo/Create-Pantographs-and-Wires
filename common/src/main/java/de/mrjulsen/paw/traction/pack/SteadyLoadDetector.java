@@ -5,13 +5,20 @@ package de.mrjulsen.paw.traction.pack;
  * motors keep working, as on a long grade at a speed limit. A pack's steady-load layers then take over
  * from its acceleration and braking layers, which were made as moments of a sweep and drone when held.
  *
- * Follows the steady-load addon's rules (PackSettings.Steady). Each family, power and brake, qualifies
- * separately: it must be the heard mode, the speed in range, the actual acceleration small and the speed
- * within a narrow span since qualifying began, continuously for the hold time. Coasting beforehand doesn't
- * count. Once steady, a clear change of speed held for a moment, or losing the family or the speed range,
- * ends it. Speeds here are actual speed, not the gravity-compensated effort the mode detector uses.
+ * Entry follows the steady-load addon's rules (PackSettings.Steady). Each family, power and brake,
+ * qualifies separately: it must be the heard mode, the speed in range, the actual acceleration small and
+ * the speed within a narrow span since qualifying began, continuously for the hold time. Coasting
+ * beforehand doesn't count.
  *
- * Call once per game tick.
+ * Exit is looser than the addon first specified. Create's speed cap on curves lifts for a few ticks at
+ * track joins, stepping the speed up a quarter of a metre per second and back, which ended steady load
+ * and cost another hold and blend to return. So a steady family ends only when the speed has moved the
+ * exit deviation away from the held speed and the net acceleration over the exit window still clears the
+ * exit threshold. A slow drift past the deviation moves the held speed instead. Losing the family or the
+ * speed range still ends it at once.
+ *
+ * Speeds here are actual speed, not the gravity-compensated effort the mode detector uses. Call once
+ * per game tick.
  */
 public final class SteadyLoadDetector {
     private static final double TICKS_PER_SECOND = 20;
@@ -19,6 +26,9 @@ public final class SteadyLoadDetector {
     private PackSettings.Steady settings = PackSettings.Steady.defaults();
     private int holdTicks;
     private int exitTicks;
+    private double[] recent = new double[1];
+    private int recentCount;
+    private int recentNext;
     private double previousSpeed = Double.NaN;
     private final Family power = new Family();
     private final Family brake = new Family();
@@ -28,9 +38,15 @@ public final class SteadyLoadDetector {
     }
 
     public void configure(PackSettings.Steady settings) {
+        if (settings.equals(this.settings) && recent.length > 1) {
+            return;
+        }
         this.settings = settings;
         this.holdTicks = Math.max(1, (int) Math.round(settings.holdSeconds() * TICKS_PER_SECOND));
         this.exitTicks = Math.max(1, (int) Math.round(settings.exitHoldSeconds() * TICKS_PER_SECOND));
+        this.recent = new double[exitTicks + 1];
+        this.recentCount = 0;
+        this.recentNext = 0;
     }
 
     /**
@@ -41,9 +57,18 @@ public final class SteadyLoadDetector {
         double speed = Math.abs(speedMps);
         double acceleration = Double.isNaN(previousSpeed) ? 0 : Math.abs(speed - previousSpeed) * TICKS_PER_SECOND;
         previousSpeed = speed;
+
+        recent[recentNext] = speed;
+        recentNext = (recentNext + 1) % recent.length;
+        recentCount = Math.min(recentCount + 1, recent.length);
+        double oldest = recent[(recentNext - recentCount + recent.length) % recent.length];
+        double windowAcceleration = recentCount > 1
+            ? Math.abs(speed - oldest) * TICKS_PER_SECOND / (recentCount - 1)
+            : 0;
+
         boolean inRange = speed >= settings.minSpeedMps() && speed <= settings.maxSpeedMps();
-        power.update(heard == TractionMode.POWER && inRange, speed, acceleration);
-        brake.update(heard == TractionMode.BRAKE && inRange, speed, acceleration);
+        power.update(heard == TractionMode.POWER && inRange, speed, acceleration, windowAcceleration);
+        brake.update(heard == TractionMode.BRAKE && inRange, speed, acceleration, windowAcceleration);
     }
 
     public boolean powerSteady() {
@@ -66,48 +91,48 @@ public final class SteadyLoadDetector {
     private final class Family {
         private boolean steady;
         private int qualifying;
-        private int exiting;
         private double lowest;
         private double highest;
+        private double held;
 
-        private void update(boolean eligible, double speed, double acceleration) {
+        private void update(boolean eligible, double speed, double acceleration, double windowAcceleration) {
             if (!eligible) {
                 steady = false;
                 qualifying = 0;
-                exiting = 0;
                 return;
             }
-            if (!steady) {
-                if (acceleration > settings.enterAbsAccelerationMps2()) {
-                    qualifying = 0;
-                    return;
+            if (steady) {
+                if (Math.abs(speed - held) >= settings.exitSpeedDeviationMps()) {
+                    if (windowAcceleration >= settings.exitAbsAccelerationMps2()) {
+                        steady = false;
+                        qualifying = 0;
+                    } else {
+                        // Drifted this far without a clear change of speed: hold here instead.
+                        held = speed;
+                    }
                 }
-                if (qualifying == 0) {
-                    lowest = speed;
-                    highest = speed;
-                } else {
-                    lowest = Math.min(lowest, speed);
-                    highest = Math.max(highest, speed);
-                }
-                if (highest - lowest > settings.speedSpanMps()) {
-                    // Drifting: start the hold again from here.
-                    qualifying = 0;
-                    lowest = speed;
-                    highest = speed;
-                }
-                if (++qualifying >= holdTicks) {
-                    steady = true;
-                    exiting = 0;
-                }
-            } else if (acceleration >= settings.exitAbsAccelerationMps2()) {
-                if (++exiting >= exitTicks) {
-                    steady = false;
-                    qualifying = 0;
-                    exiting = 0;
-                }
+                return;
+            }
+            if (acceleration > settings.enterAbsAccelerationMps2()) {
+                qualifying = 0;
+                return;
+            }
+            if (qualifying == 0) {
+                lowest = speed;
+                highest = speed;
             } else {
-                // Between the entry and exit thresholds the train keeps whatever it had.
-                exiting = 0;
+                lowest = Math.min(lowest, speed);
+                highest = Math.max(highest, speed);
+            }
+            if (highest - lowest > settings.speedSpanMps()) {
+                // Drifting: start the hold again from here.
+                qualifying = 0;
+                lowest = speed;
+                highest = speed;
+            }
+            if (++qualifying >= holdTicks) {
+                steady = true;
+                held = (lowest + highest) / 2;
             }
         }
     }

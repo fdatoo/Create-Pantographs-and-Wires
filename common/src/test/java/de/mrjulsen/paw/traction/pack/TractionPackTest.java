@@ -175,7 +175,7 @@ class TractionPackTest {
             + "\"steady_speed_span_mps\":0.18,\"steady_exit_abs_acceleration_mps2\":0.15,\"steady_exit_hold_seconds\":0.15,"
             + "\"steady_min_speed_mps\":5.0,\"steady_max_speed_mps\":40.0,\"steady_status\":\"text\"}";
         PackSettings.Steady s = PackSettings.parse(new StringReader(json)).steady();
-        assertEquals(new PackSettings.Steady(1.5, 1.25, 0.08, 0.18, 0.15, 0.15, 5, 40), s);
+        assertEquals(new PackSettings.Steady(1.5, 1.25, 0.08, 0.18, 0.15, 0.15, 5, 40, 0.5), s);
     }
 
     @Test
