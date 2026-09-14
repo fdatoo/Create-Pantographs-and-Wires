@@ -1,13 +1,21 @@
 package de.mrjulsen.paw.traction.pack;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.function.LongSupplier;
 
 /**
  * Plays a traction pack for one train: mixes every layer at the pitch and volume its curve gives for
  * the train's speed, gated by its mode's envelope. Mechanical layers named in the settings play in
  * every mode at their curve volume. Ducked layers (a cruising tone) also play in every mode, dipping
  * as the power or brake envelope rises so the whine isn't counted twice.
+ *
+ * Power and brake gains are each partitioned between their sweep layers and, when a pack has them, their
+ * steady-load layers: sweep gets gain times (1 - steady fraction) and steady gets gain times the fraction.
+ * The fractions blend toward targets from SteadyLoadDetector with a smoothstep. Ducking uses the whole
+ * power and brake gains, so settling into steady load neither unducks the cruising tone nor ducks it twice.
  *
  * Every layer keeps its own read head, which keeps moving while the layer is silent, so a layer that
  * fades out and back in continues its loop instead of restarting. Pitch is playback rate, read with
@@ -23,6 +31,10 @@ public final class TractionMixer {
     static final int SUB_BLOCK = 240;
     /** Time constant of the glide toward each new speed. */
     static final double SPEED_GLIDE_SECONDS = 0.05;
+    /** An on-demand layer is wanted while the speed is within this of its curve. */
+    static final double ON_DEMAND_SPEED_MARGIN_MPS = 1.0;
+    /** An on-demand layer's samples are dropped after this long unwanted. */
+    static final long ON_DEMAND_IDLE_NANOS = 30_000_000_000L;
 
     private final List<TractionPack.Layer> layers;
     private final PackSettings settings;
@@ -30,13 +42,25 @@ public final class TractionMixer {
     private final Envelope power;
     private final Envelope brake;
     private final Envelope coast;
+    private final Envelope steadyPower;
+    private final Envelope steadyBrake;
+    private final boolean hasDucked;
+    private final boolean hasPowerSteady;
+    private final boolean hasBrakeSteady;
     private final double[] head;
+    private final Executor decoder;
+    private final LongSupplier clock;
     private final double[] curve = new double[2];
     private double[] powerGain = new double[0];
     private double[] brakeGain = new double[0];
     private double[] coastGain = new double[0];
     private double[] duckGain = new double[0];
-    private final boolean hasDucked;
+    private double[] steadyPowerFraction = new double[0];
+    private double[] steadyBrakeFraction = new double[0];
+    private double[] powerSweepGain = new double[0];
+    private double[] powerSteadyGain = new double[0];
+    private double[] brakeSweepGain = new double[0];
+    private double[] brakeSteadyGain = new double[0];
     private double[] boundarySpeed = new double[0];
     private double[] pitchAt = new double[0];
     private double[] volumeAt = new double[0];
@@ -44,6 +68,8 @@ public final class TractionMixer {
     private double targetSpeed;
     private TractionMode targetMode = TractionMode.COAST;
     private boolean targetSlopeDriven;
+    private double targetSteadyPower;
+    private double targetSteadyBrake;
     private double renderedSpeed = Double.NaN;
     private TractionMode appliedMode;
 
@@ -54,6 +80,8 @@ public final class TractionMixer {
     private volatile double lastBrake;
     private volatile double lastCoast;
     private volatile double lastDuck = 1;
+    private volatile double lastSteadyPower;
+    private volatile double lastSteadyBrake;
     private volatile boolean lastModeChangeMoving;
     private volatile double lastModeChangeSeconds;
 
@@ -62,20 +90,34 @@ public final class TractionMixer {
      *
      * @param modeChangeMoving  whether the latest mode change used the moving blends rather than departure timings
      * @param modeChangeSeconds how long the envelope for the new mode took to reach full gain
+     * @param steadyPower       share of the power gain given to steady-load layers
+     * @param steadyBrake       share of the brake gain given to steady-load layers
      * @param loudest           the loudest layers with their effective gains, loudest first
      */
     public record Diagnostics(double speedMps, TractionMode mode, boolean modeChangeMoving, double modeChangeSeconds,
-        double power, double brake, double coast, double duck, long blocksRendered, List<String> loudest) {}
+        double power, double brake, double coast, double duck, double steadyPower, double steadyBrake,
+        long blocksRendered, List<String> loudest) {}
 
     public TractionMixer(TractionPack pack, int outputRate) {
+        this(pack, outputRate, System::nanoTime);
+    }
+
+    /** @param clock nanoseconds, for deciding when an on-demand layer has gone unwanted long enough to drop */
+    TractionMixer(TractionPack pack, int outputRate, LongSupplier clock) {
+        this.decoder = pack.decoder();
+        this.clock = clock;
         this.layers = pack.layers();
         this.settings = pack.settings();
         this.outputRate = outputRate;
         this.power = new Envelope(outputRate);
         this.brake = new Envelope(outputRate);
         this.coast = new Envelope(outputRate);
+        this.steadyPower = new Envelope(outputRate);
+        this.steadyBrake = new Envelope(outputRate);
         this.head = new double[layers.size()];
         this.hasDucked = layers.stream().anyMatch(TractionPack.Layer::ducked);
+        this.hasPowerSteady = layers.stream().anyMatch(l -> l.steady() && l.mode() == TractionMode.POWER);
+        this.hasBrakeSteady = layers.stream().anyMatch(l -> l.steady() && l.mode() == TractionMode.BRAKE);
         this.layerLevel = new double[layers.size()];
     }
 
@@ -90,19 +132,33 @@ public final class TractionMixer {
      *                    brought in the mode; power from a climb swells in over its own, longer blend
      */
     public synchronized void setState(double speedMps, TractionMode mode, boolean slopeDriven) {
+        setState(speedMps, mode, slopeDriven, 0, 0);
+    }
+
+    /**
+     * @param steadyPowerTarget 1 when power has settled into steady load, otherwise 0 (see SteadyLoadDetector)
+     * @param steadyBrakeTarget the same for brake
+     */
+    public synchronized void setState(double speedMps, TractionMode mode, boolean slopeDriven, double steadyPowerTarget, double steadyBrakeTarget) {
         targetSpeed = speedMps;
         targetMode = mode;
         targetSlopeDriven = slopeDriven;
+        targetSteadyPower = steadyPowerTarget;
+        targetSteadyBrake = steadyBrakeTarget;
     }
 
     public void render(float[] block, int count) {
         double speedTarget;
         TractionMode mode;
         boolean slopeDriven;
+        double steadyPowerTarget;
+        double steadyBrakeTarget;
         synchronized (this) {
             speedTarget = targetSpeed;
             mode = targetMode;
             slopeDriven = targetSlopeDriven;
+            steadyPowerTarget = targetSteadyPower;
+            steadyBrakeTarget = targetSteadyBrake;
         }
         if (Double.isNaN(renderedSpeed)) {
             renderedSpeed = speedTarget;
@@ -111,15 +167,42 @@ public final class TractionMixer {
             applyMode(mode, slopeDriven);
             appliedMode = mode;
         }
+        PackSettings.Steady steady = settings.steady();
+        steadyPower.setTarget(hasPowerSteady ? clamp(steadyPowerTarget) : 0, steady.blendSeconds(), PackSettings.Shape.SMOOTHSTEP);
+        steadyBrake.setTarget(hasBrakeSteady ? clamp(steadyBrakeTarget) : 0, steady.blendSeconds(), PackSettings.Shape.SMOOTHSTEP);
         if (powerGain.length < count) {
             powerGain = new double[count];
             brakeGain = new double[count];
             coastGain = new double[count];
             duckGain = new double[count];
+            steadyPowerFraction = new double[count];
+            steadyBrakeFraction = new double[count];
+            powerSweepGain = new double[count];
+            powerSteadyGain = new double[count];
+            brakeSweepGain = new double[count];
+            brakeSteadyGain = new double[count];
         }
-        boolean powerAudible = fill(power, powerGain, count);
-        boolean brakeAudible = fill(brake, brakeGain, count);
+        fill(power, powerGain, count);
+        fill(brake, brakeGain, count);
         boolean coastAudible = fill(coast, coastGain, count);
+        fill(steadyPower, steadyPowerFraction, count);
+        fill(steadyBrake, steadyBrakeFraction, count);
+        boolean powerSweepAudible = false;
+        boolean powerSteadyAudible = false;
+        boolean brakeSweepAudible = false;
+        boolean brakeSteadyAudible = false;
+        for (int s = 0; s < count; s++) {
+            double sp = clamp(steadyPowerFraction[s]);
+            double sb = clamp(steadyBrakeFraction[s]);
+            powerSweepGain[s] = powerGain[s] * (1 - sp);
+            powerSteadyGain[s] = powerGain[s] * sp;
+            brakeSweepGain[s] = brakeGain[s] * (1 - sb);
+            brakeSteadyGain[s] = brakeGain[s] * sb;
+            powerSweepAudible |= powerSweepGain[s] > 0;
+            powerSteadyAudible |= powerSteadyGain[s] > 0;
+            brakeSweepAudible |= brakeSweepGain[s] > 0;
+            brakeSteadyAudible |= brakeSteadyGain[s] > 0;
+        }
         boolean duckAudible = false;
         if (hasDucked) {
             double depth = settings.duckDepth();
@@ -129,12 +212,13 @@ public final class TractionMixer {
                 duckAudible |= duckGain[s] != 0;
             }
         }
-
         if (count > 0) {
             lastPower = powerGain[count - 1];
             lastBrake = brakeGain[count - 1];
             lastCoast = coastGain[count - 1];
             lastDuck = hasDucked ? duckGain[count - 1] : 1;
+            lastSteadyPower = steadyPowerFraction[count - 1];
+            lastSteadyBrake = steadyBrakeFraction[count - 1];
         }
 
         int subBlocks = (count + SUB_BLOCK - 1) / SUB_BLOCK;
@@ -152,39 +236,59 @@ public final class TractionMixer {
         }
 
         Arrays.fill(block, 0, count, 0f);
+        long now = clock.getAsLong();
         for (int i = 0; i < layers.size(); i++) {
             TractionPack.Layer layer = layers.get(i);
-            float[] source = layer.samples();
-            int length = source.length;
-            double ratio = layer.sampleRate() / (double) outputRate;
+            LayerAudio audio = layer.audio();
+            if (audio.isOnDemand()) {
+                // Steady load needs the speed held for over a second first, so a layer wanted once its
+                // mode plays near its speed has decoded long before it can be heard.
+                boolean wanted = (layer.continuous() || layer.ducked() || layer.mode() == mode)
+                    && renderedSpeed >= layer.curve().firstSpeed() - ON_DEMAND_SPEED_MARGIN_MPS
+                    && renderedSpeed <= layer.curve().lastSpeed() + ON_DEMAND_SPEED_MARGIN_MPS;
+                if (wanted) {
+                    audio.want(now, decoder);
+                } else {
+                    audio.releaseIfIdle(now, ON_DEMAND_IDLE_NANOS);
+                }
+            }
+            float[] source = audio.samples();
+            int length = audio.frames();
+            double ratio = audio.sampleRate() / (double) outputRate;
 
-            boolean audible = false;
+            boolean audible = source != null;
+            boolean anyVolume = false;
             for (int j = 0; j <= subBlocks; j++) {
                 if (layer.curve().sample(boundarySpeed[j], curve)) {
                     pitchAt[j] = curve[0];
                     volumeAt[j] = curve[1];
-                    audible |= curve[1] != 0;
+                    anyVolume |= curve[1] != 0;
                 } else {
                     pitchAt[j] = layer.curve().clampedPitch(boundarySpeed[j]);
                     volumeAt[j] = 0;
                 }
             }
+            audible &= anyVolume;
 
             double[] gate = null;
             if (layer.ducked()) {
                 gate = duckGain;
                 audible &= duckAudible;
             } else if (!layer.continuous()) {
-                gate = switch (layer.mode()) {
-                    case POWER -> powerGain;
-                    case BRAKE -> brakeGain;
-                    case COAST -> coastGain;
-                };
-                audible &= switch (layer.mode()) {
-                    case POWER -> powerAudible;
-                    case BRAKE -> brakeAudible;
-                    case COAST -> coastAudible;
-                };
+                switch (layer.mode()) {
+                    case POWER -> {
+                        gate = layer.steady() ? powerSteadyGain : powerSweepGain;
+                        audible &= layer.steady() ? powerSteadyAudible : powerSweepAudible;
+                    }
+                    case BRAKE -> {
+                        gate = layer.steady() ? brakeSteadyGain : brakeSweepGain;
+                        audible &= layer.steady() ? brakeSteadyAudible : brakeSweepAudible;
+                    }
+                    case COAST -> {
+                        gate = coastGain;
+                        audible &= coastAudible;
+                    }
+                }
             }
 
             double h = head[i];
@@ -235,7 +339,7 @@ public final class TractionMixer {
         }
         double[] levels = layerLevel.clone();
         Arrays.sort(order, (a, b) -> Double.compare(levels[b], levels[a]));
-        List<String> loudest = new java.util.ArrayList<>();
+        List<String> loudest = new ArrayList<>();
         for (int i = 0; i < order.length && loudest.size() < loudestCount; i++) {
             if (levels[order[i]] > 0.001) {
                 loudest.add(layers.get(order[i]).name() + " " + String.format("%.2f", levels[order[i]]));
@@ -243,7 +347,7 @@ public final class TractionMixer {
         }
         double speed = renderedSpeed;
         return new Diagnostics(Double.isNaN(speed) ? 0 : speed, appliedMode, lastModeChangeMoving, lastModeChangeSeconds,
-            lastPower, lastBrake, lastCoast, lastDuck, blocksRendered, loudest);
+            lastPower, lastBrake, lastCoast, lastDuck, lastSteadyPower, lastSteadyBrake, blocksRendered, loudest);
     }
 
     private void applyMode(TractionMode mode, boolean slopeDriven) {
@@ -284,6 +388,10 @@ public final class TractionMixer {
                 coast.setTarget(1, s.powerOnSeconds(), s.powerOnShape());
             }
         }
+    }
+
+    private static double clamp(double value) {
+        return Math.min(1, Math.max(0, value));
     }
 
     /** Fills a block of envelope gains; returns whether any of them is above zero. */

@@ -155,6 +155,30 @@ class TractionPackTest {
     }
 
     @Test
+    void steadyModesAreSteadyPowerAndBrakeLayers() throws IOException {
+        String csv = "layer,mode,speed_mps,pitch,volume\n"
+            + "power_steady/v14_a,power_steady,12.5,1,0\npower_steady/v14_a,power_steady,14,1,0.7\n"
+            + "brake_steady/v14_a,brake_steady,14,1,0.7\n"
+            + "power/tone,power,14,1,0.7\n";
+        Map<String, TractionPack.CurveEntry> curves = TractionPack.parseCurves(new StringReader(csv));
+        assertEquals(TractionMode.POWER, curves.get("power_steady/v14_a").mode());
+        assertTrue(curves.get("power_steady/v14_a").steady());
+        assertEquals(TractionMode.BRAKE, curves.get("brake_steady/v14_a").mode());
+        assertTrue(curves.get("brake_steady/v14_a").steady());
+        assertFalse(curves.get("power/tone").steady());
+        assertThrows(IOException.class, () -> TractionPack.parseCurves(new StringReader("layer,mode,speed_mps,pitch,volume\nx,coast_steady,1,1,1\n")));
+    }
+
+    @Test
+    void parsesSteadyLoadSettings() throws IOException {
+        String json = "{\"steady_blend_seconds\":1.5,\"steady_hold_seconds\":1.25,\"steady_enter_abs_acceleration_mps2\":0.08,"
+            + "\"steady_speed_span_mps\":0.18,\"steady_exit_abs_acceleration_mps2\":0.15,\"steady_exit_hold_seconds\":0.15,"
+            + "\"steady_min_speed_mps\":5.0,\"steady_max_speed_mps\":40.0,\"steady_status\":\"text\"}";
+        PackSettings.Steady s = PackSettings.parse(new StringReader(json)).steady();
+        assertEquals(new PackSettings.Steady(1.5, 1.25, 0.08, 0.18, 0.15, 0.15, 5, 40), s);
+    }
+
+    @Test
     void settingsNamingAMissingLayerAreRejected() {
         Map<String, byte[]> files = new HashMap<>();
         files.put("curves.csv", "layer,mode,speed_mps,pitch,volume\npower/tone,power,0,1,1\n".getBytes(StandardCharsets.UTF_8));

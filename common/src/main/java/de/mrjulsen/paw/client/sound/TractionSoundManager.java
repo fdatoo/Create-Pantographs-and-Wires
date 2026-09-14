@@ -21,6 +21,7 @@ import de.mrjulsen.paw.traction.TractionDebug;
 import de.mrjulsen.paw.traction.TractionSpeedFeed;
 import de.mrjulsen.paw.traction.pack.TractionMixer;
 import de.mrjulsen.paw.traction.pack.TractionMode;
+import de.mrjulsen.paw.traction.pack.SteadyLoadDetector;
 import de.mrjulsen.paw.traction.pack.TractionModeDetector;
 import de.mrjulsen.paw.traction.pack.TractionPack;
 import net.fabricmc.api.EnvType;
@@ -553,6 +554,7 @@ public final class TractionSoundManager {
 
         private final UUID vehicleId;
         private final TractionModeDetector detector = new TractionModeDetector();
+        private final SteadyLoadDetector steady = new SteadyLoadDetector();
         /** The mode the voice plays: the detector's, or cruising while contact is lost. */
         private TractionMode heardMode = TractionMode.COAST;
         private TractionMixer mixer;
@@ -595,7 +597,8 @@ public final class TractionSoundManager {
                     : persistenceTicks;
                 detector.configure(persistenceTicks, powerPersistenceTicks, endPersistenceTicks,
                     pack.settings().departureSpeedMps() / METRES_PER_SECOND_PER_BLOCK_PER_TICK);
-                mixer.setState(speedMps, heardMode, detector.slopeDriven());
+                steady.configure(pack.settings().steady());
+                mixer.setState(speedMps, heardMode, detector.slopeDriven(), steady.powerTarget(), steady.brakeTarget());
             }
             instance = new TractionSynthSoundInstance(x, y, z, restart ? VOICE_FADE_TICKS : 0, VOICE_FADE_TICKS);
             instance.setListenerAboard(listenerAboard);
@@ -619,8 +622,16 @@ public final class TractionSoundManager {
                     String.format("%.2f", speedMps), String.format("%+.1f", grade * 100), throttleHeld ? "yes" : "no",
                     String.format("%+.2f", detector.drivenAcceleration() * 400), String.format("%+.2f", detector.slopeAcceleration() * 400));
             }
+            boolean powerWasSteady = steady.powerSteady();
+            boolean brakeWasSteady = steady.brakeSteady();
+            steady.update(speedMps, mode);
+            if (TractionDebug.client() && (powerWasSteady != steady.powerSteady() || brakeWasSteady != steady.brakeSteady())) {
+                TractionDebug.info("client: train {} steady load {} at {} m/s (mode {})", TractionDebug.shortId(vehicleId),
+                    steady.powerSteady() ? "power on" : steady.brakeSteady() ? "brake on" : "off",
+                    String.format("%.2f", speedMps), mode);
+            }
             if (mixer != null) {
-                mixer.setState(speedMps, mode, detector.slopeDriven());
+                mixer.setState(speedMps, mode, detector.slopeDriven(), steady.powerTarget(), steady.brakeTarget());
             }
             if (!stopping && gameTime != Long.MIN_VALUE && gameTime - lastStartTick >= RESTART_INTERVAL_TICKS
                 && (instance == null || !Minecraft.getInstance().getSoundManager().isActive(instance))) {
@@ -681,11 +692,11 @@ public final class TractionSoundManager {
             boolean playing = instance != null && Minecraft.getInstance().getSoundManager().isActive(instance);
             String ear = instance == null ? "-" : String.format("right %+.1f, up %+.1f, behind %+.1f blocks, centred %.0f%%",
                 instance.getX(), instance.getY(), instance.getZ(), instance.aboardBlend() * 100);
-            return String.format("mode %s%s, last change over %.2f s (%s) | envelopes power %.2f, brake %.2f, coast %.2f, cruising duck %.2f"
+            return String.format("mode %s%s, last change over %.2f s (%s) | envelopes power %.2f, brake %.2f, coast %.2f, cruising duck %.2f, steady power %.2f, steady brake %.2f"
                     + " | loudest %s | voice %s, stream %s | ear %s",
                 d.mode(), d.mode() != TractionMode.COAST && detector.slopeDriven() ? " (slope)" : "",
                 d.modeChangeSeconds(), d.modeChangeMoving() ? "moving blend" : "departure timing",
-                d.power(), d.brake(), d.coast(), d.duck(),
+                d.power(), d.brake(), d.coast(), d.duck(), d.steadyPower(), d.steadyBrake(),
                 d.loudest().isEmpty() ? "none" : String.join(", ", d.loudest()),
                 playing ? "playing" : "not playing", stream, ear);
         }

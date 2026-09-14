@@ -1,0 +1,2028 @@
+{
+  "status": "Technical checks passed; listening approval pending",
+  "existing_assets_modified": false,
+  "format": {
+    "channels": 1,
+    "sample_rate_hz": 48000,
+    "subtype": "PCM_24"
+  },
+  "loop_frame_counts": [
+    392311,
+    477457,
+    562993
+  ],
+  "loop_seconds": [
+    8.173145833333333,
+    9.947020833333333,
+    11.729020833333333
+  ],
+  "joint_repeat_seconds_at_pitch_1": 95520958577.05536,
+  "common_file_gain": 1.0,
+  "source_identity": [
+    {
+      "mode": "power",
+      "speed": 5,
+      "key": "power_5",
+      "reference_rms": 0.01751090501281069,
+      "trim": 0.6943484913464825,
+      "retained_energy": 0.996040455146144,
+      "partial_count": 72
+    },
+    {
+      "mode": "power",
+      "speed": 5.8,
+      "key": "power_5p8",
+      "reference_rms": 0.02029236762324364,
+      "trim": 0.7104099431393409,
+      "retained_energy": 0.9960499587124999,
+      "partial_count": 76
+    },
+    {
+      "mode": "power",
+      "speed": 6.5,
+      "key": "power_6p5",
+      "reference_rms": 0.02506444887116561,
+      "trim": 0.713098192961858,
+      "retained_energy": 0.9960823597536648,
+      "partial_count": 73
+    },
+    {
+      "mode": "power",
+      "speed": 7.25,
+      "key": "power_7p25",
+      "reference_rms": 0.055115284957972584,
+      "trim": 0.6917850717969962,
+      "retained_energy": 0.9960313439755587,
+      "partial_count": 30
+    },
+    {
+      "mode": "power",
+      "speed": 7.8,
+      "key": "power_7p8",
+      "reference_rms": 0.04084829970810784,
+      "trim": 0.7099555407198389,
+      "retained_energy": 0.9960757400982911,
+      "partial_count": 61
+    },
+    {
+      "mode": "power",
+      "speed": 8.3,
+      "key": "power_8p3",
+      "reference_rms": 0.021142169078676172,
+      "trim": 0.7113121251068865,
+      "retained_energy": 0.9960917974175822,
+      "partial_count": 73
+    },
+    {
+      "mode": "power",
+      "speed": 9.5,
+      "key": "power_9p5",
+      "reference_rms": 0.029739779502136063,
+      "trim": 0.6943700978205579,
+      "retained_energy": 0.9960612635430914,
+      "partial_count": 91
+    },
+    {
+      "mode": "power",
+      "speed": 11,
+      "key": "power_11",
+      "reference_rms": 0.03529019080645833,
+      "trim": 0.6908583131289313,
+      "retained_energy": 0.9960561177306685,
+      "partial_count": 92
+    },
+    {
+      "mode": "power",
+      "speed": 12.5,
+      "key": "power_12p5",
+      "reference_rms": 0.043994965361311936,
+      "trim": 0.6973103852744564,
+      "retained_energy": 0.9960978248164662,
+      "partial_count": 68
+    },
+    {
+      "mode": "power",
+      "speed": 14,
+      "key": "power_14",
+      "reference_rms": 0.05706525079822347,
+      "trim": 0.7121134738730738,
+      "retained_energy": 0.9960851851724565,
+      "partial_count": 60
+    },
+    {
+      "mode": "power",
+      "speed": 16,
+      "key": "power_16",
+      "reference_rms": 0.05279369298229871,
+      "trim": 0.7048465650392106,
+      "retained_energy": 0.9960614988179223,
+      "partial_count": 75
+    },
+    {
+      "mode": "power",
+      "speed": 18.5,
+      "key": "power_18p5",
+      "reference_rms": 0.06356633952422534,
+      "trim": 0.6939790710521077,
+      "retained_energy": 0.9961022765125255,
+      "partial_count": 62
+    },
+    {
+      "mode": "power",
+      "speed": 21,
+      "key": "power_21",
+      "reference_rms": 0.05891445624045908,
+      "trim": 0.6982478348620018,
+      "retained_energy": 0.9960536990406293,
+      "partial_count": 78
+    },
+    {
+      "mode": "power",
+      "speed": 24,
+      "key": "power_24",
+      "reference_rms": 0.07358995700456664,
+      "trim": 0.7090873555346702,
+      "retained_energy": 0.9960048472747871,
+      "partial_count": 64
+    },
+    {
+      "mode": "power",
+      "speed": 26,
+      "key": "power_26",
+      "reference_rms": 0.06305791524268034,
+      "trim": 0.6983128326924781,
+      "retained_energy": 0.9960919458062715,
+      "partial_count": 37
+    },
+    {
+      "mode": "power",
+      "speed": 28,
+      "key": "power_28",
+      "reference_rms": 0.09616192565892015,
+      "trim": 0.702157594952916,
+      "retained_energy": 0.9962941592897939,
+      "partial_count": 33
+    },
+    {
+      "mode": "power",
+      "speed": 32,
+      "key": "power_32",
+      "reference_rms": 0.09168867713470502,
+      "trim": 0.6964795114088426,
+      "retained_energy": 0.9962941527513457,
+      "partial_count": 33
+    },
+    {
+      "mode": "power",
+      "speed": 36,
+      "key": "power_36",
+      "reference_rms": 0.08742892216573007,
+      "trim": 0.690576157588631,
+      "retained_energy": 0.9962941527455764,
+      "partial_count": 33
+    },
+    {
+      "mode": "power",
+      "speed": 40,
+      "key": "power_40",
+      "reference_rms": 0.08349652131694822,
+      "trim": 0.7062229402134493,
+      "retained_energy": 0.9960374045675485,
+      "partial_count": 24
+    },
+    {
+      "mode": "brake",
+      "speed": 5,
+      "key": "brake_5",
+      "reference_rms": 0.01718893143655343,
+      "trim": 0.7042274734886723,
+      "retained_energy": 0.9960245489126143,
+      "partial_count": 63
+    },
+    {
+      "mode": "brake",
+      "speed": 5.8,
+      "key": "brake_5p8",
+      "reference_rms": 0.022809311876677344,
+      "trim": 0.697794638362174,
+      "retained_energy": 0.9960301539262139,
+      "partial_count": 49
+    },
+    {
+      "mode": "brake",
+      "speed": 6.5,
+      "key": "brake_6p5",
+      "reference_rms": 0.02603823050152958,
+      "trim": 0.6828999241501564,
+      "retained_energy": 0.996005365708782,
+      "partial_count": 56
+    },
+    {
+      "mode": "brake",
+      "speed": 7.25,
+      "key": "brake_7p25",
+      "reference_rms": 0.03949056232646865,
+      "trim": 0.6804622065242303,
+      "retained_energy": 0.9960026495997372,
+      "partial_count": 44
+    },
+    {
+      "mode": "brake",
+      "speed": 7.8,
+      "key": "brake_7p8",
+      "reference_rms": 0.04714657752515842,
+      "trim": 0.6756830127725345,
+      "retained_energy": 0.9961698265252312,
+      "partial_count": 37
+    },
+    {
+      "mode": "brake",
+      "speed": 8.3,
+      "key": "brake_8p3",
+      "reference_rms": 0.04839628221351165,
+      "trim": 0.6976968235978899,
+      "retained_energy": 0.9961266331165272,
+      "partial_count": 40
+    },
+    {
+      "mode": "brake",
+      "speed": 9.5,
+      "key": "brake_9p5",
+      "reference_rms": 0.02500594978837651,
+      "trim": 0.7181889378487363,
+      "retained_energy": 0.9961313397869171,
+      "partial_count": 67
+    },
+    {
+      "mode": "brake",
+      "speed": 11,
+      "key": "brake_11",
+      "reference_rms": 0.028959496950046362,
+      "trim": 0.6936302952749355,
+      "retained_energy": 0.9951730359567897,
+      "partial_count": 96
+    },
+    {
+      "mode": "brake",
+      "speed": 12.5,
+      "key": "brake_12p5",
+      "reference_rms": 0.03254651794719947,
+      "trim": 0.7028238814163523,
+      "retained_energy": 0.9945846893387953,
+      "partial_count": 96
+    },
+    {
+      "mode": "brake",
+      "speed": 14,
+      "key": "brake_14",
+      "reference_rms": 0.043134370389962,
+      "trim": 0.6864539692323467,
+      "retained_energy": 0.9960381505152682,
+      "partial_count": 70
+    },
+    {
+      "mode": "brake",
+      "speed": 16,
+      "key": "brake_16",
+      "reference_rms": 0.05461959433228547,
+      "trim": 0.6847957205866725,
+      "retained_energy": 0.9961610516129029,
+      "partial_count": 63
+    },
+    {
+      "mode": "brake",
+      "speed": 18.5,
+      "key": "brake_18p5",
+      "reference_rms": 0.059566841662412655,
+      "trim": 0.7082412435920493,
+      "retained_energy": 0.9961484167654956,
+      "partial_count": 87
+    },
+    {
+      "mode": "brake",
+      "speed": 21,
+      "key": "brake_21",
+      "reference_rms": 0.05696324360298891,
+      "trim": 0.7006982113974252,
+      "retained_energy": 0.996066095365166,
+      "partial_count": 55
+    },
+    {
+      "mode": "brake",
+      "speed": 24,
+      "key": "brake_24",
+      "reference_rms": 0.05938097146014148,
+      "trim": 0.7008286047301249,
+      "retained_energy": 0.9960891567528875,
+      "partial_count": 76
+    },
+    {
+      "mode": "brake",
+      "speed": 26,
+      "key": "brake_26",
+      "reference_rms": 0.08061037571477594,
+      "trim": 0.7164102300446469,
+      "retained_energy": 0.9961833324763286,
+      "partial_count": 67
+    },
+    {
+      "mode": "brake",
+      "speed": 28,
+      "key": "brake_28",
+      "reference_rms": 0.10292028483433464,
+      "trim": 0.718651405854572,
+      "retained_energy": 0.9961695856694884,
+      "partial_count": 32
+    },
+    {
+      "mode": "brake",
+      "speed": 32,
+      "key": "brake_32",
+      "reference_rms": 0.09837360558462509,
+      "trim": 0.7097676237426502,
+      "retained_energy": 0.9961695856694881,
+      "partial_count": 32
+    },
+    {
+      "mode": "brake",
+      "speed": 36,
+      "key": "brake_36",
+      "reference_rms": 0.0938269263349155,
+      "trim": 0.6999233138565051,
+      "retained_energy": 0.996169585669488,
+      "partial_count": 32
+    },
+    {
+      "mode": "brake",
+      "speed": 40,
+      "key": "brake_40",
+      "reference_rms": 0.08928024708520595,
+      "trim": 0.7192528772086951,
+      "retained_energy": 0.9961695856694894,
+      "partial_count": 32
+    }
+  ],
+  "files": [
+    {
+      "layer": "brake_steady/v11_a",
+      "frames": 392311,
+      "peak_dbfs": -27.048078509092957,
+      "seam_step": 0.0036745071411132812,
+      "max_internal_step": 0.014209628105163574
+    },
+    {
+      "layer": "brake_steady/v11_b",
+      "frames": 477457,
+      "peak_dbfs": -25.753212244122317,
+      "seam_step": 0.007624387741088867,
+      "max_internal_step": 0.018915534019470215
+    },
+    {
+      "layer": "brake_steady/v11_c",
+      "frames": 562993,
+      "peak_dbfs": -24.076023691265167,
+      "seam_step": 0.0012257099151611328,
+      "max_internal_step": 0.021110177040100098
+    },
+    {
+      "layer": "brake_steady/v12p5_a",
+      "frames": 392311,
+      "peak_dbfs": -29.947054337941964,
+      "seam_step": 0.00757145881652832,
+      "max_internal_step": 0.010458111763000488
+    },
+    {
+      "layer": "brake_steady/v12p5_b",
+      "frames": 477457,
+      "peak_dbfs": -24.265966609797186,
+      "seam_step": 0.005738377571105957,
+      "max_internal_step": 0.02237987518310547
+    },
+    {
+      "layer": "brake_steady/v12p5_c",
+      "frames": 562993,
+      "peak_dbfs": -22.285728501707833,
+      "seam_step": 0.007449030876159668,
+      "max_internal_step": 0.02329099178314209
+    },
+    {
+      "layer": "brake_steady/v14_a",
+      "frames": 392311,
+      "peak_dbfs": -27.086038872456516,
+      "seam_step": 0.0028638839721679688,
+      "max_internal_step": 0.01459956169128418
+    },
+    {
+      "layer": "brake_steady/v14_b",
+      "frames": 477457,
+      "peak_dbfs": -20.658103309343957,
+      "seam_step": 0.007062554359436035,
+      "max_internal_step": 0.030698299407958984
+    },
+    {
+      "layer": "brake_steady/v14_c",
+      "frames": 562993,
+      "peak_dbfs": -21.784125014144404,
+      "seam_step": 0.005998015403747559,
+      "max_internal_step": 0.021551966667175293
+    },
+    {
+      "layer": "brake_steady/v16_a",
+      "frames": 392311,
+      "peak_dbfs": -19.74914466475267,
+      "seam_step": 0.0006748437881469727,
+      "max_internal_step": 0.02284383773803711
+    },
+    {
+      "layer": "brake_steady/v16_b",
+      "frames": 477457,
+      "peak_dbfs": -20.25862132601958,
+      "seam_step": 0.000918269157409668,
+      "max_internal_step": 0.024825215339660645
+    },
+    {
+      "layer": "brake_steady/v16_c",
+      "frames": 562993,
+      "peak_dbfs": -18.590667653226056,
+      "seam_step": 0.007482171058654785,
+      "max_internal_step": 0.036708831787109375
+    },
+    {
+      "layer": "brake_steady/v18p5_a",
+      "frames": 392311,
+      "peak_dbfs": -21.44941401977217,
+      "seam_step": 0.0023027658462524414,
+      "max_internal_step": 0.017659544944763184
+    },
+    {
+      "layer": "brake_steady/v18p5_b",
+      "frames": 477457,
+      "peak_dbfs": -18.2862930278244,
+      "seam_step": 0.006693601608276367,
+      "max_internal_step": 0.027037382125854492
+    },
+    {
+      "layer": "brake_steady/v18p5_c",
+      "frames": 562993,
+      "peak_dbfs": -17.794231343693788,
+      "seam_step": 0.012625455856323242,
+      "max_internal_step": 0.03816378116607666
+    },
+    {
+      "layer": "brake_steady/v21_a",
+      "frames": 392311,
+      "peak_dbfs": -25.0443797507293,
+      "seam_step": 0.00012576580047607422,
+      "max_internal_step": 0.005720973014831543
+    },
+    {
+      "layer": "brake_steady/v21_b",
+      "frames": 477457,
+      "peak_dbfs": -19.909558902062642,
+      "seam_step": 0.0011161565780639648,
+      "max_internal_step": 0.024353981018066406
+    },
+    {
+      "layer": "brake_steady/v21_c",
+      "frames": 562993,
+      "peak_dbfs": -17.362233424677708,
+      "seam_step": 0.015721797943115234,
+      "max_internal_step": 0.031929731369018555
+    },
+    {
+      "layer": "brake_steady/v24_a",
+      "frames": 392311,
+      "peak_dbfs": -20.709410365300048,
+      "seam_step": 0.002698540687561035,
+      "max_internal_step": 0.019834160804748535
+    },
+    {
+      "layer": "brake_steady/v24_b",
+      "frames": 477457,
+      "peak_dbfs": -19.068692708601944,
+      "seam_step": 0.0036003589630126953,
+      "max_internal_step": 0.021657705307006836
+    },
+    {
+      "layer": "brake_steady/v24_c",
+      "frames": 562993,
+      "peak_dbfs": -16.778398617564353,
+      "seam_step": 0.01651632785797119,
+      "max_internal_step": 0.03362584114074707
+    },
+    {
+      "layer": "brake_steady/v26_a",
+      "frames": 392311,
+      "peak_dbfs": -22.04783869970731,
+      "seam_step": 0.005623817443847656,
+      "max_internal_step": 0.007748007774353027
+    },
+    {
+      "layer": "brake_steady/v26_b",
+      "frames": 477457,
+      "peak_dbfs": -16.200872803401595,
+      "seam_step": 0.010928034782409668,
+      "max_internal_step": 0.03428840637207031
+    },
+    {
+      "layer": "brake_steady/v26_c",
+      "frames": 562993,
+      "peak_dbfs": -15.321924933667148,
+      "seam_step": 0.016892671585083008,
+      "max_internal_step": 0.04745674133300781
+    },
+    {
+      "layer": "brake_steady/v28_a",
+      "frames": 392311,
+      "peak_dbfs": -20.66305276034084,
+      "seam_step": 0.008294939994812012,
+      "max_internal_step": 0.008614897727966309
+    },
+    {
+      "layer": "brake_steady/v28_b",
+      "frames": 477457,
+      "peak_dbfs": -15.280890340192514,
+      "seam_step": 0.0007038116455078125,
+      "max_internal_step": 0.039095163345336914
+    },
+    {
+      "layer": "brake_steady/v28_c",
+      "frames": 562993,
+      "peak_dbfs": -13.002934705720586,
+      "seam_step": 0.01874411106109619,
+      "max_internal_step": 0.05135619640350342
+    },
+    {
+      "layer": "brake_steady/v32_a",
+      "frames": 392311,
+      "peak_dbfs": -20.55818914872365,
+      "seam_step": 0.007513880729675293,
+      "max_internal_step": 0.008719086647033691
+    },
+    {
+      "layer": "brake_steady/v32_b",
+      "frames": 477457,
+      "peak_dbfs": -16.543543756225386,
+      "seam_step": 0.0012660026550292969,
+      "max_internal_step": 0.04041934013366699
+    },
+    {
+      "layer": "brake_steady/v32_c",
+      "frames": 562993,
+      "peak_dbfs": -13.332116555550964,
+      "seam_step": 0.01785755157470703,
+      "max_internal_step": 0.048249125480651855
+    },
+    {
+      "layer": "brake_steady/v36_a",
+      "frames": 392311,
+      "peak_dbfs": -21.123446541265913,
+      "seam_step": 0.007324576377868652,
+      "max_internal_step": 0.008168578147888184
+    },
+    {
+      "layer": "brake_steady/v36_b",
+      "frames": 477457,
+      "peak_dbfs": -16.70258593678486,
+      "seam_step": 4.875659942626953e-05,
+      "max_internal_step": 0.03579223155975342
+    },
+    {
+      "layer": "brake_steady/v36_c",
+      "frames": 562993,
+      "peak_dbfs": -13.31268601493109,
+      "seam_step": 0.02056443691253662,
+      "max_internal_step": 0.046326637268066406
+    },
+    {
+      "layer": "brake_steady/v40_a",
+      "frames": 392311,
+      "peak_dbfs": -21.255005771458894,
+      "seam_step": 0.007506608963012695,
+      "max_internal_step": 0.00804591178894043
+    },
+    {
+      "layer": "brake_steady/v40_b",
+      "frames": 477457,
+      "peak_dbfs": -15.972595906320242,
+      "seam_step": 6.151199340820312e-05,
+      "max_internal_step": 0.03415226936340332
+    },
+    {
+      "layer": "brake_steady/v40_c",
+      "frames": 562993,
+      "peak_dbfs": -13.880790742545914,
+      "seam_step": 0.01896214485168457,
+      "max_internal_step": 0.042874813079833984
+    },
+    {
+      "layer": "brake_steady/v5_a",
+      "frames": 392311,
+      "peak_dbfs": -35.25081195802757,
+      "seam_step": 0.004140019416809082,
+      "max_internal_step": 0.0055048465728759766
+    },
+    {
+      "layer": "brake_steady/v5_b",
+      "frames": 477457,
+      "peak_dbfs": -32.371200689770596,
+      "seam_step": 0.004172682762145996,
+      "max_internal_step": 0.008106231689453125
+    },
+    {
+      "layer": "brake_steady/v5_c",
+      "frames": 562993,
+      "peak_dbfs": -27.726055936205668,
+      "seam_step": 0.001053929328918457,
+      "max_internal_step": 0.018299341201782227
+    },
+    {
+      "layer": "brake_steady/v5p8_a",
+      "frames": 392311,
+      "peak_dbfs": -32.20489059690307,
+      "seam_step": 0.0022559165954589844,
+      "max_internal_step": 0.008020877838134766
+    },
+    {
+      "layer": "brake_steady/v5p8_b",
+      "frames": 477457,
+      "peak_dbfs": -33.86543272112799,
+      "seam_step": 0.00453948974609375,
+      "max_internal_step": 0.006448626518249512
+    },
+    {
+      "layer": "brake_steady/v5p8_c",
+      "frames": 562993,
+      "peak_dbfs": -27.03740942702484,
+      "seam_step": 0.0017096996307373047,
+      "max_internal_step": 0.019500136375427246
+    },
+    {
+      "layer": "brake_steady/v6p5_a",
+      "frames": 392311,
+      "peak_dbfs": -30.473474459575755,
+      "seam_step": 0.0018200874328613281,
+      "max_internal_step": 0.009808063507080078
+    },
+    {
+      "layer": "brake_steady/v6p5_b",
+      "frames": 477457,
+      "peak_dbfs": -32.41113013549162,
+      "seam_step": 0.006161808967590332,
+      "max_internal_step": 0.007610321044921875
+    },
+    {
+      "layer": "brake_steady/v6p5_c",
+      "frames": 562993,
+      "peak_dbfs": -26.15883590348481,
+      "seam_step": 0.01061558723449707,
+      "max_internal_step": 0.022363901138305664
+    },
+    {
+      "layer": "brake_steady/v7p25_a",
+      "frames": 392311,
+      "peak_dbfs": -27.0197341384435,
+      "seam_step": 0.010782837867736816,
+      "max_internal_step": 0.017128586769104004
+    },
+    {
+      "layer": "brake_steady/v7p25_b",
+      "frames": 477457,
+      "peak_dbfs": -27.937866069820913,
+      "seam_step": 0.0053975582122802734,
+      "max_internal_step": 0.014965176582336426
+    },
+    {
+      "layer": "brake_steady/v7p25_c",
+      "frames": 562993,
+      "peak_dbfs": -24.28585446436999,
+      "seam_step": 0.0008723735809326172,
+      "max_internal_step": 0.027855515480041504
+    },
+    {
+      "layer": "brake_steady/v7p8_a",
+      "frames": 392311,
+      "peak_dbfs": -25.76458552464228,
+      "seam_step": 0.012140989303588867,
+      "max_internal_step": 0.019791841506958008
+    },
+    {
+      "layer": "brake_steady/v7p8_b",
+      "frames": 477457,
+      "peak_dbfs": -26.260701189011947,
+      "seam_step": 0.005934476852416992,
+      "max_internal_step": 0.018152832984924316
+    },
+    {
+      "layer": "brake_steady/v7p8_c",
+      "frames": 562993,
+      "peak_dbfs": -22.84607306586789,
+      "seam_step": 0.002019047737121582,
+      "max_internal_step": 0.030152082443237305
+    },
+    {
+      "layer": "brake_steady/v8p3_a",
+      "frames": 392311,
+      "peak_dbfs": -24.94841470248187,
+      "seam_step": 0.008475780487060547,
+      "max_internal_step": 0.021764636039733887
+    },
+    {
+      "layer": "brake_steady/v8p3_b",
+      "frames": 477457,
+      "peak_dbfs": -26.113087233075362,
+      "seam_step": 0.015870094299316406,
+      "max_internal_step": 0.018440961837768555
+    },
+    {
+      "layer": "brake_steady/v8p3_c",
+      "frames": 562993,
+      "peak_dbfs": -23.46210288375298,
+      "seam_step": 0.008548140525817871,
+      "max_internal_step": 0.02956104278564453
+    },
+    {
+      "layer": "brake_steady/v9p5_a",
+      "frames": 392311,
+      "peak_dbfs": -26.315587497803726,
+      "seam_step": 0.0058743953704833984,
+      "max_internal_step": 0.016338586807250977
+    },
+    {
+      "layer": "brake_steady/v9p5_b",
+      "frames": 477457,
+      "peak_dbfs": -25.032875822886446,
+      "seam_step": 0.0031548738479614258,
+      "max_internal_step": 0.01909160614013672
+    },
+    {
+      "layer": "brake_steady/v9p5_c",
+      "frames": 562993,
+      "peak_dbfs": -27.068287813183957,
+      "seam_step": 0.0003489255905151367,
+      "max_internal_step": 0.015512704849243164
+    },
+    {
+      "layer": "power_steady/v11_a",
+      "frames": 392311,
+      "peak_dbfs": -21.894313456930192,
+      "seam_step": 0.0020905733108520508,
+      "max_internal_step": 0.01905083656311035
+    },
+    {
+      "layer": "power_steady/v11_b",
+      "frames": 477457,
+      "peak_dbfs": -22.161353245676608,
+      "seam_step": 0.005196094512939453,
+      "max_internal_step": 0.022350549697875977
+    },
+    {
+      "layer": "power_steady/v11_c",
+      "frames": 562993,
+      "peak_dbfs": -21.83431764485741,
+      "seam_step": 0.003756284713745117,
+      "max_internal_step": 0.024231314659118652
+    },
+    {
+      "layer": "power_steady/v12p5_a",
+      "frames": 392311,
+      "peak_dbfs": -20.884700600448465,
+      "seam_step": 0.0025217533111572266,
+      "max_internal_step": 0.02414882183074951
+    },
+    {
+      "layer": "power_steady/v12p5_b",
+      "frames": 477457,
+      "peak_dbfs": -21.43619831381971,
+      "seam_step": 8.7738037109375e-05,
+      "max_internal_step": 0.022391557693481445
+    },
+    {
+      "layer": "power_steady/v12p5_c",
+      "frames": 562993,
+      "peak_dbfs": -20.741784107114864,
+      "seam_step": 0.006065487861633301,
+      "max_internal_step": 0.025743484497070312
+    },
+    {
+      "layer": "power_steady/v14_a",
+      "frames": 392311,
+      "peak_dbfs": -22.740444454348697,
+      "seam_step": 0.002301335334777832,
+      "max_internal_step": 0.013835787773132324
+    },
+    {
+      "layer": "power_steady/v14_b",
+      "frames": 477457,
+      "peak_dbfs": -18.623063427207843,
+      "seam_step": 0.006257891654968262,
+      "max_internal_step": 0.02331411838531494
+    },
+    {
+      "layer": "power_steady/v14_c",
+      "frames": 562993,
+      "peak_dbfs": -18.269368242512186,
+      "seam_step": 0.0064830780029296875,
+      "max_internal_step": 0.03704214096069336
+    },
+    {
+      "layer": "power_steady/v16_a",
+      "frames": 392311,
+      "peak_dbfs": -22.31437534684094,
+      "seam_step": 0.004372596740722656,
+      "max_internal_step": 0.016651630401611328
+    },
+    {
+      "layer": "power_steady/v16_b",
+      "frames": 477457,
+      "peak_dbfs": -19.0723769351734,
+      "seam_step": 0.003550410270690918,
+      "max_internal_step": 0.025478005409240723
+    },
+    {
+      "layer": "power_steady/v16_c",
+      "frames": 562993,
+      "peak_dbfs": -18.41476132512839,
+      "seam_step": 0.00039005279541015625,
+      "max_internal_step": 0.03222930431365967
+    },
+    {
+      "layer": "power_steady/v18p5_a",
+      "frames": 392311,
+      "peak_dbfs": -23.719023072154513,
+      "seam_step": 0.004342198371887207,
+      "max_internal_step": 0.006518840789794922
+    },
+    {
+      "layer": "power_steady/v18p5_b",
+      "frames": 477457,
+      "peak_dbfs": -16.91470189515946,
+      "seam_step": 0.0011818408966064453,
+      "max_internal_step": 0.02873098850250244
+    },
+    {
+      "layer": "power_steady/v18p5_c",
+      "frames": 562993,
+      "peak_dbfs": -16.61315006753074,
+      "seam_step": 0.006023526191711426,
+      "max_internal_step": 0.0370025634765625
+    },
+    {
+      "layer": "power_steady/v21_a",
+      "frames": 392311,
+      "peak_dbfs": -19.008912687859766,
+      "seam_step": 0.0007531642913818359,
+      "max_internal_step": 0.023722410202026367
+    },
+    {
+      "layer": "power_steady/v21_b",
+      "frames": 477457,
+      "peak_dbfs": -17.39302612207762,
+      "seam_step": 0.008348345756530762,
+      "max_internal_step": 0.035735249519348145
+    },
+    {
+      "layer": "power_steady/v21_c",
+      "frames": 562993,
+      "peak_dbfs": -17.249205609440203,
+      "seam_step": 0.008798003196716309,
+      "max_internal_step": 0.026966571807861328
+    },
+    {
+      "layer": "power_steady/v24_a",
+      "frames": 392311,
+      "peak_dbfs": -22.38766927422325,
+      "seam_step": 0.005035758018493652,
+      "max_internal_step": 0.007161974906921387
+    },
+    {
+      "layer": "power_steady/v24_b",
+      "frames": 477457,
+      "peak_dbfs": -17.024652997801766,
+      "seam_step": 0.014706850051879883,
+      "max_internal_step": 0.033153533935546875
+    },
+    {
+      "layer": "power_steady/v24_c",
+      "frames": 562993,
+      "peak_dbfs": -15.625439237775387,
+      "seam_step": 0.0033468008041381836,
+      "max_internal_step": 0.0403437614440918
+    },
+    {
+      "layer": "power_steady/v26_a",
+      "frames": 392311,
+      "peak_dbfs": -23.040182077353514,
+      "seam_step": 0.004353880882263184,
+      "max_internal_step": 0.006590485572814941
+    },
+    {
+      "layer": "power_steady/v26_b",
+      "frames": 477457,
+      "peak_dbfs": -19.103989600977652,
+      "seam_step": 0.007971763610839844,
+      "max_internal_step": 0.029575228691101074
+    },
+    {
+      "layer": "power_steady/v26_c",
+      "frames": 562993,
+      "peak_dbfs": -19.399241867941832,
+      "seam_step": 0.0036945343017578125,
+      "max_internal_step": 0.026880979537963867
+    },
+    {
+      "layer": "power_steady/v28_a",
+      "frames": 392311,
+      "peak_dbfs": -20.121230485865993,
+      "seam_step": 0.0005728006362915039,
+      "max_internal_step": 0.009186983108520508
+    },
+    {
+      "layer": "power_steady/v28_b",
+      "frames": 477457,
+      "peak_dbfs": -15.553359389830694,
+      "seam_step": 0.010508894920349121,
+      "max_internal_step": 0.036234378814697266
+    },
+    {
+      "layer": "power_steady/v28_c",
+      "frames": 562993,
+      "peak_dbfs": -14.74315801966254,
+      "seam_step": 0.0169907808303833,
+      "max_internal_step": 0.04518246650695801
+    },
+    {
+      "layer": "power_steady/v32_a",
+      "frames": 392311,
+      "peak_dbfs": -20.475265971038624,
+      "seam_step": 0.0006840229034423828,
+      "max_internal_step": 0.010079741477966309
+    },
+    {
+      "layer": "power_steady/v32_b",
+      "frames": 477457,
+      "peak_dbfs": -15.332167059031917,
+      "seam_step": 0.011130332946777344,
+      "max_internal_step": 0.03218400478363037
+    },
+    {
+      "layer": "power_steady/v32_c",
+      "frames": 562993,
+      "peak_dbfs": -14.12848421933183,
+      "seam_step": 0.020112276077270508,
+      "max_internal_step": 0.05266439914703369
+    },
+    {
+      "layer": "power_steady/v36_a",
+      "frames": 392311,
+      "peak_dbfs": -21.094470667072986,
+      "seam_step": 0.0006930828094482422,
+      "max_internal_step": 0.010558843612670898
+    },
+    {
+      "layer": "power_steady/v36_b",
+      "frames": 477457,
+      "peak_dbfs": -15.743216906215673,
+      "seam_step": 0.01106882095336914,
+      "max_internal_step": 0.03491246700286865
+    },
+    {
+      "layer": "power_steady/v36_c",
+      "frames": 562993,
+      "peak_dbfs": -13.957779101038895,
+      "seam_step": 0.018582940101623535,
+      "max_internal_step": 0.05417144298553467
+    },
+    {
+      "layer": "power_steady/v40_a",
+      "frames": 392311,
+      "peak_dbfs": -21.386656789165727,
+      "seam_step": 0.0009005069732666016,
+      "max_internal_step": 0.011340975761413574
+    },
+    {
+      "layer": "power_steady/v40_b",
+      "frames": 477457,
+      "peak_dbfs": -16.16909882202545,
+      "seam_step": 0.01553201675415039,
+      "max_internal_step": 0.033531904220581055
+    },
+    {
+      "layer": "power_steady/v40_c",
+      "frames": 562993,
+      "peak_dbfs": -15.540516836682903,
+      "seam_step": 0.019408106803894043,
+      "max_internal_step": 0.04764735698699951
+    },
+    {
+      "layer": "power_steady/v5_a",
+      "frames": 392311,
+      "peak_dbfs": -29.33515662264312,
+      "seam_step": 0.0007381439208984375,
+      "max_internal_step": 0.014005899429321289
+    },
+    {
+      "layer": "power_steady/v5_b",
+      "frames": 477457,
+      "peak_dbfs": -29.24070663269928,
+      "seam_step": 0.0012744665145874023,
+      "max_internal_step": 0.014568448066711426
+    },
+    {
+      "layer": "power_steady/v5_c",
+      "frames": 562993,
+      "peak_dbfs": -32.20556591097883,
+      "seam_step": 0.002856135368347168,
+      "max_internal_step": 0.007728695869445801
+    },
+    {
+      "layer": "power_steady/v5p8_a",
+      "frames": 392311,
+      "peak_dbfs": -31.156778141872774,
+      "seam_step": 0.006103038787841797,
+      "max_internal_step": 0.01074361801147461
+    },
+    {
+      "layer": "power_steady/v5p8_b",
+      "frames": 477457,
+      "peak_dbfs": -28.885286459715843,
+      "seam_step": 0.0011137723922729492,
+      "max_internal_step": 0.014422059059143066
+    },
+    {
+      "layer": "power_steady/v5p8_c",
+      "frames": 562993,
+      "peak_dbfs": -27.28107493277252,
+      "seam_step": 0.0034813880920410156,
+      "max_internal_step": 0.015468955039978027
+    },
+    {
+      "layer": "power_steady/v6p5_a",
+      "frames": 392311,
+      "peak_dbfs": -31.155880398698613,
+      "seam_step": 0.0013580322265625,
+      "max_internal_step": 0.009080290794372559
+    },
+    {
+      "layer": "power_steady/v6p5_b",
+      "frames": 477457,
+      "peak_dbfs": -33.24649433226218,
+      "seam_step": 0.005865931510925293,
+      "max_internal_step": 0.006902456283569336
+    },
+    {
+      "layer": "power_steady/v6p5_c",
+      "frames": 562993,
+      "peak_dbfs": -25.641718349188757,
+      "seam_step": 0.007019758224487305,
+      "max_internal_step": 0.01995229721069336
+    },
+    {
+      "layer": "power_steady/v7p25_a",
+      "frames": 392311,
+      "peak_dbfs": -23.365769098784263,
+      "seam_step": 0.018042445182800293,
+      "max_internal_step": 0.026125431060791016
+    },
+    {
+      "layer": "power_steady/v7p25_b",
+      "frames": 477457,
+      "peak_dbfs": -24.88682112167476,
+      "seam_step": 0.013365030288696289,
+      "max_internal_step": 0.021225690841674805
+    },
+    {
+      "layer": "power_steady/v7p25_c",
+      "frames": 562993,
+      "peak_dbfs": -24.084669631414208,
+      "seam_step": 0.0011148452758789062,
+      "max_internal_step": 0.020606517791748047
+    },
+    {
+      "layer": "power_steady/v7p8_a",
+      "frames": 392311,
+      "peak_dbfs": -27.10884803262087,
+      "seam_step": 0.013398885726928711,
+      "max_internal_step": 0.0169907808303833
+    },
+    {
+      "layer": "power_steady/v7p8_b",
+      "frames": 477457,
+      "peak_dbfs": -27.621720648953676,
+      "seam_step": 0.0019420385360717773,
+      "max_internal_step": 0.01548457145690918
+    },
+    {
+      "layer": "power_steady/v7p8_c",
+      "frames": 562993,
+      "peak_dbfs": -23.48306008207157,
+      "seam_step": 0.0025178194046020508,
+      "max_internal_step": 0.023003816604614258
+    },
+    {
+      "layer": "power_steady/v8p3_a",
+      "frames": 392311,
+      "peak_dbfs": -26.99655501571915,
+      "seam_step": 0.005461335182189941,
+      "max_internal_step": 0.013672232627868652
+    },
+    {
+      "layer": "power_steady/v8p3_b",
+      "frames": 477457,
+      "peak_dbfs": -27.589087492666028,
+      "seam_step": 0.003082275390625,
+      "max_internal_step": 0.013769388198852539
+    },
+    {
+      "layer": "power_steady/v8p3_c",
+      "frames": 562993,
+      "peak_dbfs": -26.750246615360975,
+      "seam_step": 0.003492116928100586,
+      "max_internal_step": 0.013423800468444824
+    },
+    {
+      "layer": "power_steady/v9p5_a",
+      "frames": 392311,
+      "peak_dbfs": -24.242461509582615,
+      "seam_step": 0.006840348243713379,
+      "max_internal_step": 0.019877195358276367
+    },
+    {
+      "layer": "power_steady/v9p5_b",
+      "frames": 477457,
+      "peak_dbfs": -24.28056466169183,
+      "seam_step": 0.0005803108215332031,
+      "max_internal_step": 0.01750659942626953
+    },
+    {
+      "layer": "power_steady/v9p5_c",
+      "frames": 562993,
+      "peak_dbfs": -23.755675002761944,
+      "seam_step": 0.003035306930541992,
+      "max_internal_step": 0.01876997947692871
+    }
+  ],
+  "holds": [
+    {
+      "mode": "power",
+      "speed_mps": 14,
+      "seconds": 45,
+      "rms_ratio_to_original": 0.7129030770568001,
+      "max_1s_rms_ratio_to_original": 0.7599999967882278,
+      "spectral_band_cosine": 0.9999742520174381,
+      "envelope_std_fraction": 0.05430588839654584,
+      "max_envelope_correlation_lags_8_to_12s": 0.6873776005080436,
+      "relative_waveform_difference_at_individual_loop_lengths": [
+        0.9178507893349156,
+        1.3871827522238558,
+        1.4457077928137358
+      ]
+    },
+    {
+      "mode": "power",
+      "speed_mps": 21,
+      "seconds": 45,
+      "rms_ratio_to_original": 0.6991428052422667,
+      "max_1s_rms_ratio_to_original": 0.759999993522073,
+      "spectral_band_cosine": 0.9999915821006703,
+      "envelope_std_fraction": 0.06588610769219784,
+      "max_envelope_correlation_lags_8_to_12s": 0.650272850421962,
+      "relative_waveform_difference_at_individual_loop_lengths": [
+        1.0309761657086305,
+        0.9494540784923936,
+        1.1568613677904571
+      ]
+    },
+    {
+      "mode": "brake",
+      "speed_mps": 14,
+      "seconds": 45,
+      "rms_ratio_to_original": 0.6872581268790753,
+      "max_1s_rms_ratio_to_original": 0.7600000024054897,
+      "spectral_band_cosine": 0.9999746877320823,
+      "envelope_std_fraction": 0.04578088966238381,
+      "max_envelope_correlation_lags_8_to_12s": 0.4554996694555664,
+      "relative_waveform_difference_at_individual_loop_lengths": [
+        1.2235595394135155,
+        0.9962845365560559,
+        0.8298286758826464
+      ]
+    },
+    {
+      "mode": "brake",
+      "speed_mps": 21,
+      "seconds": 45,
+      "rms_ratio_to_original": 0.7018125963682728,
+      "max_1s_rms_ratio_to_original": 0.7599999978703753,
+      "spectral_band_cosine": 0.9998582443922994,
+      "envelope_std_fraction": 0.04185876260358733,
+      "max_envelope_correlation_lags_8_to_12s": 0.5487584025151473,
+      "relative_waveform_difference_at_individual_loop_lengths": [
+        0.9248875702977428,
+        1.345334547996881,
+        0.974820639235863
+      ]
+    }
+  ],
+  "previews": [
+    {
+      "file": "previews/climb_14.wav",
+      "seconds": 45.0,
+      "peak_dbfs": -10.442580384540797,
+      "family_gain_partition": "PASS",
+      "continuous_mechanical_read_heads": true
+    },
+    {
+      "file": "previews/descent_14.wav",
+      "seconds": 36.0,
+      "peak_dbfs": -10.634139771460314,
+      "family_gain_partition": "PASS",
+      "continuous_mechanical_read_heads": true
+    },
+    {
+      "file": "previews/cap_lifts.wav",
+      "seconds": 29.0,
+      "peak_dbfs": -10.00723570124393,
+      "family_gain_partition": "PASS",
+      "continuous_mechanical_read_heads": true
+    }
+  ],
+  "source_sha256": {
+    "outputs/wmata-alstom-upper-v3/REFERENCE_NOTES.md": "d96e44b7ed25e170d57b3ea8c038fbf53c0664abc195a3a2e349d8ebb0419892",
+    "outputs/wmata-alstom-upper-v3/provenance.json": "3b6ecfc11c4b3475a1ff26effae992371639e7ff1c56712a73e65b95c774f896",
+    "outputs/wmata-alstom-upper-v3/upper_revision.json": "ea6f59df2bd9cfa1f761425abb6bb8cdb48149e423056a786481b823ac1278c8",
+    "outputs/wmata-alstom-upper-v3/README.md": "87fce29eb91d4e67406d24d7089e4b641bd502af5454ae5ae359b8eebd575beb",
+    "outputs/wmata-alstom-upper-v3/player_settings.json": "9cda5f9fa411c23177beba5e99fb2eb5a45ea73b2c6d436a7ceb7e5d76a4dff7",
+    "outputs/wmata-alstom-upper-v3/validation.json": "bcb24e3d70fea8418cfb27ba15c8da22976d4e277bbfc92cbcce3a9da77af0b3",
+    "outputs/wmata-alstom-upper-v3/SHA256SUMS.txt": "13645bc07fdea9a726b20548aa438f386f21d7bdb3505f3d522d2481d3046f9a",
+    "outputs/wmata-alstom-upper-v3/curves.csv": "7111b3add9e11b88321b82f8721b1f7005aa67dadef76548e7e73ce84000f4ac",
+    "outputs/wmata-alstom-upper-v3/power/tone_41.wav": "7a77ffd6824b57a541bf152d78510a8cea30c5152b7fa36e2ccb1f25e852e79c",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_66.wav": "169a7fb219c2ed2ee7bfd744ebaff1a82f89b1423171d814a315c48d3564ab3c",
+    "outputs/wmata-alstom-upper-v3/power/tone_40.wav": "65ec390b6e4292e72df8fbb6df4efd60cd8dff37bfdec17f094ccbd51f014a79",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_58.wav": "d663839743a1a5344f76813cb0b7c7ffb58ced9183abf42e0512e3cb56435a0d",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_64.wav": "994d6eeaa6a3b87519ff0c41b0efd0b2d082248d33152f6fcbd7fdcfb98ba8d8",
+    "outputs/wmata-alstom-upper-v3/power/tone_42.wav": "94fa660e39bc0abf169128bae3479b29b913126fdfda18c9a36ff04e2eadec9a",
+    "outputs/wmata-alstom-upper-v3/power/tone_43.wav": "062c2c476c2079b4c18097d4897df11ad29b66197cbc22e43a0d750717d5322f",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_65.wav": "c60f65dec0e230b754eba94f251382b2cf8e25e5e462dc20905e3afd2169ea2c",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_59.wav": "dcc193ce553957482c19a53eddad2db7b52dda87a860454cf44fa24c048b8f79",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_61.wav": "0751d18d4b32e0d2bd98cb135dee05fd349ef500565a165baed47e9616133445",
+    "outputs/wmata-alstom-upper-v3/power/tone_47.wav": "babd1f5f6348760c0694e90a711193b33df394071ac831bdbe534a79a78357fa",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_49.wav": "9e44e055f92879cb789426b3f37eb0d651174d39719f3d4045df10657ab1d3a8",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_48.wav": "f8a400cc8d7d7c1aab0147a196965257daf9e4f2b2736d53564ddf5b8fc5dc3a",
+    "outputs/wmata-alstom-upper-v3/power/tone_46.wav": "fd60c47450e74146c7a0bf1d8ea6dbe9384a4f58948df6964f29dfcea1de9040",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_60.wav": "a5bfe9fc1c3f70512d43700187a1ca64c4e3fcafdb5db50cee70f6761deb1b6a",
+    "outputs/wmata-alstom-upper-v3/power/tone_44.wav": "65d68db7750a85bfbe15ae38b78a9262a32ad927c45737f85f4fcf8eaaa6e215",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_62.wav": "aea58c62b03008640f58e46cc36f6d99c7725ef19192c7eaff989cdfbd8d0834",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_63.wav": "0a6e21649d00a73194f025339006d49abff31df5f1479e2cb9ad8c1261d48137",
+    "outputs/wmata-alstom-upper-v3/power/tone_45.wav": "8f7ccca47fdfba9a798b981c80d01f2f042371f3ff9ee660d1e1f518a0b07364",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_38.wav": "8b63a46588ecc0c3aa192904501aee1b87b8b5659153d68ab9c48c2de742675f",
+    "outputs/wmata-alstom-upper-v3/power/tone_22.wav": "4846afc7bd4424768ce7601ffeb073d7863a8a35312c22116e520fe8f7c439ec",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_10.wav": "d1e487ac16275f67a8ca96a3c482b934c738cc642582c7180a97625ca7d4ee8e",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_04.wav": "d9d948c484f71c373b8a7be476e73aab7d1e0e8ffe663b6b434fe21893452aff",
+    "outputs/wmata-alstom-upper-v3/power/tone_36.wav": "3edf36bbea776b818da561f26ff767ca09e49e5d43653f3e51f6a90d9422784a",
+    "outputs/wmata-alstom-upper-v3/power/tone_37.wav": "c1a6932aebab3bb846c0330b934e06cff2e5dd7c231a946e36bccf86f12e5c1c",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_05.wav": "192c8110d937e44d7c6c54369d27dffdae8a3769b944986c6bfd318ca00723e7",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_11.wav": "fec5c0544229f530f11c2318f05c2b60409eeb9d2f58aefa42cbe8ee32847476",
+    "outputs/wmata-alstom-upper-v3/power/tone_23.wav": "1daa65496c287c2234777ad145828bcd2fde02739b58df78e4df4afa761e86b7",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_39.wav": "884c2cdda83ac1d32234e91658f146c3b0ad0963676036c15c96cea0cfb36305",
+    "outputs/wmata-alstom-upper-v3/power/tone_09.wav": "a1f4bd6eeec0984c1cae5671e80719e11b9f5a4cd154e2d3c66d985bb235c74d",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_07.wav": "9056f3d4936ba79c2f1b62fb1aff42ee1018810910d4117f02a92a1ddc237ce1",
+    "outputs/wmata-alstom-upper-v3/power/tone_35.wav": "060ac59d046912ff5abf4c0858e1644e00dfba24b05389c339f037d4f3c1189f",
+    "outputs/wmata-alstom-upper-v3/power/tone_21.wav": "b1bd900d6e94a4385ef175d14ea3a7f09d1d64be163dceb3089177ba9c1c1ddb",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_13.wav": "5a295329516d6e309094133b17e524639153a08fba6457028dc7f3f6426a7342",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_12.wav": "0e749de0a0b6df1b64c9fd6496add7947796f2708cdcccea8ad4fc08c955d15a",
+    "outputs/wmata-alstom-upper-v3/power/tone_20.wav": "3dcfc19d391984221933f7b6f2166f5aa87f6b0e69cabe5a459ebce0fb5de0da",
+    "outputs/wmata-alstom-upper-v3/power/tone_34.wav": "e8cbde1bdcadf45f0a9f35c300e0569d81d8a40e278cb4b22e65bdfb8337bc28",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_06.wav": "570abc8a36bf28f78b987f3b99cc405061408937e8a806554aa454e56444c703",
+    "outputs/wmata-alstom-upper-v3/power/tone_08.wav": "6e4ba0aceb5488f8092dd7e0147b4fc7f3ff2aff75d9d1dec34463a3562aaec0",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_02.wav": "45a986dadf4e1a7b0a91ea0b8e3919017dc21eaee520370993bf2507dd9d356f",
+    "outputs/wmata-alstom-upper-v3/power/tone_30.wav": "8851a12963e568e3b6d8301df9ba459795ac32fb50ed93c6d62bdbf71174f7c6",
+    "outputs/wmata-alstom-upper-v3/power/tone_24.wav": "be21533a6b6d5c8586b556670be24fef55367cd959f092b559e424ac4ec35f4a",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_16.wav": "cb9a272068e458b4882e49b2ca346065df9fe6d061451c843a4ec51b46f1b551",
+    "outputs/wmata-alstom-upper-v3/power/tone_18.wav": "11622417105edcc91394165ddfb6e67e8161047edb1175961f6d7666513b478c",
+    "outputs/wmata-alstom-upper-v3/power/tone_19.wav": "2c59f2dba175f2c8d8a6063dfb582314f6faadf44773fd939b12829bedd12e2e",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_17.wav": "126631834fc8bb5a2e686997ec7568516439c1e64836e12b42f02b50050a61e0",
+    "outputs/wmata-alstom-upper-v3/power/tone_25.wav": "4b25ca71906cb4a5878e2fe3464160c2225fa21a23aa4376dbb743fc325c110b",
+    "outputs/wmata-alstom-upper-v3/power/tone_31.wav": "1626f561aa184fa032425f03d55d7486f8195dd4f88b3acd2799dee8f8695800",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_03.wav": "6d673f3dcf2842fb42ebfe67a23a5f6025d636a72be47baa8e6aab4fb22bcab4",
+    "outputs/wmata-alstom-upper-v3/power/tone_27.wav": "809a67b4fb0fac3040f57b4265dbdaace8499a461632cd3beaf9dd24a275441e",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_15.wav": "a13e48bc7c81539d892030b27580bff127ea3606e5ccf0f4a5ff1aa90f5e9684",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_01.wav": "eff91630528e9d0e92e0be31533ccb1d8688660272b7e834b799807560191c07",
+    "outputs/wmata-alstom-upper-v3/power/tone_33.wav": "cfdf9750898276478786ef0c5b10015009929220606b0ee7e0ac6b59d47472a4",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_29.wav": "813dca9d460e21ea5b78cecfdea771947dfff8b28872a77c26473122d5c0dd13",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_28.wav": "c4474c6192f0717e79e057034eb8df78b0ce2e007965b779fd6df5ccc43eea5d",
+    "outputs/wmata-alstom-upper-v3/power/tone_32.wav": "ca43223b0dbe8043a70b86e722a3f242761ef5a8ea272c782d83a7e1b4eac32d",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_00.wav": "bae761a6e16f609d5b8216ccc2d8e5bf65761c843a943d1437fa3e3f1952defc",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_14.wav": "059178749542593d9968eb8a601b8bca6989b0da3b80e48ad5cf84b92f272e18",
+    "outputs/wmata-alstom-upper-v3/power/tone_26.wav": "d50e90e5be8c3c765dd34db339e911e0e14d2024e657fa1a3247e8895a989387",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_19.wav": "6f260750d4da746eee71ed7f6ba6bb1598249435a0bae2dfb09fd09a769e2509",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_31.wav": "0242bc70b5226437b6e099b5d8ac90475ef268e05d277bdee4f2bed881d0d1b0",
+    "outputs/wmata-alstom-upper-v3/power/tone_03.wav": "8bbf5ce49dc436e82b8a9949e508542cc5163419872b22eff5e054fbcec3887a",
+    "outputs/wmata-alstom-upper-v3/power/tone_17.wav": "47c6fccfcdceb7aaa07d0bc52f8025fe9e9d22791e546c855ae8d40b0998c78c",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_25.wav": "c88d847bc9d5c0c9fdfb71b47f27a0ecc84e0a07b73a4bed37f66bbd253e29d7",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_24.wav": "84efd31e57a596239b3af54452d0b47775739fb7d0e032cfed1679ec6610cda7",
+    "outputs/wmata-alstom-upper-v3/power/tone_16.wav": "f8e3a88ab3735a2e6ff1bd5abce2067361fe924a4cc99a19d2d757a224c26847",
+    "outputs/wmata-alstom-upper-v3/power/tone_02.wav": "fb08643d464ff31e7b04cf71cd334240edfa435c9ebab5036cb516df7113423f",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_30.wav": "46f539fcd26549aab073c453c39143796ebf7d0d148b96ce047308fa93fdf6a6",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_18.wav": "015c74c653ea029694cec4c72f4e7ab3d95e2f4787a30ed3bee17da5f5fcbbd4",
+    "outputs/wmata-alstom-upper-v3/power/upper_carrier.wav": "2c271df4433d12d57d4f4871b610d2f4cdf59a3d94a059db14124021a5e56f19",
+    "outputs/wmata-alstom-upper-v3/power/tone_28.wav": "c98f6d76285f576828043403fc5b0d8c9c347fbfb5b7f0b90a32c3a262b03701",
+    "outputs/wmata-alstom-upper-v3/power/tone_14.wav": "439679ddb3598e6ea994e28baba6a895f38f4c46bab355319c8385eba28c9fda",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_26.wav": "3f89d3d2f4c204cc7c9102e4875e8ee8ab2a26e450d86bd949d36a560c6077aa",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_32.wav": "a9715e25b5ed106c5323035d5925549254f3974b2bde207c61c8395f1a61bbc6",
+    "outputs/wmata-alstom-upper-v3/power/tone_00.wav": "9c83d431ca863634e141ebe060c65765f413cddd258f065197b7077b3b0d6170",
+    "outputs/wmata-alstom-upper-v3/power/tone_01.wav": "2649acbbbbc4b9b7f7eef82e093bb13e4293b9b748914e4df6643ba1dfeb9d37",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_33.wav": "ba5fefd4aed6b22bc7a1c5abc38e577d112f0689250a9d9bd8a5de95f535b68f",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_27.wav": "a60f2a3df74918f6994107f5021301e129b41625e49c87f650bfcf4ee661add6",
+    "outputs/wmata-alstom-upper-v3/power/tone_15.wav": "a02260b7ad2780d59c759f3e589b242c1e5cfb4b65a6dd895017c2b02daa9fc8",
+    "outputs/wmata-alstom-upper-v3/power/tone_29.wav": "58b300e64a9c366934acd14e4b4d93de7582e8b84e4d436197e7b86d189f0e3b",
+    "outputs/wmata-alstom-upper-v3/power/tone_11.wav": "be3a1d2238b880f523250821a2c03365a25a37427cdd286d9f654cc6f3eba3cc",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_23.wav": "6190cd9f5c30e2ee165b67fe521ea5386ecb7c98d4ac08ce4435792639004c21",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_37.wav": "fdd30ab01f44f03baa16a7b50df110ed2a35146cbabb62fbdba7dbadd6b1a4af",
+    "outputs/wmata-alstom-upper-v3/power/tone_05.wav": "8308180d326986e7a829ce8a6b73f4055b9729028a592e131a7c0a1021b22dcf",
+    "outputs/wmata-alstom-upper-v3/power/tone_39.wav": "e9ae2c2c1dba12a08fba20083b55e4bde07a94b20f69c8210cdb387b2bad61a3",
+    "outputs/wmata-alstom-upper-v3/power/tone_38.wav": "c78a4802eb33010ae1922b4187b8fdaa47da09d8813c36e0d634ffa19cf35c4c",
+    "outputs/wmata-alstom-upper-v3/power/tone_04.wav": "f1f599ae9a69c4634e61427e23bce68b0e2f6575539935e9561251f6e6c3d10f",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_36.wav": "1d11de05a081877a95dfe5107e8a25f63a73e0f907449c8a33cd39e1eb75bc37",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_22.wav": "82f4f4d8e95f36f33061b80021a5b19795fbe6bb3cdf3f7fde76e91266fdf293",
+    "outputs/wmata-alstom-upper-v3/power/tone_10.wav": "15ba8ea93426c6d3236510f718fdb38497f7f185142e29e70eb0191cf1d18942",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_34.wav": "8b0c8db4690645f71f499e5e119f5f58a0bc3a88a623bcbea7083c617ed33c3d",
+    "outputs/wmata-alstom-upper-v3/power/tone_06.wav": "2161d6a1a2d4967f1ca802f4800f650ce5350c945c2b2b2c4f6ed7f41b99318d",
+    "outputs/wmata-alstom-upper-v3/power/tone_12.wav": "2143586e5dc1c73af9dd150d11b7b31cf638f17d4f30cd3051d19ee1dd53c57c",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_20.wav": "ae05785139765066a46b3cc451c940ffa565c57373a70918501811893a42ba29",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_08.wav": "856e1b5e9f0cc78e246d27c0aed805bf20cc2e5dd468266e105840fd4a5b148a",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_09.wav": "6b56070de2c59048ca37e5c15ab33f55f7913c15e58600df9461f163bb86bddb",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_21.wav": "e58f1ba6a1bd394ad61011197886b14f9bc233defd4af9c55c9be6b9cd672d2f",
+    "outputs/wmata-alstom-upper-v3/power/tone_13.wav": "11049bcf0de5c583097acb7fa50e23d6a12979a24e1aa4477850f341c1975de5",
+    "outputs/wmata-alstom-upper-v3/power/tone_07.wav": "cbcd591013d4d2d81920b3b5491045d869b728352064e3028ebd10f00e2a3bcf",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_35.wav": "050f8ae578f06b3e97dceffe961e554fc52f6c69fba2f0f0994edd7e9057081a",
+    "outputs/wmata-alstom-upper-v3/power/upper_rotor.wav": "a30c0cc428e8b30a9471838152183a83ee1650840fd01f59c9519f444601e9f0",
+    "outputs/wmata-alstom-upper-v3/power/tone_48.wav": "954be80a2a37991a21edbdcdfcbf124b68c0bc547a94cd8ce5f706aeaeb7d8ca",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_52.wav": "d1e3a0b015fc555efcee3237a17c7fbbb375367390ee4e16c3009e6795804149",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_46.wav": "7e31c86b6cd8c267d07c77a6ee63932f5e2a7ff1e06fe920270d7a824533bdd0",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_47.wav": "99f659ba52447f90d2760ab5f80618a50f1b91db8caeb0d4eadeb29a98ee1f74",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_53.wav": "9e827c6a77082c8260c60df208d5707c0b3cd45941078472c5b7343a58ddde69",
+    "outputs/wmata-alstom-upper-v3/power/tone_49.wav": "eb1c6f145a47b2f6d12bd9e5621173c0272912a0d341eb940e51a6eb04694504",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_45.wav": "bc0fbdafa20543d171269b4c2a18d4d10495d99955a3c4c549573304783500cc",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_51.wav": "2c00beeb724bcfd051d1e8b55f3cef5ebff61c8aabb5418608a985c7b670b76f",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_50.wav": "d02438845aed0078bf1f59255edc558caca6c86cf4984b1ef856d501e5f044ad",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_44.wav": "ff389a8104dc78b2a399431fa5a01d82e73ee4252df3a3d13af98fe9adfd7afa",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_40.wav": "161ac1921ebe2a73216ebc40b53090be1c675d5e049755fb24bff773c4d23278",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_54.wav": "91beb617ad62d233746a63106228f558de699caa382e59756fa1b9a1ab25513f",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_55.wav": "44b946c4ba3e99a4552b64351eab54946f29e85d0b28f20c47626d6fcb991665",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_41.wav": "1a4b18a35c8ace93eb3d2ab95439cb7574bc5218034a8fc8ff1cfcd559c93a28",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_57.wav": "225ecfa5973533c1232decd8ea868528f19225b62854b743d01c6a1860e7953c",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_43.wav": "e924dd8ea47ec5c113fa8602df38b48e502a0d950e10d8e2f0b4317bd11a6692",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_42.wav": "d1ca6f4f1de74199ec205baa32e84fd5210092022950ce5c8f8b3858514a330f",
+    "outputs/wmata-alstom-upper-v3/power/upper_sideband_56.wav": "e37e8b2bb803b6939bffeca8f5fd2b0db842bdb61f411c099679405e4438ed13",
+    "outputs/wmata-alstom-upper-v3/coast/gear_high.wav": "9a07eca6bda530522cfea75e55c85e71f0dcc4ad1df638d34c09b9f281c2f6ec",
+    "outputs/wmata-alstom-upper-v3/coast/rolling_low.wav": "4c876201385c602f1bd95b15fcc07cf7c07859ced014ccf86e23efdfcb407ab7",
+    "outputs/wmata-alstom-upper-v3/coast/gear_low.wav": "9a07eca6bda530522cfea75e55c85e71f0dcc4ad1df638d34c09b9f281c2f6ec",
+    "outputs/wmata-alstom-upper-v3/coast/rolling_high.wav": "4c876201385c602f1bd95b15fcc07cf7c07859ced014ccf86e23efdfcb407ab7",
+    "outputs/wmata-alstom-upper-v3/brake/tone_22.wav": "0b22398a177aee1d34dc98ee0ecb2ecc4301c6eca68fcd6aac6fe5f06c09f108",
+    "outputs/wmata-alstom-upper-v3/brake/tone_23.wav": "37582f461e7de2e9ea7e20b68e36818cb90f61f0dc7835d693b5af14559af2fc",
+    "outputs/wmata-alstom-upper-v3/brake/tone_09.wav": "bf133c1e2d3a0284cc4d34a7b91ed11c1aff755ee7da9cc194e040515a8ac914",
+    "outputs/wmata-alstom-upper-v3/brake/tone_21.wav": "f03bb84b09ed0c232c5a3bb4445eda1cc876f599ac29463514c027f2b2f0f6a3",
+    "outputs/wmata-alstom-upper-v3/brake/tone_20.wav": "a98b69ac85f2d8cb2e7851798eaca4b4d7f27ab75580f71006facda9f4429742",
+    "outputs/wmata-alstom-upper-v3/brake/tone_08.wav": "4ce3293723b210ae89f5ddd8292eee41e3912ecf435a6a0c4903b00b8152b920",
+    "outputs/wmata-alstom-upper-v3/brake/tone_30.wav": "d2214da7c758f077d6a89ac97a978c7d87be432c68e56c8767e14b70d9e9ca0f",
+    "outputs/wmata-alstom-upper-v3/brake/tone_24.wav": "ab7628a5fec61e39b97ce3e69163f34d18a7fc053f8439d4e179f5643ad93fda",
+    "outputs/wmata-alstom-upper-v3/brake/tone_18.wav": "93c3162a225248755d14e81debb6be8fd7a5f1c3ab3a295fcf90d2e132072ba2",
+    "outputs/wmata-alstom-upper-v3/brake/tone_19.wav": "e09bc793840e45f9563edb0ddd296b1ac3239f76b9b48aa634f7072ff8dc7f43",
+    "outputs/wmata-alstom-upper-v3/brake/tone_25.wav": "e3c1ead8cc5c62d69dec60b0cf6604192d5c549c7d357b45b5474286566e94e3",
+    "outputs/wmata-alstom-upper-v3/brake/tone_27.wav": "7256abf474a6dfefa252b77a68e8a6a40cec44a1a570d9e52a0610a2c98cf13e",
+    "outputs/wmata-alstom-upper-v3/brake/tone_26.wav": "81aa8064eaf94dad6d75a71e41282ba4bf314eedea9e04bcd07b1869124de492",
+    "outputs/wmata-alstom-upper-v3/brake/tone_03.wav": "5d92d00dcfc3bc2f704ce5b7100b6711095511eb24c50dd16425c61a298ee8e9",
+    "outputs/wmata-alstom-upper-v3/brake/tone_17.wav": "a76a3b745b092fd9e44e9e731abb101917ae25ee66d2c15b75674d290112403a",
+    "outputs/wmata-alstom-upper-v3/brake/tone_16.wav": "6d7199fabcc1e1234c34084b86d4fa44e8aa1239ca030a63f867a2b308e9078f",
+    "outputs/wmata-alstom-upper-v3/brake/tone_02.wav": "249725ca133efe5232827f5db3f0daf0a4f3d97b6c84744afbf4641ab48461b7",
+    "outputs/wmata-alstom-upper-v3/brake/tone_28.wav": "80481c66b74b761ff2fc2c22ddffbf729357173bfe5194db0a682b16cceff31a",
+    "outputs/wmata-alstom-upper-v3/brake/tone_14.wav": "5b7cc1c477903d29af405174f6700f206e92eeb4f49bdc2808bc04be37d71dc2",
+    "outputs/wmata-alstom-upper-v3/brake/tone_00.wav": "bba3b228ae7b25be4749d4250fbe86ba74d9be2e0414357a729135cb2978735e",
+    "outputs/wmata-alstom-upper-v3/brake/tone_01.wav": "206d298b6ae2a83c7836b175fcb2d397a1cb2b1136b2cb20d00918af97f2b5b2",
+    "outputs/wmata-alstom-upper-v3/brake/tone_15.wav": "a88b5a69844b40d86c6ad330fa712c6b6ed38c99b893ac6c09013df456a82e55",
+    "outputs/wmata-alstom-upper-v3/brake/tone_29.wav": "5f249ff5500d4aba7918f1f5f373862552f25f2c7ab80ee23e5c451a42b3905f",
+    "outputs/wmata-alstom-upper-v3/brake/tone_11.wav": "83b812b1be7837c16b49faffff4814a19b04c5f39bb4641c56ed248272204741",
+    "outputs/wmata-alstom-upper-v3/brake/tone_05.wav": "cf027378c45d03be2211a26aefa0e7a55447f0656871be19b80f4248f68b84fe",
+    "outputs/wmata-alstom-upper-v3/brake/tone_04.wav": "ff114d43c6c6f9d34e0a70698c58dc8f95c0c40fdd98b985c9ef59c19b0745fa",
+    "outputs/wmata-alstom-upper-v3/brake/tone_10.wav": "c2b1d7eb14e65471c626b8f6252c865b6451468abfd97cb675916ef7e4d45ec5",
+    "outputs/wmata-alstom-upper-v3/brake/tone_06.wav": "ebc6317dcb9e484b056cbb4a12a8ea0ea519f2626a84fba49bfc515d9d300cd0",
+    "outputs/wmata-alstom-upper-v3/brake/tone_12.wav": "de6a77cd9ea463e6710014a019ade9c28c53456b601eab27382d14d24a1f663a",
+    "outputs/wmata-alstom-upper-v3/brake/tone_13.wav": "cf5bd8e4d99aeac8c98d9b8c80107eacea2686315e4699d184f4da7cb879cb34",
+    "outputs/wmata-alstom-upper-v3/brake/tone_07.wav": "71435946eb2b914263423d041f6d785087e915f3452b3915da31c7dd466d85cb",
+    "outputs/wmata-alstom-upper-v3/previews/preview_40mps.wav": "14c46261401060eb9de4bd0284bc15722f0e6c8626d2cfbde058445ad161f337",
+    "outputs/wmata-alstom-upper-v3/previews/upper_acceleration_AB.wav": "19b3d00d7c28539ab13705e9d82e23458ecec06129e675028aca36708a966421",
+    "outputs/wmata-alstom-upper-v3/previews/preview_14mps.wav": "37c3f0c13c4d5ac1a600e98661dd67e246472d65d4b9c5ba7563a1ee68c1fd28",
+    "outputs/wmata-cruising-addon/INTEGRATION.md": "c9d27de387e51bb2116b8e8d729d0b571ca3c664f20a4b65aea3f4ad7f805f29",
+    "outputs/wmata-cruising-addon/cruising_curve.csv": "49fb55b389fdd3cc4db2be0014d5b9424925f3d931172ca62fb0b21bc6a31518",
+    "outputs/wmata-cruising-addon/validation.json": "ab32377b436053d78599c18a53c83dd8f01c8502d6a957cd70e9ee300fca5bc7",
+    "outputs/wmata-cruising-addon/preview_cruising_14mps.wav": "8d3073fe8ca58277f9304202ea0a20ae9d15f1e625146304744db29ec4fb521a",
+    "outputs/wmata-cruising-addon/coast/cruising.wav": "eea1c86b7b42cf99fde8efdf9a14552eb10d2b43ec5823edb1003217dd165605"
+  },
+  "loudness_grid_checks": [
+    {
+      "mode": "power",
+      "speed": 5,
+      "original_rms": 0.01751090501281069,
+      "steady_rms": 0.0122760059373276,
+      "steady_peak_1s_rms": 0.013118351630151258,
+      "ratio": 0.7491532630982858
+    },
+    {
+      "mode": "power",
+      "speed": 5.4,
+      "original_rms": 0.025767082766315678,
+      "steady_rms": 0.0094970738750529,
+      "steady_peak_1s_rms": 0.010423177307124472,
+      "ratio": 0.40451522594363276
+    },
+    {
+      "mode": "power",
+      "speed": 5.8,
+      "original_rms": 0.02029236762324364,
+      "steady_rms": 0.01442876329488174,
+      "steady_peak_1s_rms": 0.014900907099363637,
+      "ratio": 0.7343109180761923
+    },
+    {
+      "mode": "power",
+      "speed": 6.15,
+      "original_rms": 0.024626696618716214,
+      "steady_rms": 0.011537942444987312,
+      "steady_peak_1s_rms": 0.01224383728170331,
+      "ratio": 0.49717741162239487
+    },
+    {
+      "mode": "power",
+      "speed": 6.5,
+      "original_rms": 0.02506444887116561,
+      "steady_rms": 0.018027574540410884,
+      "steady_peak_1s_rms": 0.01892316752815905,
+      "ratio": 0.7549803957560163
+    },
+    {
+      "mode": "power",
+      "speed": 6.875,
+      "original_rms": 0.02775267265035606,
+      "steady_rms": 0.020905064657537654,
+      "steady_peak_1s_rms": 0.022714781811297404,
+      "ratio": 0.8184718674655639
+    },
+    {
+      "mode": "power",
+      "speed": 7.25,
+      "original_rms": 0.055115284957972584,
+      "steady_rms": 0.03776616198027429,
+      "steady_peak_1s_rms": 0.04188761648824097,
+      "ratio": 0.7599999985517957
+    },
+    {
+      "mode": "power",
+      "speed": 7.525,
+      "original_rms": 0.05701426576309891,
+      "steady_rms": 0.023807551632796787,
+      "steady_peak_1s_rms": 0.026542094569100123,
+      "ratio": 0.4655342696051844
+    },
+    {
+      "mode": "power",
+      "speed": 7.8,
+      "original_rms": 0.04084829970810784,
+      "steady_rms": 0.029241161110656166,
+      "steady_peak_1s_rms": 0.031044707748567952,
+      "ratio": 0.7599999992755143
+    },
+    {
+      "mode": "power",
+      "speed": 8.05,
+      "original_rms": 0.02748418153289614,
+      "steady_rms": 0.0165015842211909,
+      "steady_peak_1s_rms": 0.017285965332452507,
+      "ratio": 0.628942335858273
+    },
+    {
+      "mode": "power",
+      "speed": 8.3,
+      "original_rms": 0.021142169078676172,
+      "steady_rms": 0.015075600010129966,
+      "steady_peak_1s_rms": 0.015919331982206904,
+      "ratio": 0.7529658817393065
+    },
+    {
+      "mode": "power",
+      "speed": 8.9,
+      "original_rms": 0.033021428403145314,
+      "steady_rms": 0.012791413581449003,
+      "steady_peak_1s_rms": 0.01363871043096226,
+      "ratio": 0.413026058850415
+    },
+    {
+      "mode": "power",
+      "speed": 9.5,
+      "original_rms": 0.029739779502136063,
+      "steady_rms": 0.020652810779901755,
+      "steady_peak_1s_rms": 0.022602232537168348,
+      "ratio": 0.7600000038851983
+    },
+    {
+      "mode": "power",
+      "speed": 10.25,
+      "original_rms": 0.03219727756729519,
+      "steady_rms": 0.016065201721650615,
+      "steady_peak_1s_rms": 0.017306025811136803,
+      "ratio": 0.5374996620433408
+    },
+    {
+      "mode": "power",
+      "speed": 11,
+      "original_rms": 0.03529019080645833,
+      "steady_rms": 0.024529489741065755,
+      "steady_peak_1s_rms": 0.02682054488010855,
+      "ratio": 0.7599999962369208
+    },
+    {
+      "mode": "power",
+      "speed": 11.75,
+      "original_rms": 0.03926324306411479,
+      "steady_rms": 0.01959139043234174,
+      "steady_peak_1s_rms": 0.020666718813213733,
+      "ratio": 0.5263630102960695
+    },
+    {
+      "mode": "power",
+      "speed": 12.5,
+      "original_rms": 0.043994965361311936,
+      "steady_rms": 0.03055343516240903,
+      "steady_peak_1s_rms": 0.033436173404919785,
+      "ratio": 0.7599999938702694
+    },
+    {
+      "mode": "power",
+      "speed": 13.25,
+      "original_rms": 0.035228918930365456,
+      "steady_rms": 0.02541263453754617,
+      "steady_peak_1s_rms": 0.027218380809365873,
+      "ratio": 0.7726147050713236
+    },
+    {
+      "mode": "power",
+      "speed": 14,
+      "original_rms": 0.05706525079822347,
+      "steady_rms": 0.040671924984411745,
+      "steady_peak_1s_rms": 0.04336959041564086,
+      "ratio": 0.759999996652797
+    },
+    {
+      "mode": "power",
+      "speed": 15.0,
+      "original_rms": 0.051228741636148045,
+      "steady_rms": 0.027524498830274018,
+      "steady_peak_1s_rms": 0.02860193958164043,
+      "ratio": 0.5583182148955679
+    },
+    {
+      "mode": "power",
+      "speed": 16,
+      "original_rms": 0.05279369298229871,
+      "steady_rms": 0.037133140434453434,
+      "steady_peak_1s_rms": 0.03879155648209961,
+      "ratio": 0.7347763395734808
+    },
+    {
+      "mode": "power",
+      "speed": 17.25,
+      "original_rms": 0.04968335785712946,
+      "steady_rms": 0.02893706789272267,
+      "steady_peak_1s_rms": 0.030505935547474487,
+      "ratio": 0.6140071215636836
+    },
+    {
+      "mode": "power",
+      "speed": 18.5,
+      "original_rms": 0.06356633952422534,
+      "steady_rms": 0.04438226355661704,
+      "steady_peak_1s_rms": 0.04745021191377371,
+      "ratio": 0.7464675843996063
+    },
+    {
+      "mode": "power",
+      "speed": 19.75,
+      "original_rms": 0.06852019121383339,
+      "steady_rms": 0.030189878829137925,
+      "steady_peak_1s_rms": 0.032580212246131904,
+      "ratio": 0.47548338189042233
+    },
+    {
+      "mode": "power",
+      "speed": 21,
+      "original_rms": 0.05891445624045908,
+      "steady_rms": 0.04113747073282582,
+      "steady_peak_1s_rms": 0.04477498635225657,
+      "ratio": 0.7599999933718757
+    },
+    {
+      "mode": "power",
+      "speed": 22.5,
+      "original_rms": 0.06989537240992102,
+      "steady_rms": 0.03310010299573873,
+      "steady_peak_1s_rms": 0.034597017804068916,
+      "ratio": 0.49498295253604196
+    },
+    {
+      "mode": "power",
+      "speed": 24,
+      "original_rms": 0.07358995700456664,
+      "steady_rms": 0.05202929503325199,
+      "steady_peak_1s_rms": 0.05560707252154812,
+      "ratio": 0.7556339857366327
+    },
+    {
+      "mode": "power",
+      "speed": 25.0,
+      "original_rms": 0.07426769528039646,
+      "steady_rms": 0.03408967950606599,
+      "steady_peak_1s_rms": 0.036243830138007374,
+      "ratio": 0.4880160883028535
+    },
+    {
+      "mode": "power",
+      "speed": 26,
+      "original_rms": 0.06305791524268034,
+      "steady_rms": 0.044033181830034775,
+      "steady_peak_1s_rms": 0.04607339519248737,
+      "ratio": 0.7306520524056731
+    },
+    {
+      "mode": "power",
+      "speed": 27.0,
+      "original_rms": 0.08423188972918436,
+      "steady_rms": 0.04043449279383555,
+      "steady_peak_1s_rms": 0.042936585766253754,
+      "ratio": 0.5097426390919167
+    },
+    {
+      "mode": "power",
+      "speed": 28,
+      "original_rms": 0.09616192565892015,
+      "steady_rms": 0.06782962455897368,
+      "steady_peak_1s_rms": 0.07270942975904734,
+      "ratio": 0.7561145355693352
+    },
+    {
+      "mode": "power",
+      "speed": 30.0,
+      "original_rms": 0.0937925485894769,
+      "steady_rms": 0.046473857834097576,
+      "steady_peak_1s_rms": 0.04876689058504122,
+      "ratio": 0.5199441887275109
+    },
+    {
+      "mode": "power",
+      "speed": 32,
+      "original_rms": 0.09168867713470502,
+      "steady_rms": 0.063923941556518,
+      "steady_peak_1s_rms": 0.06895045576661293,
+      "ratio": 0.7520062228110667
+    },
+    {
+      "mode": "power",
+      "speed": 34.0,
+      "original_rms": 0.08956493681249228,
+      "steady_rms": 0.04402394475083843,
+      "steady_peak_1s_rms": 0.04589941410821129,
+      "ratio": 0.5124707920500576
+    },
+    {
+      "mode": "power",
+      "speed": 36,
+      "original_rms": 0.08742892216573007,
+      "steady_rms": 0.060432126273032,
+      "steady_peak_1s_rms": 0.06644598089835069,
+      "ratio": 0.7600000005992963
+    },
+    {
+      "mode": "power",
+      "speed": 38.0,
+      "original_rms": 0.0853123022681734,
+      "steady_rms": 0.04219398521853489,
+      "steady_peak_1s_rms": 0.04437998030298385,
+      "ratio": 0.5202061030246072
+    },
+    {
+      "mode": "power",
+      "speed": 40,
+      "original_rms": 0.08349652131694822,
+      "steady_rms": 0.05888808470045548,
+      "steady_peak_1s_rms": 0.061879349143672754,
+      "ratio": 0.7411009245377078
+    },
+    {
+      "mode": "brake",
+      "speed": 5,
+      "original_rms": 0.01718893143655343,
+      "steady_rms": 0.01211485744901305,
+      "steady_peak_1s_rms": 0.013063587594479644,
+      "ratio": 0.7599999827039299
+    },
+    {
+      "mode": "brake",
+      "speed": 5.4,
+      "original_rms": 0.017730584303924806,
+      "steady_rms": 0.009962615225010034,
+      "steady_peak_1s_rms": 0.011055545021139236,
+      "ratio": 0.6235296497641086
+    },
+    {
+      "mode": "brake",
+      "speed": 5.8,
+      "original_rms": 0.022809311876677344,
+      "steady_rms": 0.01592356293514402,
+      "steady_peak_1s_rms": 0.017335077203064077,
+      "ratio": 0.7600000077507509
+    },
+    {
+      "mode": "brake",
+      "speed": 6.15,
+      "original_rms": 0.019439081722189097,
+      "steady_rms": 0.0119583117001718,
+      "steady_peak_1s_rms": 0.01326964120672226,
+      "ratio": 0.6826269571970256
+    },
+    {
+      "mode": "brake",
+      "speed": 6.5,
+      "original_rms": 0.02603823050152958,
+      "steady_rms": 0.017914478299064004,
+      "steady_peak_1s_rms": 0.019461163595741595,
+      "ratio": 0.7474073015291256
+    },
+    {
+      "mode": "brake",
+      "speed": 6.875,
+      "original_rms": 0.027316668878245565,
+      "steady_rms": 0.016469403093231947,
+      "steady_peak_1s_rms": 0.018181997764750643,
+      "ratio": 0.6656008404901234
+    },
+    {
+      "mode": "brake",
+      "speed": 7.25,
+      "original_rms": 0.03949056232646865,
+      "steady_rms": 0.027109557801872002,
+      "steady_peak_1s_rms": 0.029028353227377568,
+      "ratio": 0.7350706477005834
+    },
+    {
+      "mode": "brake",
+      "speed": 7.525,
+      "original_rms": 0.055424092047000224,
+      "steady_rms": 0.025666348457682214,
+      "steady_peak_1s_rms": 0.028399976253359254,
+      "ratio": 0.5124121154619145
+    },
+    {
+      "mode": "brake",
+      "speed": 7.8,
+      "original_rms": 0.04714657752515842,
+      "steady_rms": 0.03147203030395073,
+      "steady_peak_1s_rms": 0.034128995389333415,
+      "ratio": 0.7238912595749173
+    },
+    {
+      "mode": "brake",
+      "speed": 8.05,
+      "original_rms": 0.04207233263552265,
+      "steady_rms": 0.023897491861896377,
+      "steady_peak_1s_rms": 0.02747717358341542,
+      "ratio": 0.6530936570941589
+    },
+    {
+      "mode": "brake",
+      "speed": 8.3,
+      "original_rms": 0.04839628221351165,
+      "steady_rms": 0.03360550453829094,
+      "steady_peak_1s_rms": 0.036781174297249176,
+      "ratio": 0.7599999961769857
+    },
+    {
+      "mode": "brake",
+      "speed": 8.9,
+      "original_rms": 0.03640484458987484,
+      "steady_rms": 0.019005546685203385,
+      "steady_peak_1s_rms": 0.020531859524646208,
+      "ratio": 0.5639870120570893
+    },
+    {
+      "mode": "brake",
+      "speed": 9.5,
+      "original_rms": 0.02500594978837651,
+      "steady_rms": 0.01798778553904855,
+      "steady_peak_1s_rms": 0.019004522189493944,
+      "ratio": 0.7600000140097777
+    },
+    {
+      "mode": "brake",
+      "speed": 10.25,
+      "original_rms": 0.03369549348630854,
+      "steady_rms": 0.013504018833568861,
+      "steady_peak_1s_rms": 0.014312156168679042,
+      "ratio": 0.42474986082321325
+    },
+    {
+      "mode": "brake",
+      "speed": 11,
+      "original_rms": 0.028959496950046362,
+      "steady_rms": 0.020043742321354557,
+      "steady_peak_1s_rms": 0.021839099066007495,
+      "ratio": 0.754125636356143
+    },
+    {
+      "mode": "brake",
+      "speed": 11.75,
+      "original_rms": 0.028524965278219624,
+      "steady_rms": 0.015209410466544495,
+      "steady_peak_1s_rms": 0.01643688559844112,
+      "ratio": 0.5762280668222789
+    },
+    {
+      "mode": "brake",
+      "speed": 12.5,
+      "original_rms": 0.03254651794719947,
+      "steady_rms": 0.022873557782794658,
+      "steady_peak_1s_rms": 0.02438969404822039,
+      "ratio": 0.7493795215754886
+    },
+    {
+      "mode": "brake",
+      "speed": 13.25,
+      "original_rms": 0.04065869435200046,
+      "steady_rms": 0.018849445292078524,
+      "steady_peak_1s_rms": 0.019705847357258565,
+      "ratio": 0.48466503096868413
+    },
+    {
+      "mode": "brake",
+      "speed": 14,
+      "original_rms": 0.043134370389962,
+      "steady_rms": 0.029669486038036624,
+      "steady_peak_1s_rms": 0.03278212161123371,
+      "ratio": 0.7600000026629017
+    },
+    {
+      "mode": "brake",
+      "speed": 15.0,
+      "original_rms": 0.04751367126307451,
+      "steady_rms": 0.023918874957164757,
+      "steady_peak_1s_rms": 0.025120844657013,
+      "ratio": 0.5287077169415825
+    },
+    {
+      "mode": "brake",
+      "speed": 16,
+      "original_rms": 0.05461959433228547,
+      "steady_rms": 0.037518484365935245,
+      "steady_peak_1s_rms": 0.039710377195180564,
+      "ratio": 0.7270353740380654
+    },
+    {
+      "mode": "brake",
+      "speed": 17.25,
+      "original_rms": 0.046869124124573176,
+      "steady_rms": 0.028295371119810838,
+      "steady_peak_1s_rms": 0.029586031629848953,
+      "ratio": 0.6312478029504544
+    },
+    {
+      "mode": "brake",
+      "speed": 18.5,
+      "original_rms": 0.059566841662412655,
+      "steady_rms": 0.042365262100422234,
+      "steady_peak_1s_rms": 0.045270799603087226,
+      "ratio": 0.7599999989869131
+    },
+    {
+      "mode": "brake",
+      "speed": 19.75,
+      "original_rms": 0.0725265161833508,
+      "steady_rms": 0.02921038729230471,
+      "steady_peak_1s_rms": 0.030776027374661875,
+      "ratio": 0.4243417303660151
+    },
+    {
+      "mode": "brake",
+      "speed": 21,
+      "original_rms": 0.05696324360298891,
+      "steady_rms": 0.03997089662223886,
+      "steady_peak_1s_rms": 0.0432920650415223,
+      "ratio": 0.7599999983015491
+    },
+    {
+      "mode": "brake",
+      "speed": 22.5,
+      "original_rms": 0.07864608594392179,
+      "steady_rms": 0.028892403593934773,
+      "steady_peak_1s_rms": 0.030048561858133715,
+      "ratio": 0.38207320170465564
+    },
+    {
+      "mode": "brake",
+      "speed": 24,
+      "original_rms": 0.05938097146014148,
+      "steady_rms": 0.04163458340689732,
+      "steady_peak_1s_rms": 0.0451295383318581,
+      "ratio": 0.7600000003730248
+    },
+    {
+      "mode": "brake",
+      "speed": 25.0,
+      "original_rms": 0.06896278164378632,
+      "steady_rms": 0.035676868018279004,
+      "steady_peak_1s_rms": 0.036915040556586134,
+      "ratio": 0.535289320945079
+    },
+    {
+      "mode": "brake",
+      "speed": 26,
+      "original_rms": 0.08061037571477594,
+      "steady_rms": 0.05795435317419437,
+      "steady_peak_1s_rms": 0.05997879525032059,
+      "ratio": 0.7440580039292192
+    },
+    {
+      "mode": "brake",
+      "speed": 27.0,
+      "original_rms": 0.09435213565807547,
+      "steady_rms": 0.046917266131165335,
+      "steady_peak_1s_rms": 0.049147721962241056,
+      "ratio": 0.5208967621077326
+    },
+    {
+      "mode": "brake",
+      "speed": 28,
+      "original_rms": 0.10292028483433464,
+      "steady_rms": 0.07380961341839204,
+      "steady_peak_1s_rms": 0.07821941629803708,
+      "ratio": 0.7599999982893825
+    },
+    {
+      "mode": "brake",
+      "speed": 30.0,
+      "original_rms": 0.10064694520947985,
+      "steady_rms": 0.07013589651196507,
+      "steady_peak_1s_rms": 0.0729425112974984,
+      "ratio": 0.7247364651324559
+    },
+    {
+      "mode": "brake",
+      "speed": 32,
+      "original_rms": 0.09837360558462509,
+      "steady_rms": 0.06957589687480334,
+      "steady_peak_1s_rms": 0.07357588742409121,
+      "ratio": 0.7479230530063082
+    },
+    {
+      "mode": "brake",
+      "speed": 34.0,
+      "original_rms": 0.09610026595977031,
+      "steady_rms": 0.06406778444869,
+      "steady_peak_1s_rms": 0.0685408933961603,
+      "ratio": 0.713222723284169
+    },
+    {
+      "mode": "brake",
+      "speed": 36,
+      "original_rms": 0.0938269263349155,
+      "steady_rms": 0.0658953612271265,
+      "steady_peak_1s_rms": 0.07047112664241703,
+      "ratio": 0.7510757241569453
+    },
+    {
+      "mode": "brake",
+      "speed": 38.0,
+      "original_rms": 0.09155358671006072,
+      "steady_rms": 0.0623414989208367,
+      "steady_peak_1s_rms": 0.06668427005798754,
+      "ratio": 0.7283632728575523
+    },
+    {
+      "mode": "brake",
+      "speed": 40,
+      "original_rms": 0.08928024708520595,
+      "steady_rms": 0.06426030147818469,
+      "steady_peak_1s_rms": 0.06652017247619497,
+      "ratio": 0.7450715544358927
+    }
+  ],
+  "loop_count": 114,
+  "curve_rows": 558,
+  "detector_checks": {
+    "entry_after_fresh_loaded_hold": "PASS",
+    "coasting_does_not_prequalify_braking": "PASS",
+    "cap_lift_exits_steady": "PASS",
+    "two_tick_acceleration_blip_does_not_exit": "PASS",
+    "entry_first_nonzero_seconds": 1.25,
+    "braking_first_nonzero_seconds_with_load_start_at_3s": 4.25
+  },
+  "level_measurement_note": "RMS is a signal-level comparison, not a calibrated perceptual-loudness measurement. 74 anchor/midpoint cases and four 45-second priority-speed holds were checked.",
+  "repetition_measurement_note": "Unequal file periods prevent exact aggregate repetition over 45s. Envelope correlation and waveform differences at individual periods were checked at 14/21m/s. Audibility still needs user review."
+}

@@ -160,7 +160,7 @@ class TractionMixerTest {
         float[] loop = sine(96000, 200);
         PackSettings settings = new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
             PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0,
-            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0, 0, 0);
+            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0, 0, 0, PackSettings.Steady.defaults());
         TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
         float[] powering = render(new TractionMixer(pack, RATE), 12, TractionMode.POWER, 4);
         float[] braking = render(new TractionMixer(pack, RATE), 12, TractionMode.BRAKE, 4);
@@ -180,7 +180,49 @@ class TractionMixerTest {
     private static PackSettings cruisingSettings(double blendSeconds, double slopePowerBlendSeconds) {
         return new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
             PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of(), 1.0,
-            Set.of("coast/cruising"), 0.85, 0.2, blendSeconds, PackSettings.Shape.SMOOTHSTEP, 1.0, slopePowerBlendSeconds, 0, 0);
+            Set.of("coast/cruising"), 0.85, 0.2, blendSeconds, PackSettings.Shape.SMOOTHSTEP, 1.0, slopePowerBlendSeconds, 0, 0, PackSettings.Steady.defaults());
+    }
+
+    private static float[] renderSteady(TractionMixer mixer, double steadyPower, int blocks) {
+        float[] out = new float[blocks * BLOCK];
+        float[] block = new float[BLOCK];
+        for (int b = 0; b < blocks; b++) {
+            mixer.setState(14, TractionMode.POWER, false, steadyPower, 0);
+            mixer.render(block, BLOCK);
+            System.arraycopy(block, 0, out, b * BLOCK, BLOCK);
+        }
+        return out;
+    }
+
+    @Test
+    void steadyLoadPartitionsThePowerGainAndKeepsTheCruisingDuck() {
+        float[] dc = ones();
+        LayerCurve flat = new LayerCurve(List.of(new double[] {0, 1.0, 0.2}, new double[] {40, 1.0, 0.2}));
+        TractionPack pack = new TractionPack(List.of(
+            layer("power/t", TractionMode.POWER, dc, 1.0, 1.0, false),
+            new TractionPack.Layer("power_steady/v14_a", TractionMode.POWER, new LayerCurve(List.of(new double[] {0, 1.0, 0.5}, new double[] {40, 1.0, 0.5})), dc, RATE, false, false, true),
+            new TractionPack.Layer("coast/cruising", TractionMode.COAST, flat, dc, RATE, false, true)
+        ), cruisingSettings(0));
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        float[] sweep = renderSteady(mixer, 0, 20);
+        assertEquals(1 + 0.2 * 0.15, sweep[sweep.length - 1], 1e-5, "all power on the sweep layer, cruising ducked by the full power gain");
+        float[] settling = renderSteady(mixer, 1, 30);   // 1.5 s smoothstep = 72000 samples
+        assertEquals(0.5 * 1 + 0.5 * 0.5 + 0.2 * 0.15, settling[35999], 1e-5, "halfway: half the gain on each");
+        assertEquals(0.5 + 0.2 * 0.15, settling[71999], 1e-5, "settled: all power on the steady layer, cruising still ducked");
+        TractionMixer.Diagnostics d = mixer.diagnostics(3);
+        assertEquals(1.0, d.steadyPower(), 1e-9);
+        float[] leaving = renderSteady(mixer, 0, 30);
+        assertEquals(1 + 0.2 * 0.15, leaving[71999], 1e-5, "back on the sweep layer");
+    }
+
+    @Test
+    void aPackWithoutSteadyLayersIgnoresSteadyTargets() {
+        float[] dc = ones();
+        TractionPack pack = new TractionPack(List.of(layer("power/t", TractionMode.POWER, dc, 1.0, 1.0, false)), cruisingSettings(0));
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        renderSteady(mixer, 0, 20);
+        float[] out = renderSteady(mixer, 1, 40);
+        assertEquals(1.0, out[out.length - 1], 1e-6);
     }
 
     @Test

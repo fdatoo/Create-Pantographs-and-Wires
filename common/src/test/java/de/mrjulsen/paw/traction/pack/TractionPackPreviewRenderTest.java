@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -28,10 +29,56 @@ class TractionPackPreviewRenderTest {
         TractionPack loaded = TractionPack.load(path -> {
             Path file = pack.resolve(path);
             return Files.exists(file) ? Files.newInputStream(file) : null;
-        });
+        }, Runnable::run);
         render(loaded, out.resolve("render_14mps.wav"), 14, 14, 5, 14);
         render(loaded, out.resolve("render_40mps.wav"), 40, 32, 5, 32);
         cruise(loaded, out.resolve("render_cruising_14mps.wav"), 14, 8);
+
+        String steadyPreviews = System.getenv("PAW_STEADY_PREVIEW_DIR");
+        if (steadyPreviews != null) {
+            for (String name : List.of("climb_14", "descent_14", "cap_lifts")) {
+                timeline(loaded, Path.of(steadyPreviews).resolve(name + "_timeline.csv"), out.resolve("render_" + name + ".wav"),
+                    out.resolve("render_" + name + "_timeline.csv"));
+            }
+        }
+    }
+
+    /**
+     * Replays a steady-load preview's timeline (one row per game tick: speed and the classified mode),
+     * letting the real steady detector decide steady load, and writes what the mixer did per tick.
+     */
+    private static void timeline(TractionPack pack, Path timeline, Path file, Path trace) throws IOException {
+        List<String> rows = Files.readAllLines(timeline);
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        SteadyLoadDetector steady = new SteadyLoadDetector();
+        steady.configure(pack.settings().steady());
+        float[] all = new float[(rows.size() - 1) * BLOCK];
+        float[] block = new float[BLOCK];
+        StringBuilder csv = new StringBuilder("time_s,speed_mps,mode,power,brake,steady_power,steady_brake\n");
+        TractionMode previous = TractionMode.COAST;
+        double previousSpeed = 0;
+        boolean slopeDriven = false;
+        for (int i = 1; i < rows.size(); i++) {
+            String[] cells = rows.get(i).split(",");
+            double speed = Double.parseDouble(cells[1]);
+            int classified = (int) Double.parseDouble(cells[2]);
+            TractionMode mode = classified > 0 ? TractionMode.POWER : classified < 0 ? TractionMode.BRAKE : TractionMode.COAST;
+            if (mode != previous) {
+                // A load that arrives while the speed holds is the grade's doing, as on the previews' climb.
+                slopeDriven = Math.abs(speed - previousSpeed) < 1e-6 && speed > 0;
+                previous = mode;
+            }
+            previousSpeed = speed;
+            steady.update(speed, mode);
+            mixer.setState(speed, mode, slopeDriven, steady.powerTarget(), steady.brakeTarget());
+            mixer.render(block, BLOCK);
+            System.arraycopy(block, 0, all, (i - 1) * BLOCK, BLOCK);
+            TractionMixer.Diagnostics d = mixer.diagnostics(0);
+            csv.append(String.format(java.util.Locale.ROOT, "%s,%.3f,%s,%.5f,%.5f,%.5f,%.5f%n", cells[0], speed, mode, d.power(), d.brake(),
+                d.steadyPower(), d.steadyBrake()));
+        }
+        writeFloatWav(file, all);
+        Files.writeString(trace, csv);
     }
 
     /** Holds a steady speed with no traction demand, as the cruising addon's preview does. */

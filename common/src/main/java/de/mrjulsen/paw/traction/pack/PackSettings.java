@@ -12,8 +12,9 @@ import com.google.gson.JsonParser;
 
 /**
  * A pack's player settings (player_settings.json): mode envelope timings and shapes, which layers
- * are mechanical (playing in every mode without mode gating), which are ducked under traction, and
- * how mode changes behave while moving. Missing keys fall back to defaults; unknown keys are ignored.
+ * are mechanical (playing in every mode without mode gating), which are ducked under traction, how mode
+ * changes behave while moving, and when steady-load layers take over. Missing keys fall back to defaults;
+ * unknown keys are ignored.
  *
  * @param duckedLayers           layers that play in every mode at curve volume times
  *                               {@code 1 - duckDepth * max(power gain, brake gain)}
@@ -28,6 +29,8 @@ import com.google.gson.JsonParser;
  *                               0 to use modePersistenceSeconds
  * @param modePowerPersistenceSeconds while moving, how long powering must hold before it takes effect;
  *                               0 to use modePersistenceSeconds
+ * @param steady                 when a power or brake load has settled at a constant speed, and how the
+ *                               steady-load layers take over from the acceleration and braking layers
  */
 public record PackSettings(
     double powerOnSeconds, Shape powerOnShape,
@@ -44,12 +47,33 @@ public record PackSettings(
     double departureSpeedMps,
     double slopePowerBlendSeconds,
     double modeEndPersistenceSeconds,
-    double modePowerPersistenceSeconds
+    double modePowerPersistenceSeconds,
+    Steady steady
 ) {
     public enum Shape {
         LINEAR,
         /** s(u) = 3u^2 - 2u^3 */
         SMOOTHSTEP
+    }
+
+    /**
+     * Steady load, from the steady-load addon's rules.
+     *
+     * @param blendSeconds             smoothstep blend of a family's steady fraction, entering and leaving
+     * @param holdSeconds              how long a load must qualify before its steady fraction targets 1
+     * @param enterAbsAccelerationMps2 largest actual acceleration that qualifies
+     * @param speedSpanMps             largest spread of speed over the hold time that qualifies
+     * @param exitAbsAccelerationMps2  actual acceleration that, held for exitHoldSeconds, ends steady load
+     * @param exitHoldSeconds          how long that acceleration must last
+     * @param minSpeedMps              lowest speed at which steady load applies (inclusive)
+     * @param maxSpeedMps              highest speed at which steady load applies (inclusive)
+     */
+    public record Steady(double blendSeconds, double holdSeconds, double enterAbsAccelerationMps2, double speedSpanMps,
+        double exitAbsAccelerationMps2, double exitHoldSeconds, double minSpeedMps, double maxSpeedMps) {
+
+        public static Steady defaults() {
+            return new Steady(1.5, 1.25, 0.08, 0.18, 0.15, 0.15, 5, 40);
+        }
     }
 
     /**
@@ -59,7 +83,7 @@ public record PackSettings(
      */
     public static PackSettings defaults() {
         return new PackSettings(0.06, Shape.LINEAR, 0.18, Shape.SMOOTHSTEP, 0.35, Shape.SMOOTHSTEP, 0.18, Shape.SMOOTHSTEP, Set.of(), 1.0,
-            Set.of(), 0.85, 0, 0, Shape.SMOOTHSTEP, 1.0, 0, 0, 0);
+            Set.of(), 0.85, 0, 0, Shape.SMOOTHSTEP, 1.0, 0, 0, 0, Steady.defaults());
     }
 
     public static PackSettings parse(Reader reader) throws IOException {
@@ -70,6 +94,7 @@ public record PackSettings(
             throw new IOException("player settings are not a JSON object", e);
         }
         PackSettings d = defaults();
+        Steady ds = d.steady();
         double powerOff = number(json, "power_off_seconds", d.powerOffSeconds());
         Shape powerOffShape = shape(json, "power_off_curve", d.powerOffShape());
         return new PackSettings(
@@ -87,7 +112,16 @@ public record PackSettings(
             number(json, "departure_speed_mps", d.departureSpeedMps()),
             number(json, "slope_power_blend_seconds", d.slopePowerBlendSeconds()),
             number(json, "mode_end_persistence_seconds", d.modeEndPersistenceSeconds()),
-            number(json, "mode_power_persistence_seconds", d.modePowerPersistenceSeconds())
+            number(json, "mode_power_persistence_seconds", d.modePowerPersistenceSeconds()),
+            new Steady(
+                number(json, "steady_blend_seconds", ds.blendSeconds()),
+                number(json, "steady_hold_seconds", ds.holdSeconds()),
+                number(json, "steady_enter_abs_acceleration_mps2", ds.enterAbsAccelerationMps2()),
+                number(json, "steady_speed_span_mps", ds.speedSpanMps()),
+                number(json, "steady_exit_abs_acceleration_mps2", ds.exitAbsAccelerationMps2()),
+                number(json, "steady_exit_hold_seconds", ds.exitHoldSeconds()),
+                number(json, "steady_min_speed_mps", ds.minSpeedMps()),
+                number(json, "steady_max_speed_mps", ds.maxSpeedMps()))
         );
     }
 
