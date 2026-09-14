@@ -39,8 +39,22 @@ public final class LayerCurve {
         return speed[speed.length - 1];
     }
 
-    public double firstPitch() {
-        return pitch[0];
+    /** Pitch at a speed, holding the end pitches outside the curve, where the layer is silent. */
+    public double clampedPitch(double speedMps) {
+        int last = speed.length - 1;
+        if (!(speedMps > speed[0])) {
+            return pitch[0];
+        }
+        if (speedMps >= speed[last]) {
+            return pitch[last];
+        }
+        int found = Arrays.binarySearch(speed, speedMps);
+        if (found >= 0) {
+            return pitch[found];
+        }
+        int hi = -found - 1;
+        int lo = hi - 1;
+        return pitch[lo] + (pitch[hi] - pitch[lo]) * (speedMps - speed[lo]) / (speed[hi] - speed[lo]);
     }
 
     /**

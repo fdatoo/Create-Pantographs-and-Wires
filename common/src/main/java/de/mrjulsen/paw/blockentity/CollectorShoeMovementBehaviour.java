@@ -9,6 +9,7 @@ import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import de.mrjulsen.paw.block.CollectorShoeBlock;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.traction.ThirdRailContactDetector;
+import de.mrjulsen.paw.traction.TractionSpeedSync;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -41,7 +42,11 @@ public class CollectorShoeMovementBehaviour implements MovementBehaviour {
     public void tick(MovementContext context) {
         AbstractContraptionEntity entity = context.contraption.entity;
         Level level = entity.level();
-        if (!level.isClientSide() || context.position == null) {
+        if (!level.isClientSide()) {
+            TractionSpeedSync.tick(entity);
+            return;
+        }
+        if (context.position == null) {
             return;
         }
         Direction facing = context.state.getValue(CollectorShoeBlock.FACING);

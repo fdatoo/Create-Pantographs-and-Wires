@@ -10,12 +10,19 @@ import java.util.List;
  *
  * Every layer keeps its own read head, which keeps moving while the layer is silent, so a layer that
  * fades out and back in continues its loop instead of restarting. Pitch is playback rate, read with
- * cubic interpolation; at pitch 1 the loop's samples come through unchanged. Speed and pitch ramp
- * linearly across each rendered block between the states set on either side of it.
+ * cubic interpolation; at pitch 1 the loop's samples come through unchanged.
+ *
+ * Speed arrives once per game tick. The mixer glides toward each new value (a one-pole with a 50 ms
+ * time constant, evaluated every 5 ms) so a curve's pitch never steps from tick to tick.
  *
  * setState is called from the game thread and render from the sound thread.
  */
 public final class TractionMixer {
+    /** Samples between curve evaluations; pitch and volume ramp linearly in between. */
+    static final int SUB_BLOCK = 240;
+    /** Time constant of the glide toward each new speed. */
+    static final double SPEED_GLIDE_SECONDS = 0.05;
+
     private final List<TractionPack.Layer> layers;
     private final PackSettings settings;
     private final int outputRate;
@@ -23,11 +30,13 @@ public final class TractionMixer {
     private final Envelope brake;
     private final Envelope coast;
     private final double[] head;
-    private final double[] lastPitch;
     private final double[] curve = new double[2];
     private double[] powerGain = new double[0];
     private double[] brakeGain = new double[0];
     private double[] coastGain = new double[0];
+    private double[] boundarySpeed = new double[0];
+    private double[] pitchAt = new double[0];
+    private double[] volumeAt = new double[0];
 
     private double targetSpeed;
     private TractionMode targetMode = TractionMode.COAST;
@@ -42,10 +51,6 @@ public final class TractionMixer {
         this.brake = new Envelope(outputRate);
         this.coast = new Envelope(outputRate);
         this.head = new double[layers.size()];
-        this.lastPitch = new double[layers.size()];
-        for (int i = 0; i < layers.size(); i++) {
-            lastPitch[i] = layers.get(i).curve().firstPitch();
-        }
     }
 
     /** @param speedMps train speed in metres per second */
@@ -77,68 +82,88 @@ public final class TractionMixer {
         boolean brakeAudible = fill(brake, brakeGain, count);
         boolean coastAudible = fill(coast, coastGain, count);
 
+        int subBlocks = (count + SUB_BLOCK - 1) / SUB_BLOCK;
+        if (boundarySpeed.length < subBlocks + 1) {
+            boundarySpeed = new double[subBlocks + 1];
+            pitchAt = new double[subBlocks + 1];
+            volumeAt = new double[subBlocks + 1];
+        }
+        boundarySpeed[0] = renderedSpeed;
+        for (int j = 1; j <= subBlocks; j++) {
+            int length = Math.min(SUB_BLOCK, count - (j - 1) * SUB_BLOCK);
+            double follow = 1 - Math.exp(-length / (SPEED_GLIDE_SECONDS * outputRate));
+            renderedSpeed += (speedTarget - renderedSpeed) * follow;
+            boundarySpeed[j] = renderedSpeed;
+        }
+
         Arrays.fill(block, 0, count, 0f);
-        double speed0 = renderedSpeed;
-        double speed1 = speedTarget;
         for (int i = 0; i < layers.size(); i++) {
             TractionPack.Layer layer = layers.get(i);
             float[] source = layer.samples();
+            int length = source.length;
             double ratio = layer.sampleRate() / (double) outputRate;
 
-            boolean audible0 = layer.curve().sample(speed0, curve);
-            double pitch0 = curve[0];
-            double volume0 = audible0 ? curve[1] : 0;
-            boolean audible1 = layer.curve().sample(speed1, curve);
-            double pitch1 = audible1 ? curve[0] : (audible0 ? pitch0 : lastPitch[i]);
-            double volume1 = audible1 ? curve[1] : 0;
-            if (!audible0) {
-                pitch0 = pitch1;
+            boolean audible = false;
+            for (int j = 0; j <= subBlocks; j++) {
+                if (layer.curve().sample(boundarySpeed[j], curve)) {
+                    pitchAt[j] = curve[0];
+                    volumeAt[j] = curve[1];
+                    audible |= curve[1] != 0;
+                } else {
+                    pitchAt[j] = layer.curve().clampedPitch(boundarySpeed[j]);
+                    volumeAt[j] = 0;
+                }
             }
 
             double[] gate = null;
-            boolean gateAudible = true;
             if (!layer.continuous()) {
                 gate = switch (layer.mode()) {
                     case POWER -> powerGain;
                     case BRAKE -> brakeGain;
                     case COAST -> coastGain;
                 };
-                gateAudible = switch (layer.mode()) {
+                audible &= switch (layer.mode()) {
                     case POWER -> powerAudible;
                     case BRAKE -> brakeAudible;
                     case COAST -> coastAudible;
                 };
             }
 
-            if ((volume0 == 0 && volume1 == 0) || !gateAudible) {
+            double h = head[i];
+            if (!audible) {
                 // Silent this block: keep the loop moving so it continues where it would be.
-                head[i] = (head[i] + (pitch0 + pitch1) * 0.5 * ratio * count) % source.length;
-                lastPitch[i] = pitch1;
+                for (int j = 0; j < subBlocks; j++) {
+                    int subLength = Math.min(SUB_BLOCK, count - j * SUB_BLOCK);
+                    h += (pitchAt[j] + pitchAt[j + 1]) * 0.5 * ratio * subLength;
+                }
+                head[i] = h % length;
                 continue;
             }
 
             double gain = layer.continuous() ? settings.mechanicalGain() : 1.0;
-            double h = head[i];
-            int length = source.length;
-            for (int s = 0; s < count; s++) {
-                double u = (s + 1) / (double) count;
-                double pitch = pitch0 + (pitch1 - pitch0) * u;
-                double volume = (volume0 + (volume1 - volume0) * u) * gain;
-                if (gate != null) {
-                    volume *= gate[s];
-                }
-                if (volume != 0) {
-                    block[s] += (float) (volume * cubic(source, h));
-                }
-                h += pitch * ratio;
-                if (h >= length) {
-                    h -= length;
+            int s = 0;
+            for (int j = 0; j < subBlocks; j++) {
+                int subLength = Math.min(SUB_BLOCK, count - j * SUB_BLOCK);
+                double pitch0 = pitchAt[j];
+                double pitchStep = (pitchAt[j + 1] - pitch0) / subLength;
+                double volume0 = volumeAt[j] * gain;
+                double volumeStep = (volumeAt[j + 1] * gain - volume0) / subLength;
+                for (int k = 1; k <= subLength; k++, s++) {
+                    double volume = volume0 + volumeStep * k;
+                    if (gate != null) {
+                        volume *= gate[s];
+                    }
+                    if (volume != 0) {
+                        block[s] += (float) (volume * cubic(source, h));
+                    }
+                    h += (pitch0 + pitchStep * k) * ratio;
+                    if (h >= length) {
+                        h -= length;
+                    }
                 }
             }
             head[i] = h;
-            lastPitch[i] = pitch1;
         }
-        renderedSpeed = speed1;
     }
 
     private void applyMode(TractionMode mode) {

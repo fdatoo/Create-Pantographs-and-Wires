@@ -11,6 +11,7 @@ import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import com.simibubi.create.foundation.utility.VecHelper;
 
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
+import de.mrjulsen.paw.traction.TractionSpeedSync;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -20,6 +21,10 @@ public class PantographMovementBehaviour implements MovementBehaviour {
 
 	@Override
 	public void tick(MovementContext context) {
+        if (!context.contraption.entity.level().isClientSide()) {
+            TractionSpeedSync.tick(context.contraption.entity);
+            return;
+        }
         if (context.contraption.entity.level().isClientSide() &&
             context.contraption.presentBlockEntities.containsKey(context.localPos) &&
             context.contraption.presentBlockEntities.get(context.localPos) instanceof PantographBlockEntity be

@@ -3,6 +3,7 @@ package de.mrjulsen.paw.client.sound;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.UUID;
 
 import de.mrjulsen.paw.client.sound.synth.SynthAudioStream;
@@ -12,6 +13,7 @@ import de.mrjulsen.paw.config.TractionSoundProfile;
 import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
+import de.mrjulsen.paw.traction.TractionSpeedFeed;
 import de.mrjulsen.paw.traction.pack.TractionMixer;
 import de.mrjulsen.paw.traction.pack.TractionMode;
 import de.mrjulsen.paw.traction.pack.TractionModeDetector;
@@ -63,6 +65,14 @@ public final class TractionSoundManager {
     private static final ElectricTrainStateTracker TRACKER =
         new ElectricTrainStateTracker(CONTACT_GRACE_TICKS, CAPABILITY_GRACE_TICKS);
     private static final Map<UUID, Entry> ACTIVE = new HashMap<>();
+    private static final Map<UUID, VehicleSpeed> SPEEDS = new HashMap<>();
+
+    // A vehicle must read as stopped this long before its sound is released, so a train creeping
+    // away from a platform doesn't start and stop its voice.
+    private static final int STOPPED_AFTER_TICKS = 5;
+    // Without the server's speed, the client's lurching motion is averaged over this many ticks
+    // (four of Create's carriage updates).
+    private static final int FALLBACK_WINDOW_TICKS = 12;
 
     private TractionSoundManager() {}
 
@@ -79,8 +89,12 @@ public final class TractionSoundManager {
         TRACKER.observe(vehicleId, gameTime, raised, touching);
         ElectricTrainSnapshot snapshot = TRACKER.snapshot(vehicleId, gameTime);
         Entry entry = ACTIVE.get(vehicleId);
+        VehicleSpeed vehicleSpeed = SPEEDS.computeIfAbsent(vehicleId, id -> new VehicleSpeed());
+        vehicleSpeed.update(vehicleId, gameTime, speed);
+        speed = vehicleSpeed.speed;
 
-        if (!snapshot.powered() || Math.abs(speed) < SPEED_CONSIDERED_STOPPED) {
+        boolean stopped = vehicleSpeed.stoppedTicks > 0 && (entry == null || vehicleSpeed.stoppedTicks >= STOPPED_AFTER_TICKS);
+        if (!snapshot.powered() || stopped) {
             if (entry != null) {
                 entry.stop();
                 ACTIVE.remove(vehicleId);
@@ -164,6 +178,8 @@ public final class TractionSoundManager {
 
     /** Call once per client tick to sweep vehicles that stopped reporting entirely. */
     public static void tick(long gameTime) {
+        TractionSpeedFeed.tick();
+        SPEEDS.values().removeIf(vehicleSpeed -> Math.abs(gameTime - vehicleSpeed.lastTick) > STALE_AFTER_TICKS);
         ACTIVE.entrySet().removeIf(mapEntry -> {
             Entry entry = mapEntry.getValue();
             if (entry.isStopped()) {
@@ -190,7 +206,45 @@ public final class TractionSoundManager {
     public static void stopAll() {
         ACTIVE.values().forEach(Entry::stop);
         ACTIVE.clear();
+        SPEEDS.clear();
+        TractionSpeedFeed.clear();
         TRACKER.clear();
+    }
+
+    /**
+     * One vehicle's speed as the sound uses it, worked out once per tick. The server's exact figure
+     * when it reports one (see TractionSpeedSync); otherwise the client's own motion, which lurches
+     * with every carriage update, averaged over several updates.
+     */
+    private static final class VehicleSpeed {
+        private final double[] recent = new double[FALLBACK_WINDOW_TICKS];
+        private int recentCount;
+        private int recentNext;
+        private long lastTick = Long.MIN_VALUE;
+        private double speed;
+        private int stoppedTicks;
+
+        private void update(UUID vehicleId, long gameTime, double clientMotion) {
+            if (gameTime == lastTick) {
+                return;
+            }
+            lastTick = gameTime;
+            recent[recentNext] = Math.abs(clientMotion);
+            recentNext = (recentNext + 1) % recent.length;
+            recentCount = Math.min(recentCount + 1, recent.length);
+
+            OptionalDouble reported = TractionSpeedFeed.speed(vehicleId);
+            if (reported.isPresent()) {
+                speed = reported.getAsDouble();
+            } else {
+                double sum = 0;
+                for (int i = 0; i < recentCount; i++) {
+                    sum += recent[i];
+                }
+                speed = sum / recentCount;
+            }
+            stoppedTicks = speed < SPEED_CONSIDERED_STOPPED ? stoppedTicks + 1 : 0;
+        }
     }
 
     private static final class Entry {

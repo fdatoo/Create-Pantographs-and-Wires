@@ -92,8 +92,8 @@ class TractionMixerTest {
         float[] resumedA = render(interrupted, 15, TractionMode.COAST, 3);
         float[] resumedB = render(continuous, 15, TractionMode.COAST, 3);
         assertTrue(rms(before, 0, before.length) > 0.5);
-        // After ramping back in, the loop is where it would have been had it never stopped.
-        for (int i = BLOCK; i < resumedA.length; i++) {
+        // After gliding back into the curve, the loop is where it would have been had it never stopped.
+        for (int i = 2 * BLOCK; i < resumedA.length; i++) {
             assertEquals(resumedB[i], resumedA[i], 1e-5f, "sample " + i);
         }
     }
@@ -132,6 +132,27 @@ class TractionMixerTest {
         float[] released = render(reversed, 10, TractionMode.POWER, 1);
         assertTrue(Math.abs(released[0] - lastGain) < 1e-3, "release starts from " + lastGain + " not " + released[0]);
         assertTrue(released[BLOCK - 1] < lastGain);
+    }
+
+    @Test
+    void speedStepsGlideInsteadOfJumping() {
+        float[] dc = new float[48000];
+        java.util.Arrays.fill(dc, 1f);
+        // Volume equals speed / 40, so the output traces the speed the mixer is using.
+        LayerCurve curve = new LayerCurve(List.of(new double[] {0, 1.0, 0.0}, new double[] {40, 1.0, 1.0}));
+        TractionPack pack = new TractionPack(List.of(new TractionPack.Layer("coast/m", TractionMode.COAST, curve, dc, RATE, true)), PackSettings.defaults());
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        render(mixer, 10, TractionMode.COAST, 2);
+        float[] out = render(mixer, 20, TractionMode.COAST, 8);
+        double largestStep = 0;
+        double previous = 10 / 40.0;
+        for (float sample : out) {
+            largestStep = Math.max(largestStep, Math.abs(sample - previous));
+            previous = sample;
+        }
+        // A 10 m/s jump spread over a 50 ms glide: no sample moves more than 0.2 % of full scale.
+        assertTrue(largestStep < 0.002, "largest step " + largestStep);
+        assertEquals(0.5, out[out.length - 1], 1e-3, "settled at the new speed within 400 ms");
     }
 
     @Test
