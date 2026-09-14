@@ -117,6 +117,82 @@ class TractionModeDetectorTest {
         assertEquals(false, detector.slopeDriven());
     }
 
+    private static TractionModeDetector asInThePack() {
+        TractionModeDetector detector = new TractionModeDetector();
+        detector.configure(4, 10, 12, 0.05);   // 0.2 s brake, 0.5 s power, 0.6 s cruise, below 1 m/s at once
+        return detector;
+    }
+
+    @Test
+    void aShortForcedDipWhileHoldingKeepsPower() {
+        TractionModeDetector detector = asInThePack();
+        double speed = 0.3;
+        for (int i = 0; i < 40; i++) {
+            speed += MANUAL_ACCELERATION;
+            detector.update(speed, 0, true);
+        }
+        assertEquals(TractionMode.POWER, detector.mode());
+        boolean cruised = false;
+        for (int i = 0; i < 16; i++) {   // a short curve: Create slows the train for 0.8 s
+            speed -= MANUAL_ACCELERATION;
+            cruised |= detector.update(speed, 0, true) == TractionMode.COAST;
+        }
+        for (int i = 0; i < 20; i++) {
+            speed += MANUAL_ACCELERATION;
+            cruised |= detector.update(speed, 0, true) == TractionMode.COAST;
+        }
+        assertEquals(false, cruised);
+        assertEquals(TractionMode.POWER, detector.mode());
+    }
+
+    @Test
+    void aLongForcedSlowdownStillSettlesToCruise() {
+        TractionModeDetector detector = asInThePack();
+        double speed = 0.3;
+        for (int i = 0; i < 40; i++) {
+            speed += MANUAL_ACCELERATION;
+            detector.update(speed, 0, true);
+        }
+        for (int i = 0; i < 100; i++) {
+            speed -= MANUAL_ACCELERATION;
+            detector.update(speed, 0, true);
+        }
+        assertEquals(TractionMode.COAST, detector.mode());
+    }
+
+    @Test
+    void aShortSpeedBlipDoesNotBringInPower() {
+        TractionModeDetector detector = asInThePack();
+        double speed = 0.7;
+        for (int i = 0; i < 40; i++) {
+            detector.update(speed, 0, true);
+        }
+        boolean powered = false;
+        for (int i = 0; i < 6; i++) {   // Create lifts its cap for a moment between track pieces
+            speed += MANUAL_ACCELERATION;
+            powered |= detector.update(speed, 0, true) == TractionMode.POWER;
+        }
+        for (int i = 0; i < 20; i++) {
+            speed = Math.max(0.7, speed - MANUAL_ACCELERATION);
+            powered |= detector.update(speed, 0, true) == TractionMode.POWER;
+        }
+        assertEquals(false, powered);
+    }
+
+    @Test
+    void aRealSpeedUpStillBringsInPower() {
+        TractionModeDetector detector = asInThePack();
+        double speed = 0.7;
+        for (int i = 0; i < 40; i++) {
+            detector.update(speed, 0, true);
+        }
+        for (int i = 0; i < 20; i++) {
+            speed += MANUAL_ACCELERATION;
+            detector.update(speed, 0, true);
+        }
+        assertEquals(TractionMode.POWER, detector.mode());
+    }
+
     @Test
     void gravityCountsOnlyWhileMoving() {
         TractionModeDetector detector = new TractionModeDetector();

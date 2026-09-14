@@ -18,8 +18,14 @@ public final class TractionModeDetector {
     public static final double EXIT = 0.0004;
     /** Gravity in blocks per tick squared, at 20 ticks per second. */
     public static final double GRAVITY = 9.81 / 400;
+    /**
+     * While powering with a direction held, a slowdown forced by one of Create's speed limits keeps the
+     * power as it was for this many ticks, so a short curve doesn't drop power to cruising.
+     */
+    public static final int HELD_DIP_TICKS = 30;
 
     private int persistenceTicks;
+    private int powerPersistenceTicks;
     private int coastPersistenceTicks;
     private double departureSpeed;
 
@@ -28,6 +34,7 @@ public final class TractionModeDetector {
     private double drivenAcceleration;
     private double slopeAcceleration;
     private boolean slopeDriven;
+    private int heldDipTicks;
     private TractionMode mode = TractionMode.COAST;
     private TractionMode pending;
     private int pendingTicks;
@@ -37,7 +44,7 @@ public final class TractionModeDetector {
      * @param departureSpeed   speed (blocks per tick) below which changes take effect at once
      */
     public void configure(int persistenceTicks, double departureSpeed) {
-        configure(persistenceTicks, persistenceTicks, departureSpeed);
+        configure(persistenceTicks, persistenceTicks, persistenceTicks, departureSpeed);
     }
 
     /**
@@ -47,7 +54,19 @@ public final class TractionModeDetector {
      * @param departureSpeed        speed (blocks per tick) below which changes take effect at once
      */
     public void configure(int persistenceTicks, int coastPersistenceTicks, double departureSpeed) {
-        this.persistenceTicks = Math.max(0, persistenceTicks);
+        configure(persistenceTicks, persistenceTicks, coastPersistenceTicks, departureSpeed);
+    }
+
+    /**
+     * @param brakePersistenceTicks ticks braking must hold while moving before it takes effect
+     * @param powerPersistenceTicks ticks powering must hold while moving before it takes effect; longer, so
+     *                              the moment Create lifts a speed cap between track pieces doesn't swell power
+     * @param coastPersistenceTicks ticks the end of demand must hold while moving before cruising takes over
+     * @param departureSpeed        speed (blocks per tick) below which changes take effect at once
+     */
+    public void configure(int brakePersistenceTicks, int powerPersistenceTicks, int coastPersistenceTicks, double departureSpeed) {
+        this.persistenceTicks = Math.max(0, brakePersistenceTicks);
+        this.powerPersistenceTicks = Math.max(0, powerPersistenceTicks);
         this.coastPersistenceTicks = Math.max(0, coastPersistenceTicks);
         this.departureSpeed = departureSpeed;
     }
@@ -86,15 +105,23 @@ public final class TractionModeDetector {
      *              would be doing: holding speed on a climb reads as powering, on a descent as braking.
      * @param throttleHeld whether a driver holds a direction. A train that slows while its driver holds
      *              forward is being held back by one of Create's speed limits (a curve, a steep slope),
-     *              not braked, so only gravity counts then.
+     *              not braked, so only gravity counts then, after a short grace while powering.
      */
     public TractionMode update(double speed, double grade, boolean throttleHeld) {
         double change = hasPreviousSpeed ? speed - previousSpeed : 0;
         previousSpeed = speed;
         hasPreviousSpeed = true;
-        double driven = throttleHeld && change < 0 ? 0 : change;
+        if (throttleHeld && change < 0) {
+            heldDipTicks++;
+            boolean keepPower = mode == TractionMode.POWER && heldDipTicks <= HELD_DIP_TICKS;
+            if (!keepPower) {
+                drivenAcceleration -= drivenAcceleration * SMOOTHING;
+            }
+        } else {
+            heldDipTicks = 0;
+            drivenAcceleration += (change - drivenAcceleration) * SMOOTHING;
+        }
         double slope = speed > 0 ? GRAVITY * grade / Math.sqrt(1 + grade * grade) : 0;
-        drivenAcceleration += (driven - drivenAcceleration) * SMOOTHING;
         slopeAcceleration += (slope - slopeAcceleration) * SMOOTHING;
         double acceleration = drivenAcceleration + slopeAcceleration;
         TractionMode before = mode;
@@ -103,7 +130,11 @@ public final class TractionModeDetector {
             case BRAKE -> acceleration > ENTER ? TractionMode.POWER : acceleration > -EXIT ? TractionMode.COAST : TractionMode.BRAKE;
             case COAST -> acceleration > ENTER ? TractionMode.POWER : acceleration < -ENTER ? TractionMode.BRAKE : TractionMode.COAST;
         };
-        int needed = candidate == TractionMode.COAST ? coastPersistenceTicks : persistenceTicks;
+        int needed = switch (candidate) {
+            case COAST -> coastPersistenceTicks;
+            case POWER -> powerPersistenceTicks;
+            case BRAKE -> persistenceTicks;
+        };
         if (candidate == mode) {
             pending = null;
             pendingTicks = 0;

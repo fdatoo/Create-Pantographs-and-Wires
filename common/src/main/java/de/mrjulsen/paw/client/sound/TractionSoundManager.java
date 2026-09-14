@@ -590,7 +590,10 @@ public final class TractionSoundManager {
                 int endPersistenceTicks = pack.settings().modeEndPersistenceSeconds() > 0
                     ? (int) Math.round(pack.settings().modeEndPersistenceSeconds() * 20)
                     : persistenceTicks;
-                detector.configure(persistenceTicks, endPersistenceTicks,
+                int powerPersistenceTicks = pack.settings().modePowerPersistenceSeconds() > 0
+                    ? (int) Math.round(pack.settings().modePowerPersistenceSeconds() * 20)
+                    : persistenceTicks;
+                detector.configure(persistenceTicks, powerPersistenceTicks, endPersistenceTicks,
                     pack.settings().departureSpeedMps() / METRES_PER_SECOND_PER_BLOCK_PER_TICK);
                 mixer.setState(speedMps, heardMode, detector.slopeDriven());
             }
