@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import de.mrjulsen.paw.client.sound.synth.OnixTractionSynth;
 import de.mrjulsen.paw.client.sound.synth.SynthAudioStream;
 import de.mrjulsen.paw.client.sound.synth.SynthStreams;
 import de.mrjulsen.paw.config.ModClientConfig;
@@ -13,7 +12,10 @@ import de.mrjulsen.paw.config.TractionSoundProfile;
 import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
-import de.mrjulsen.paw.traction.TractionDemand;
+import de.mrjulsen.paw.traction.pack.TractionMixer;
+import de.mrjulsen.paw.traction.pack.TractionMode;
+import de.mrjulsen.paw.traction.pack.TractionModeDetector;
+import de.mrjulsen.paw.traction.pack.TractionPack;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -25,10 +27,10 @@ import net.minecraft.sounds.SoundEvent;
  * briefly skipping across an insulator gap) keeps one steady sound instead of
  * stuttering on and off.
  *
- * The traction profile in the client config picks how a vehicle sounds. WMATA (the default) is
- * synthesised live from a model of the 6000-series drive (see OnixTraction): one streamed voice per
- * vehicle, following its speed and its traction demand, estimated from how its speed changes. MP89
- * plays pitched loops of components measured in a recording of a Paris MP 89, laid out over speed.
+ * The traction profile in the client config picks how a vehicle sounds. WMATA (the default) plays the
+ * WMATA traction sound pack (assets/pantographsandwires/traction/wmata): hand-made loops with pitch and
+ * volume curves against speed, mixed live into one streamed voice per vehicle. MP89 plays pitched
+ * loops of components measured in a recording of a Paris MP 89, laid out over speed.
  */
 @Environment(EnvType.CLIENT)
 public final class TractionSoundManager {
@@ -38,7 +40,7 @@ public final class TractionSoundManager {
     // A vehicle that stops reporting entirely (unloaded, contraption disassembled)
     // is swept out and its voices force-stopped after this many ticks of silence.
     private static final long STALE_AFTER_TICKS = 40;
-    // Each vehicle costs channels, so cap how many sound at once. A synthesised voice takes one of
+    // Each vehicle costs channels, so cap how many sound at once. A streamed voice takes one of
     // the sound engine's few streaming channels, which music also uses, so leave some free.
     private static final int MAX_VEHICLES = 6;
 
@@ -48,6 +50,7 @@ public final class TractionSoundManager {
     private static final double SPEED_AT_FULL_MOTION = 0.08;
     // Below this the vehicle counts as stopped and its voices are released outright.
     private static final double SPEED_CONSIDERED_STOPPED = 0.01;
+    private static final double METRES_PER_SECOND_PER_BLOCK_PER_TICK = 20;
 
     // MP 89 load envelope: the tonal layer swells while pulling and eases back once the vehicle
     // stops accelerating, leaving the mechanical texture underneath at a constant level.
@@ -115,7 +118,7 @@ public final class TractionSoundManager {
     private static Entry start(TractionSoundProfile profile, double speed, double x, double y, double z) {
         VoiceBank bank = switch (profile) {
             case MP89 -> new Mp89Bank(x, y, z);
-            case WMATA -> new OnixSynthBank(x, y, z);
+            case WMATA -> new PackBank(x, y, z);
         };
         Entry entry = new Entry(profile, bank);
         // State is set before playback so nothing starts at the wrong pitch and slides into place.
@@ -193,7 +196,6 @@ public final class TractionSoundManager {
     private static final class Entry {
         private final TractionSoundProfile profile;
         private final VoiceBank bank;
-        private final TractionDemand demand = new TractionDemand();
         private long lastObservedTick;
         private long lastUpdateTick = Long.MIN_VALUE;
         private double previousSpeed;
@@ -208,8 +210,7 @@ public final class TractionSoundManager {
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;
             hasPreviousSpeed = true;
-            demand.update(Math.abs(speed));
-            bank.update(speed, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), demand, gameTime);
+            bank.update(speed, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), gameTime);
         }
 
         private void stop() {
@@ -229,9 +230,8 @@ public final class TractionSoundManager {
          * @param speed  blocks per tick
          * @param motion overall level from speed (MP 89)
          * @param tonal  motion scaled by MP 89's load envelope
-         * @param demand traction and braking demand
          */
-        void update(double speed, float motion, float tonal, TractionDemand demand, long gameTime);
+        void update(double speed, float motion, float tonal, long gameTime);
 
         void updatePosition(double x, double y, double z);
 
@@ -279,7 +279,7 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public void update(double speed, float motion, float tonal, TractionDemand demand, long gameTime) {
+        public void update(double speed, float motion, float tonal, long gameTime) {
             double fraction = speedFraction(speed);
             ridge.setTargetFrequency(RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * fraction);
             ridge.setLoadScale(tonal * window(fraction, 0.05, 0.30, 1.0, 1.01));
@@ -310,22 +310,27 @@ public final class TractionSoundManager {
     }
 
     /**
-     * WMATA 6000-series, synthesised live from the drive model. One streamed voice; if Minecraft drops
-     * it (a stalled client can starve the stream), it is restarted with the same synthesiser so the
-     * sound picks up where it left off.
+     * WMATA: the traction sound pack mixed live into one streamed voice. The pack loads in the
+     * background; until it is ready the vehicle is silent and the voice starts as soon as it can. If
+     * Minecraft drops the voice (a stalled client can starve the stream), it is restarted with the same
+     * mixer, so every loop continues where it was.
      */
-    private static final class OnixSynthBank implements VoiceBank {
+    private static final class PackBank implements VoiceBank {
         private static final long RESTART_INTERVAL_TICKS = 20;
+        // The pack's own envelopes shape onsets and releases; the voice only needs to avoid a hard edge.
+        private static final int VOICE_FADE_TICKS = 2;
 
-        private final OnixTractionSynth synth = new OnixTractionSynth();
+        private final TractionModeDetector detector = new TractionModeDetector();
+        private TractionMixer mixer;
         private TractionSynthSoundInstance instance;
         private double x;
         private double y;
         private double z;
+        private double speedMps;
         private boolean stopping;
         private long lastStartTick = Long.MIN_VALUE;
 
-        private OnixSynthBank(double x, double y, double z) {
+        private PackBank(double x, double y, double z) {
             this.x = x;
             this.y = y;
             this.z = z;
@@ -333,16 +338,27 @@ public final class TractionSoundManager {
 
         @Override
         public void start() {
-            instance = new TractionSynthSoundInstance(x, y, z);
-            SynthStreams.play(instance, new SynthAudioStream(synth));
+            if (mixer == null) {
+                TractionPack pack = TractionPacks.wmataIfLoaded();
+                if (pack == null) {
+                    return;
+                }
+                mixer = new TractionMixer(pack, SynthAudioStream.SAMPLE_RATE);
+                mixer.setState(speedMps, detector.mode());
+            }
+            instance = new TractionSynthSoundInstance(x, y, z, VOICE_FADE_TICKS);
+            SynthStreams.play(instance, new SynthAudioStream(mixer::render));
         }
 
         @Override
-        public void update(double speed, float motion, float tonal, TractionDemand demand, long gameTime) {
-            synth.setState(speed, demand.power(), demand.brake());
-            if (instance != null && !stopping && gameTime != Long.MIN_VALUE
-                && !Minecraft.getInstance().getSoundManager().isActive(instance)
-                && gameTime - lastStartTick >= RESTART_INTERVAL_TICKS) {
+        public void update(double speed, float motion, float tonal, long gameTime) {
+            speedMps = Math.abs(speed) * METRES_PER_SECOND_PER_BLOCK_PER_TICK;
+            TractionMode mode = detector.update(Math.abs(speed));
+            if (mixer != null) {
+                mixer.setState(speedMps, mode);
+            }
+            if (!stopping && gameTime != Long.MIN_VALUE && gameTime - lastStartTick >= RESTART_INTERVAL_TICKS
+                && (instance == null || !Minecraft.getInstance().getSoundManager().isActive(instance))) {
                 lastStartTick = gameTime;
                 start();
             }

@@ -1,0 +1,32 @@
+{
+  "baseline": "Original through 28m/s; decomposed upper acceleration above 28m/s",
+  "continuous_mechanical_layers": [
+    "coast/rolling_low",
+    "coast/rolling_high",
+    "coast/gear_low",
+    "coast/gear_high"
+  ],
+  "mechanical_demand_scaling": false,
+  "mechanical_gain": 1,
+  "mechanical_rule": "Play these four layers continuously in every motion mode, at their CSV gains, without demand scaling. Preserve loop read heads through mode changes. Duplicate power/brake mechanical assets have been removed.",
+  "power_on_seconds": 0.06,
+  "power_off_seconds": 0.18,
+  "power_off_curve": "smoothstep release",
+  "brake_on_seconds": 0.35,
+  "brake_on_curve": "smoothstep attack",
+  "gain_matching_or_master_processing": "none",
+  "scope": "Requires explicit support in the player; loading only curves.csv with coast-only gating will not reproduce the accepted previews.",
+  "not_yet_tested": "No rapid mode toggles or brake-to-power reversals occur in these previews. Restart envelopes from current gain when implementing interruption handling.",
+  "pack_id": "wmata-alstom-upper-v3",
+  "settings_format": "proposed custom player metadata, not an existing game standard",
+  "status": "Original lower-speed tone and transitions accepted; revised upper acceleration awaiting feedback",
+  "speed_domain_mps": [
+    0,
+    40
+  ],
+  "interpolation": "linear",
+  "outside_curve": "silent",
+  "smoothstep": "s(u)=3*u*u-2*u*u*u, u clamped to [0,1]; interpolate from current envelope gain to its new target",
+  "existing_player_modified": false,
+  "power_layer_selection": "Every layer with CSV mode power, including upper_ layers"
+}

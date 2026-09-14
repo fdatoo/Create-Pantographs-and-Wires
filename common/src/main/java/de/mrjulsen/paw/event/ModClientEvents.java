@@ -2,6 +2,7 @@ package de.mrjulsen.paw.event;
 
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.client.ThirdRailPlacementPreview;
+import de.mrjulsen.paw.client.sound.TractionPacks;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.compat.sodium.IncompatabilityScreen;
 import de.mrjulsen.paw.compat.sodium.SodiumCompatEvent;
@@ -19,6 +20,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -44,10 +46,14 @@ public final class ModClientEvents {
             if (Minecraft.getInstance() != null) {            
                 ReloadableResourceManager reloadableManager = (ReloadableResourceManager)Minecraft.getInstance().getResourceManager();
                 reloadableManager.registerReloadListener(new WireRenderer());
+                reloadableManager.registerReloadListener((ResourceManagerReloadListener) resources -> TractionPacks.invalidate());
             } else {
                 PantographsAndWires.LOGGER.error("Could not register ReloadableResourceManager.");
             } 
         });
+
+        // Load the traction sound pack in the background on joining a world, so the first train isn't silent.
+        ClientPlayerEvent.CLIENT_PLAYER_JOIN.register((player) -> TractionPacks.wmata());
 
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register((server) -> {
             WireClientNetwork.clear();

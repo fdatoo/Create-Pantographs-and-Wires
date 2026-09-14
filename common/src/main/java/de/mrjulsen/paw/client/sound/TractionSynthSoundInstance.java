@@ -9,18 +9,20 @@ import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
 
 /**
- * The positional sound a synthesised traction voice plays through. Its audio comes from a live stream
+ * The positional sound a streamed traction voice plays through. Its audio comes from a live stream
  * (see SynthStreams); this only follows the train, sets the loudness and fades in and out.
  */
 @Environment(EnvType.CLIENT)
 public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
-    private static final float FADE_STEP = 1f / 10f;
+    private final float fadeStep;
 
     private boolean active = true;
     private float fade;
 
-    public TractionSynthSoundInstance(double x, double y, double z) {
+    /** @param fadeTicks ticks to fade fully in or out; the stream's own envelopes shape everything finer */
+    public TractionSynthSoundInstance(double x, double y, double z, int fadeTicks) {
         super(ModSounds.TRACTION_SYNTH.get(), SoundSource.BLOCKS, SoundInstance.createUnseededRandom());
+        this.fadeStep = 1f / Math.max(1, fadeTicks);
         this.looping = false;
         this.delay = 0;
         this.volume = 0f;
@@ -41,10 +43,6 @@ public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
         this.active = false;
     }
 
-    public boolean isStopping() {
-        return !active;
-    }
-
     /** Starts at zero volume to fade in; the engine would otherwise drop it before it reaches a channel. */
     @Override
     public boolean canStartSilent() {
@@ -53,7 +51,7 @@ public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
 
     @Override
     public void tick() {
-        fade = active ? Math.min(1f, fade + FADE_STEP) : Math.max(0f, fade - FADE_STEP);
+        fade = active ? Math.min(1f, fade + fadeStep) : Math.max(0f, fade - fadeStep);
         volume = ModClientConfig.TRACTION_VOLUME.get().floatValue() * fade;
         if (!active && fade <= 0f) {
             stop();
