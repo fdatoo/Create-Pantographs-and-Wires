@@ -79,6 +79,9 @@ public final class TractionSoundManager {
     // Without the server's speed, the client's lurching motion is averaged over this many ticks
     // (four of Create's carriage updates).
     private static final int FALLBACK_WINDOW_TICKS = 12;
+    // The server's speed is exact, so any movement it reports starts the sound at once; the client's
+    // own average needs SPEED_CONSIDERED_STOPPED as a margin.
+    private static final double SPEED_CONSIDERED_MOVING_REPORTED = 1e-4;
     // How far outside a carriage's blocks the listener still counts as aboard: a step off the side,
     // and standing on the roof.
     private static final double ABOARD_MARGIN = 0.5;
@@ -126,12 +129,12 @@ public final class TractionSoundManager {
             if (entry == null && ACTIVE.size() >= MAX_VEHICLES) {
                 return;
             }
-            entry = start(profile, speed, vehicleSpeed.grade, vehicleSpeed.aboard, x, y, z);
+            entry = start(profile, vehicleSpeed, x, y, z);
             ACTIVE.put(vehicleId, entry);
         } else if (entry.lastUpdateTick != gameTime) {
             // A train reports once per collector each tick. Only the first report moves the sound, or
             // the rest would see no change in speed and read the train as coasting.
-            entry.update(speed, vehicleSpeed.grade, gameTime);
+            entry.update(vehicleSpeed, gameTime);
         }
         entry.lastUpdateTick = gameTime;
         // The voice sits at the touching collector nearest the listener, so it can't hop between
@@ -143,7 +146,7 @@ public final class TractionSoundManager {
         entry.lastObservedTick = gameTime;
     }
 
-    private static Entry start(TractionSoundProfile profile, double speed, double grade, boolean aboard, double x, double y, double z) {
+    private static Entry start(TractionSoundProfile profile, VehicleSpeed vehicle, double x, double y, double z) {
         VoiceBank bank = switch (profile) {
             case MP89 -> new Mp89Bank(x, y, z);
             case WMATA -> new PackBank(x, y, z);
@@ -151,8 +154,8 @@ public final class TractionSoundManager {
         Entry entry = new Entry(profile, bank);
         // State is set before playback so nothing starts at the wrong pitch, or off to one side, and
         // slides into place.
-        entry.update(speed, grade, Long.MIN_VALUE);
-        bank.setListenerAboard(aboard);
+        entry.update(vehicle, Long.MIN_VALUE);
+        bank.setListenerAboard(vehicle.aboard);
         bank.start();
         return entry;
     }
@@ -240,6 +243,8 @@ public final class TractionSoundManager {
         private double speed;
         /** Rise over run along the direction of travel; 0 without the server's figures. */
         private double grade;
+        /** Whether a driver holds a direction; false without the server's figures. */
+        private boolean throttleHeld;
         private int stoppedTicks;
         /** Whether the listener is on this vehicle, from any report this tick. */
         private boolean aboard;
@@ -261,6 +266,7 @@ public final class TractionSoundManager {
             if (reported.isPresent()) {
                 speed = reported.get().speed();
                 grade = reported.get().grade();
+                throttleHeld = reported.get().throttleHeld();
             } else {
                 double sum = 0;
                 for (int i = 0; i < recentCount; i++) {
@@ -268,8 +274,10 @@ public final class TractionSoundManager {
                 }
                 speed = sum / recentCount;
                 grade = 0;
+                throttleHeld = false;
             }
-            stoppedTicks = speed < SPEED_CONSIDERED_STOPPED ? stoppedTicks + 1 : 0;
+            double stoppedBelow = reported.isPresent() ? SPEED_CONSIDERED_MOVING_REPORTED : SPEED_CONSIDERED_STOPPED;
+            stoppedTicks = speed < stoppedBelow ? stoppedTicks + 1 : 0;
         }
 
         /** Whether a collector here is the nearest to the listener of those reported so far this tick. */
@@ -327,11 +335,12 @@ public final class TractionSoundManager {
             this.bank = bank;
         }
 
-        private void update(double speed, double grade, long gameTime) {
+        private void update(VehicleSpeed vehicle, long gameTime) {
+            double speed = vehicle.speed;
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;
             hasPreviousSpeed = true;
-            bank.update(speed, grade, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), gameTime);
+            bank.update(speed, vehicle.grade, vehicle.throttleHeld, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), gameTime);
         }
 
         private void stop() {
@@ -352,7 +361,7 @@ public final class TractionSoundManager {
          * @param motion overall level from speed (MP 89)
          * @param tonal  motion scaled by MP 89's load envelope
          */
-        void update(double speed, double grade, float motion, float tonal, long gameTime);
+        void update(double speed, double grade, boolean throttleHeld, float motion, float tonal, long gameTime);
 
         void updatePosition(double x, double y, double z);
 
@@ -403,7 +412,7 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public void update(double speed, double grade, float motion, float tonal, long gameTime) {
+        public void update(double speed, double grade, boolean throttleHeld, float motion, float tonal, long gameTime) {
             double fraction = speedFraction(speed);
             ridge.setTargetFrequency(RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * fraction);
             ridge.setLoadScale(tonal * window(fraction, 0.05, 0.30, 1.0, 1.01));
@@ -446,7 +455,8 @@ public final class TractionSoundManager {
      */
     private static final class PackBank implements VoiceBank {
         private static final long RESTART_INTERVAL_TICKS = 20;
-        // The pack's own envelopes shape onsets and releases; the voice only needs to avoid a hard edge.
+        // The pack's own envelopes shape onsets and releases, so a new voice starts at full volume and the
+        // departure is heard at once. Fading is only for stopping, and for restarting a voice mid-sound.
         private static final int VOICE_FADE_TICKS = 2;
 
         private final TractionModeDetector detector = new TractionModeDetector();
@@ -468,6 +478,7 @@ public final class TractionSoundManager {
 
         @Override
         public void start() {
+            boolean restart = mixer != null;
             if (mixer == null) {
                 TractionPack pack = TractionPacks.wmataIfLoaded();
                 if (pack == null) {
@@ -476,19 +487,19 @@ public final class TractionSoundManager {
                 mixer = new TractionMixer(pack, SynthAudioStream.SAMPLE_RATE);
                 detector.configure((int) Math.round(pack.settings().modePersistenceSeconds() * 20),
                     pack.settings().departureSpeedMps() / METRES_PER_SECOND_PER_BLOCK_PER_TICK);
-                mixer.setState(speedMps, detector.mode());
+                mixer.setState(speedMps, detector.mode(), detector.slopeDriven());
             }
-            instance = new TractionSynthSoundInstance(x, y, z, VOICE_FADE_TICKS);
+            instance = new TractionSynthSoundInstance(x, y, z, restart ? VOICE_FADE_TICKS : 0, VOICE_FADE_TICKS);
             instance.setListenerAboard(listenerAboard);
             SynthStreams.play(instance, new SynthAudioStream(mixer::render));
         }
 
         @Override
-        public void update(double speed, double grade, float motion, float tonal, long gameTime) {
+        public void update(double speed, double grade, boolean throttleHeld, float motion, float tonal, long gameTime) {
             speedMps = Math.abs(speed) * METRES_PER_SECOND_PER_BLOCK_PER_TICK;
-            TractionMode mode = detector.update(Math.abs(speed), grade);
+            TractionMode mode = detector.update(Math.abs(speed), grade, throttleHeld);
             if (mixer != null) {
-                mixer.setState(speedMps, mode);
+                mixer.setState(speedMps, mode, detector.slopeDriven());
             }
             if (!stopping && gameTime != Long.MIN_VALUE && gameTime - lastStartTick >= RESTART_INTERVAL_TICKS
                 && (instance == null || !Minecraft.getInstance().getSoundManager().isActive(instance))) {

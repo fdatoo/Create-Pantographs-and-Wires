@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Plays back a train's speed and grade as the server reported them, a few ticks behind the newest
- * report.
+ * Plays back a train's speed, grade and driver's throttle as the server reported them, a few ticks
+ * behind the newest report.
  *
  * A client's own view of a train is no use for this: Create moves carriages on the client by chasing
  * position updates sent every few ticks, so the distance a carriage covers per client tick lurches
@@ -30,8 +30,9 @@ public final class TrainSpeedPlayout {
 
     private static final int SPEED = 0;
     private static final int GRADE = 1;
+    private static final int HELD = 2;
 
-    /** Server tick to {speed, grade}. */
+    /** Server tick to {speed, grade, throttle held as 0 or 1}. */
     private final TreeMap<Long, double[]> samples = new TreeMap<>();
     /** {client tick received, server tick minus client tick} for recent reports. */
     private final ArrayDeque<long[]> arrivals = new ArrayDeque<>();
@@ -42,14 +43,15 @@ public final class TrainSpeedPlayout {
     /**
      * Records a report received at client tick {@code now}.
      *
-     * @param speed blocks per tick
-     * @param grade rise over run along the direction of travel, positive when climbing
+     * @param speed        blocks per tick
+     * @param grade        rise over run along the direction of travel, positive when climbing
+     * @param throttleHeld whether a driver is holding a direction
      */
-    public void offer(long serverTick, double speed, double grade, long now) {
+    public void offer(long serverTick, double speed, double grade, boolean throttleHeld, long now) {
         if (!Double.isNaN(playhead) && serverTick < Math.floor(playhead)) {
             return;
         }
-        samples.put(serverTick, new double[] {speed, grade});
+        samples.put(serverTick, new double[] {speed, grade, throttleHeld ? 1 : 0});
         lastArrival = now;
         arrivals.addLast(new long[] {now, serverTick - now});
     }
@@ -80,6 +82,16 @@ public final class TrainSpeedPlayout {
         }
         // Out of reports: hold the newest rather than run ahead of it.
         playhead = Math.min(playhead, samples.lastKey());
+        // Departing from rest: play the first movement as soon as it is reported instead of a few ticks
+        // later, so the sound leaves with the train. Playback then drifts back to its usual delay.
+        if (sample(SPEED) == 0) {
+            for (Map.Entry<Long, double[]> later : samples.tailMap((long) Math.floor(playhead), false).entrySet()) {
+                if (later.getValue()[SPEED] > 0) {
+                    playhead = Math.max(playhead, later.getKey() - 1);
+                    break;
+                }
+            }
+        }
         Long keep = samples.floorKey((long) Math.floor(playhead));
         if (keep != null) {
             samples.headMap(keep, false).clear();
@@ -94,6 +106,11 @@ public final class TrainSpeedPlayout {
     /** Grade at the playhead, interpolated between reports. */
     public double grade() {
         return sample(GRADE);
+    }
+
+    /** Whether the driver held a direction at the playhead. */
+    public boolean throttleHeld() {
+        return sample(HELD) >= 0.5;
     }
 
     private double sample(int index) {

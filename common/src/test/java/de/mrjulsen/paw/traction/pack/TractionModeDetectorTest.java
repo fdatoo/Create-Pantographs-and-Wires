@@ -74,6 +74,49 @@ class TractionModeDetectorTest {
         assertEquals(TractionMode.COAST, cruise(new TractionModeDetector(), 0.02, 20));
     }
 
+    private static final double MANUAL_ACCELERATION = 1.25 / 400;
+
+    private static TractionModeDetector slowing(double grade, boolean held) {
+        TractionModeDetector detector = new TractionModeDetector();
+        double speed = 1.05;
+        for (int i = 0; i < 20; i++) {
+            detector.update(speed, grade, held);
+            speed -= MANUAL_ACCELERATION;
+        }
+        return detector;
+    }
+
+    @Test
+    void slowingForCreatesLimitWhileHoldingForwardIsNotBraking() {
+        assertEquals(TractionMode.COAST, slowing(0, true).mode());
+    }
+
+    @Test
+    void climbingWhileHeldBackIsPoweredByTheSlope() {
+        TractionModeDetector detector = slowing(0.3, true);
+        assertEquals(TractionMode.POWER, detector.mode());
+        assertEquals(true, detector.slopeDriven());
+    }
+
+    @Test
+    void lettingGoStillBrakes() {
+        TractionModeDetector detector = slowing(0, false);
+        assertEquals(TractionMode.BRAKE, detector.mode());
+        assertEquals(false, detector.slopeDriven());
+    }
+
+    @Test
+    void speedingUpOnTheFlatIsTheDriversPower() {
+        TractionModeDetector detector = new TractionModeDetector();
+        double speed = 0.2;
+        for (int i = 0; i < 20; i++) {
+            detector.update(speed, 0, true);
+            speed += MANUAL_ACCELERATION;
+        }
+        assertEquals(TractionMode.POWER, detector.mode());
+        assertEquals(false, detector.slopeDriven());
+    }
+
     @Test
     void gravityCountsOnlyWhileMoving() {
         TractionModeDetector detector = new TractionModeDetector();

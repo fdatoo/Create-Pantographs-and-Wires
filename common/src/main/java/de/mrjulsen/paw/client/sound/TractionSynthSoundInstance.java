@@ -14,20 +14,26 @@ import net.minecraft.sounds.SoundSource;
  */
 @Environment(EnvType.CLIENT)
 public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
-    private final float fadeStep;
+    private final float fadeInStep;
+    private final float fadeOutStep;
     private final ListenerRelativePlacement placement;
 
     private boolean active = true;
     private float fade;
 
-    /** @param fadeTicks ticks to fade fully in or out; the stream's own envelopes shape everything finer */
-    public TractionSynthSoundInstance(double x, double y, double z, int fadeTicks) {
+    /**
+     * @param fadeInTicks  ticks to fade in, or 0 to start at full volume
+     * @param fadeOutTicks ticks to fade out; the stream's own envelopes shape everything finer
+     */
+    public TractionSynthSoundInstance(double x, double y, double z, int fadeInTicks, int fadeOutTicks) {
         super(ModSounds.TRACTION_SYNTH.get(), SoundSource.BLOCKS, SoundInstance.createUnseededRandom());
-        this.fadeStep = 1f / Math.max(1, fadeTicks);
+        this.fadeInStep = fadeInTicks <= 0 ? 1f : 1f / fadeInTicks;
+        this.fadeOutStep = 1f / Math.max(1, fadeOutTicks);
+        this.fade = fadeInTicks <= 0 ? 1f : 0f;
         this.placement = new ListenerRelativePlacement(x, y, z);
         this.looping = false;
         this.delay = 0;
-        this.volume = 0f;
+        this.volume = ModClientConfig.TRACTION_VOLUME.get().floatValue() * fade;
         this.pitch = 1.0f;
         this.attenuation = SoundInstance.Attenuation.LINEAR;
         this.relative = true;
@@ -55,7 +61,7 @@ public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
 
     @Override
     public void tick() {
-        fade = active ? Math.min(1f, fade + fadeStep) : Math.max(0f, fade - fadeStep);
+        fade = active ? Math.min(1f, fade + fadeInStep) : Math.max(0f, fade - fadeOutStep);
         volume = ModClientConfig.TRACTION_VOLUME.get().floatValue() * fade;
         placement.tick();
         place();

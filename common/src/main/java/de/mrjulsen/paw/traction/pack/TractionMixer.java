@@ -43,6 +43,7 @@ public final class TractionMixer {
 
     private double targetSpeed;
     private TractionMode targetMode = TractionMode.COAST;
+    private boolean targetSlopeDriven;
     private double renderedSpeed = Double.NaN;
     private TractionMode appliedMode;
 
@@ -59,22 +60,34 @@ public final class TractionMixer {
 
     /** @param speedMps train speed in metres per second */
     public synchronized void setState(double speedMps, TractionMode mode) {
+        setState(speedMps, mode, false);
+    }
+
+    /**
+     * @param speedMps    train speed in metres per second
+     * @param slopeDriven whether a climb or descent, rather than the train speeding up or slowing down,
+     *                    brought in the mode; power from a climb swells in over its own, longer blend
+     */
+    public synchronized void setState(double speedMps, TractionMode mode, boolean slopeDriven) {
         targetSpeed = speedMps;
         targetMode = mode;
+        targetSlopeDriven = slopeDriven;
     }
 
     public void render(float[] block, int count) {
         double speedTarget;
         TractionMode mode;
+        boolean slopeDriven;
         synchronized (this) {
             speedTarget = targetSpeed;
             mode = targetMode;
+            slopeDriven = targetSlopeDriven;
         }
         if (Double.isNaN(renderedSpeed)) {
             renderedSpeed = speedTarget;
         }
         if (mode != appliedMode) {
-            applyMode(mode);
+            applyMode(mode, slopeDriven);
             appliedMode = mode;
         }
         if (powerGain.length < count) {
@@ -183,11 +196,15 @@ public final class TractionMixer {
         }
     }
 
-    private void applyMode(TractionMode mode) {
+    private void applyMode(TractionMode mode, boolean slopeDriven) {
         PackSettings s = settings;
         if (s.modeBlendSeconds() > 0 && renderedSpeed >= s.departureSpeedMps()) {
-            // Moving: every envelope blends from its current gain over the same time.
-            power.setTarget(mode == TractionMode.POWER ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
+            // Moving: every envelope blends from its current gain over the same time, except power
+            // brought in by a climb, which swells in like a driver notching up.
+            double powerBlend = mode == TractionMode.POWER && slopeDriven && s.slopePowerBlendSeconds() > 0
+                ? s.slopePowerBlendSeconds()
+                : s.modeBlendSeconds();
+            power.setTarget(mode == TractionMode.POWER ? 1 : 0, powerBlend, s.modeBlendShape());
             brake.setTarget(mode == TractionMode.BRAKE ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
             coast.setTarget(mode == TractionMode.COAST ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
             return;

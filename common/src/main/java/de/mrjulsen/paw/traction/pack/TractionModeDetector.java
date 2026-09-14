@@ -24,7 +24,9 @@ public final class TractionModeDetector {
 
     private double previousSpeed;
     private boolean hasPreviousSpeed;
-    private double acceleration;
+    private double drivenAcceleration;
+    private double slopeAcceleration;
+    private boolean slopeDriven;
     private TractionMode mode = TractionMode.COAST;
     private TractionMode pending;
     private int pendingTicks;
@@ -40,7 +42,17 @@ public final class TractionModeDetector {
 
     /** Call once per game tick with the train's speed in blocks per tick, on the flat. */
     public TractionMode update(double speed) {
-        return update(speed, 0);
+        return update(speed, 0, false);
+    }
+
+    /** Call once per game tick, for a train with no driver holding a direction. */
+    public TractionMode update(double speed, double grade) {
+        return update(speed, grade, false);
+    }
+
+    /** Whether the slope, rather than the train's own speeding up or slowing down, brought in the current mode. */
+    public boolean slopeDriven() {
+        return slopeDriven;
     }
 
     /**
@@ -50,13 +62,20 @@ public final class TractionModeDetector {
      * @param grade rise over run along the direction of travel, positive when climbing. Create doesn't
      *              slow trains on hills, so gravity along the slope is added as the work the motors
      *              would be doing: holding speed on a climb reads as powering, on a descent as braking.
+     * @param throttleHeld whether a driver holds a direction. A train that slows while its driver holds
+     *              forward is being held back by one of Create's speed limits (a curve, a steep slope),
+     *              not braked, so only gravity counts then.
      */
-    public TractionMode update(double speed, double grade) {
+    public TractionMode update(double speed, double grade, boolean throttleHeld) {
         double change = hasPreviousSpeed ? speed - previousSpeed : 0;
         previousSpeed = speed;
         hasPreviousSpeed = true;
+        double driven = throttleHeld && change < 0 ? 0 : change;
         double slope = speed > 0 ? GRAVITY * grade / Math.sqrt(1 + grade * grade) : 0;
-        acceleration += (change + slope - acceleration) * SMOOTHING;
+        drivenAcceleration += (driven - drivenAcceleration) * SMOOTHING;
+        slopeAcceleration += (slope - slopeAcceleration) * SMOOTHING;
+        double acceleration = drivenAcceleration + slopeAcceleration;
+        TractionMode before = mode;
         TractionMode candidate = switch (mode) {
             case POWER -> acceleration < -ENTER ? TractionMode.BRAKE : acceleration < EXIT ? TractionMode.COAST : TractionMode.POWER;
             case BRAKE -> acceleration > ENTER ? TractionMode.POWER : acceleration > -EXIT ? TractionMode.COAST : TractionMode.BRAKE;
@@ -79,6 +98,9 @@ public final class TractionModeDetector {
                 pending = null;
                 pendingTicks = 0;
             }
+        }
+        if (mode != before) {
+            slopeDriven = Math.abs(slopeAcceleration) > Math.abs(drivenAcceleration);
         }
         return mode;
     }

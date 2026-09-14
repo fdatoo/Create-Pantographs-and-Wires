@@ -160,7 +160,7 @@ class TractionMixerTest {
         float[] loop = sine(96000, 200);
         PackSettings settings = new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
             PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0,
-            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0);
+            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0);
         TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
         float[] powering = render(new TractionMixer(pack, RATE), 12, TractionMode.POWER, 4);
         float[] braking = render(new TractionMixer(pack, RATE), 12, TractionMode.BRAKE, 4);
@@ -174,9 +174,30 @@ class TractionMixerTest {
     }
 
     private static PackSettings cruisingSettings(double blendSeconds) {
+        return cruisingSettings(blendSeconds, 0);
+    }
+
+    private static PackSettings cruisingSettings(double blendSeconds, double slopePowerBlendSeconds) {
         return new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
             PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of(), 1.0,
-            Set.of("coast/cruising"), 0.85, 0.2, blendSeconds, PackSettings.Shape.SMOOTHSTEP, 1.0);
+            Set.of("coast/cruising"), 0.85, 0.2, blendSeconds, PackSettings.Shape.SMOOTHSTEP, 1.0, slopePowerBlendSeconds);
+    }
+
+    @Test
+    void powerBroughtInByAClimbSwellsOverItsOwnBlend() {
+        float[] dc = ones();
+        TractionPack pack = new TractionPack(List.of(layer("power/t", TractionMode.POWER, dc, 1.0, 1.0, false)), cruisingSettings(0.25, 1.0));
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        render(mixer, 10, TractionMode.COAST, 2);
+        float[] out = new float[21 * BLOCK];
+        float[] block = new float[BLOCK];
+        for (int b = 0; b < 21; b++) {
+            mixer.setState(10, TractionMode.POWER, true);
+            mixer.render(block, BLOCK);
+            System.arraycopy(block, 0, out, b * BLOCK, BLOCK);
+        }
+        assertEquals(0.5, out[23999], 1e-6, "smoothstep midpoint of the 1 s climb swell");
+        assertEquals(1.0, out[47999], 1e-6);
     }
 
     @Test

@@ -69,7 +69,8 @@ public final class TractionSpeedSync {
         sent.sentTick = tick;
         sent.speed = speed;
         level.getChunkSource().broadcast(entity, PantographsAndWires.net().CHANNEL.toPacket(NetworkManager.Side.S2C,
-            new TractionSpeedPacket(carriageEntity.trainId, tick, (float) speed, (float) sent.grade)));
+            new TractionSpeedPacket(carriageEntity.trainId, tick, (float) speed, (float) sent.grade,
+                ManualThrottle.held(carriageEntity.trainId, tick))));
     }
 
     private static void measureGrade(Sent sent, Vec3 position) {

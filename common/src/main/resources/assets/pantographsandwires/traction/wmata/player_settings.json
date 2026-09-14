@@ -38,5 +38,7 @@
   "mode_blend_seconds": 0.25,
   "mode_blend_curve": "smoothstep",
   "departure_speed_mps": 1.0,
-  "mode_change_rule": "wmata-cruising-addon: above departure_speed_mps a new mode must persist for mode_persistence_seconds, then every mode envelope blends from its current gain over mode_blend_seconds. Below it (departing from rest) the accepted power_on, power_off and brake_on timings apply unchanged."
+  "mode_change_rule": "wmata-cruising-addon: above departure_speed_mps a new mode must persist for mode_persistence_seconds, then every mode envelope blends from its current gain over mode_blend_seconds. Below it (departing from rest) the accepted power_on, power_off and brake_on timings apply unchanged.",
+  "slope_power_blend_seconds": 1.0,
+  "slope_rule": "Create doesn't slow trains on hills, so gravity along the slope counts as traction demand: holding speed on a climb powers, on a descent brakes. Power brought in by a climb (not by speeding up) swells in over slope_power_blend_seconds. While a driver holds a direction, slowing imposed by Create's speed limits counts as neither braking nor powering."
 }

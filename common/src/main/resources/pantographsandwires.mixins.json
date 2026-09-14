@@ -31,7 +31,8 @@
     "BlockStateBaseMixin",
     "BlockPlaceContextMixin",
     "ServerLevelMixin",
-    "ServerPlayerMixin"
+    "ServerPlayerMixin",
+    "create.CarriageControlMixin"
   ],
   "injectors": {
     "defaultRequire": 1
