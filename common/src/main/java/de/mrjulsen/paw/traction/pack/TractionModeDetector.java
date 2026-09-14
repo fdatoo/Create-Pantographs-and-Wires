@@ -3,7 +3,7 @@ package de.mrjulsen.paw.traction.pack;
 /**
  * Decides whether a train is powering, braking or coasting from how its speed changes, since Create
  * does not send a train's throttle to clients. Hysteresis keeps a train at steady acceleration from
- * flickering between modes; a train holding speed under power reads as coasting.
+ * flickering between modes; a train holding speed under power on the flat reads as coasting.
  *
  * A pack can also ask for persistence: while the train is moving, a new mode must hold for a few ticks
  * before it takes effect, so a brief blip of acceleration doesn't squeak a layer bank in and out.
@@ -16,6 +16,8 @@ public final class TractionModeDetector {
     public static final double ENTER = 0.0008;
     /** Acceleration below which powering or braking gives way to coasting. */
     public static final double EXIT = 0.0004;
+    /** Gravity in blocks per tick squared, at 20 ticks per second. */
+    public static final double GRAVITY = 9.81 / 400;
 
     private int persistenceTicks;
     private double departureSpeed;
@@ -36,12 +38,25 @@ public final class TractionModeDetector {
         this.departureSpeed = departureSpeed;
     }
 
-    /** Call once per game tick with the train's speed in blocks per tick. */
+    /** Call once per game tick with the train's speed in blocks per tick, on the flat. */
     public TractionMode update(double speed) {
+        return update(speed, 0);
+    }
+
+    /**
+     * Call once per game tick.
+     *
+     * @param speed blocks per tick
+     * @param grade rise over run along the direction of travel, positive when climbing. Create doesn't
+     *              slow trains on hills, so gravity along the slope is added as the work the motors
+     *              would be doing: holding speed on a climb reads as powering, on a descent as braking.
+     */
+    public TractionMode update(double speed, double grade) {
         double change = hasPreviousSpeed ? speed - previousSpeed : 0;
         previousSpeed = speed;
         hasPreviousSpeed = true;
-        acceleration += (change - acceleration) * SMOOTHING;
+        double slope = speed > 0 ? GRAVITY * grade / Math.sqrt(1 + grade * grade) : 0;
+        acceleration += (change + slope - acceleration) * SMOOTHING;
         TractionMode candidate = switch (mode) {
             case POWER -> acceleration < -ENTER ? TractionMode.BRAKE : acceleration < EXIT ? TractionMode.COAST : TractionMode.POWER;
             case BRAKE -> acceleration > ENTER ? TractionMode.POWER : acceleration > -EXIT ? TractionMode.COAST : TractionMode.BRAKE;

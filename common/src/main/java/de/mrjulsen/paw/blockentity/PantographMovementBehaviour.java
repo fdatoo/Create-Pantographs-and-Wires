@@ -50,7 +50,8 @@ public class PantographMovementBehaviour implements MovementBehaviour {
                 context.motion.length(),
                 context.position.x(),
                 context.position.y(),
-                context.position.z()
+                context.position.z(),
+                TractionSoundManager.listenerAboard(context.contraption.entity)
             );        }
 	}
 

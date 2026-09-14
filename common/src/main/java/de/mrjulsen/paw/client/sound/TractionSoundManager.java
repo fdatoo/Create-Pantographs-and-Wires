@@ -3,8 +3,12 @@ package de.mrjulsen.paw.client.sound;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalDouble;
+import java.util.Optional;
 import java.util.UUID;
+
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.trains.entity.Carriage;
+import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 
 import de.mrjulsen.paw.client.sound.synth.SynthAudioStream;
 import de.mrjulsen.paw.client.sound.synth.SynthStreams;
@@ -21,6 +25,8 @@ import de.mrjulsen.paw.traction.pack.TractionPack;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.sounds.SoundEvent;
 
 /**
@@ -73,6 +79,10 @@ public final class TractionSoundManager {
     // Without the server's speed, the client's lurching motion is averaged over this many ticks
     // (four of Create's carriage updates).
     private static final int FALLBACK_WINDOW_TICKS = 12;
+    // How far outside a carriage's blocks the listener still counts as aboard: a step off the side,
+    // and standing on the roof.
+    private static final double ABOARD_MARGIN = 0.5;
+    private static final double ABOARD_MARGIN_VERTICAL = 1.0;
 
     private TractionSoundManager() {}
 
@@ -84,13 +94,14 @@ public final class TractionSoundManager {
         double speed,
         double x,
         double y,
-        double z
+        double z,
+        boolean listenerAboard
     ) {
         TRACKER.observe(vehicleId, gameTime, raised, touching);
         ElectricTrainSnapshot snapshot = TRACKER.snapshot(vehicleId, gameTime);
         Entry entry = ACTIVE.get(vehicleId);
         VehicleSpeed vehicleSpeed = SPEEDS.computeIfAbsent(vehicleId, id -> new VehicleSpeed());
-        vehicleSpeed.update(vehicleId, gameTime, speed);
+        vehicleSpeed.update(vehicleId, gameTime, speed, listenerAboard);
         speed = vehicleSpeed.speed;
 
         boolean stopped = vehicleSpeed.stoppedTicks > 0 && (entry == null || vehicleSpeed.stoppedTicks >= STOPPED_AFTER_TICKS);
@@ -115,28 +126,33 @@ public final class TractionSoundManager {
             if (entry == null && ACTIVE.size() >= MAX_VEHICLES) {
                 return;
             }
-            entry = start(profile, speed, x, y, z);
+            entry = start(profile, speed, vehicleSpeed.grade, vehicleSpeed.aboard, x, y, z);
             ACTIVE.put(vehicleId, entry);
         } else if (entry.lastUpdateTick != gameTime) {
             // A train reports once per collector each tick. Only the first report moves the sound, or
             // the rest would see no change in speed and read the train as coasting.
-            entry.update(speed, gameTime);
+            entry.update(speed, vehicleSpeed.grade, gameTime);
         }
         entry.lastUpdateTick = gameTime;
-        if (touching) {
+        // The voice sits at the touching collector nearest the listener, so it can't hop between
+        // collectors at either end or side of the train.
+        if (touching && vehicleSpeed.nearestCollectorSoFar(gameTime, x, y, z)) {
             entry.bank.updatePosition(x, y, z);
         }
+        entry.bank.setListenerAboard(vehicleSpeed.aboard);
         entry.lastObservedTick = gameTime;
     }
 
-    private static Entry start(TractionSoundProfile profile, double speed, double x, double y, double z) {
+    private static Entry start(TractionSoundProfile profile, double speed, double grade, boolean aboard, double x, double y, double z) {
         VoiceBank bank = switch (profile) {
             case MP89 -> new Mp89Bank(x, y, z);
             case WMATA -> new PackBank(x, y, z);
         };
         Entry entry = new Entry(profile, bank);
-        // State is set before playback so nothing starts at the wrong pitch and slides into place.
-        entry.update(speed, Long.MIN_VALUE);
+        // State is set before playback so nothing starts at the wrong pitch, or off to one side, and
+        // slides into place.
+        entry.update(speed, grade, Long.MIN_VALUE);
+        bank.setListenerAboard(aboard);
         bank.start();
         return entry;
     }
@@ -222,29 +238,80 @@ public final class TractionSoundManager {
         private int recentNext;
         private long lastTick = Long.MIN_VALUE;
         private double speed;
+        /** Rise over run along the direction of travel; 0 without the server's figures. */
+        private double grade;
         private int stoppedTicks;
+        /** Whether the listener is on this vehicle, from any report this tick. */
+        private boolean aboard;
+        private long positionTick = Long.MIN_VALUE;
+        private double positionDistance;
 
-        private void update(UUID vehicleId, long gameTime, double clientMotion) {
+        private void update(UUID vehicleId, long gameTime, double clientMotion, boolean listenerAboard) {
             if (gameTime == lastTick) {
+                aboard |= listenerAboard;
                 return;
             }
             lastTick = gameTime;
+            aboard = listenerAboard;
             recent[recentNext] = Math.abs(clientMotion);
             recentNext = (recentNext + 1) % recent.length;
             recentCount = Math.min(recentCount + 1, recent.length);
 
-            OptionalDouble reported = TractionSpeedFeed.speed(vehicleId);
+            Optional<TractionSpeedFeed.Report> reported = TractionSpeedFeed.reported(vehicleId);
             if (reported.isPresent()) {
-                speed = reported.getAsDouble();
+                speed = reported.get().speed();
+                grade = reported.get().grade();
             } else {
                 double sum = 0;
                 for (int i = 0; i < recentCount; i++) {
                     sum += recent[i];
                 }
                 speed = sum / recentCount;
+                grade = 0;
             }
             stoppedTicks = speed < SPEED_CONSIDERED_STOPPED ? stoppedTicks + 1 : 0;
         }
+
+        /** Whether a collector here is the nearest to the listener of those reported so far this tick. */
+        private boolean nearestCollectorSoFar(long gameTime, double x, double y, double z) {
+            double distance = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition().distanceToSqr(x, y, z);
+            if (gameTime != positionTick || distance < positionDistance) {
+                positionTick = gameTime;
+                positionDistance = distance;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    /** Whether the local player rides or stands on this vehicle, checked against every carriage of a train. */
+    public static boolean listenerAboard(AbstractContraptionEntity entity) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) {
+            return false;
+        }
+        if (entity instanceof CarriageContraptionEntity carriageEntity && carriageEntity.getCarriage() != null
+            && carriageEntity.getCarriage().train != null) {
+            for (Carriage carriage : carriageEntity.getCarriage().train.carriages) {
+                CarriageContraptionEntity other = carriage.anyAvailableEntity();
+                if (other != null && aboard(player, other)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return aboard(player, entity);
+    }
+
+    private static boolean aboard(LocalPlayer player, AbstractContraptionEntity entity) {
+        if (player.getVehicle() == entity) {
+            return true;
+        }
+        if (entity.getContraption() == null || entity.getContraption().bounds == null) {
+            return false;
+        }
+        Vec3 local = entity.toLocalVector(player.position(), 1);
+        return entity.getContraption().bounds.inflate(ABOARD_MARGIN, ABOARD_MARGIN_VERTICAL, ABOARD_MARGIN).contains(local);
     }
 
     private static final class Entry {
@@ -260,11 +327,11 @@ public final class TractionSoundManager {
             this.bank = bank;
         }
 
-        private void update(double speed, long gameTime) {
+        private void update(double speed, double grade, long gameTime) {
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;
             hasPreviousSpeed = true;
-            bank.update(speed, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), gameTime);
+            bank.update(speed, grade, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), gameTime);
         }
 
         private void stop() {
@@ -285,9 +352,12 @@ public final class TractionSoundManager {
          * @param motion overall level from speed (MP 89)
          * @param tonal  motion scaled by MP 89's load envelope
          */
-        void update(double speed, float motion, float tonal, long gameTime);
+        void update(double speed, double grade, float motion, float tonal, long gameTime);
 
         void updatePosition(double x, double y, double z);
+
+        /** Whether the listener is on the vehicle, which centres the sound in both ears. */
+        void setListenerAboard(boolean aboard);
 
         void stop();
 
@@ -333,7 +403,7 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public void update(double speed, float motion, float tonal, long gameTime) {
+        public void update(double speed, double grade, float motion, float tonal, long gameTime) {
             double fraction = speedFraction(speed);
             ridge.setTargetFrequency(RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * fraction);
             ridge.setLoadScale(tonal * window(fraction, 0.05, 0.30, 1.0, 1.01));
@@ -350,6 +420,11 @@ public final class TractionSoundManager {
         @Override
         public void updatePosition(double x, double y, double z) {
             voices.forEach(voice -> voice.updatePosition(x, y, z));
+        }
+
+        @Override
+        public void setListenerAboard(boolean aboard) {
+            voices.forEach(voice -> voice.setListenerAboard(aboard));
         }
 
         @Override
@@ -381,6 +456,7 @@ public final class TractionSoundManager {
         private double y;
         private double z;
         private double speedMps;
+        private boolean listenerAboard;
         private boolean stopping;
         private long lastStartTick = Long.MIN_VALUE;
 
@@ -403,13 +479,14 @@ public final class TractionSoundManager {
                 mixer.setState(speedMps, detector.mode());
             }
             instance = new TractionSynthSoundInstance(x, y, z, VOICE_FADE_TICKS);
+            instance.setListenerAboard(listenerAboard);
             SynthStreams.play(instance, new SynthAudioStream(mixer::render));
         }
 
         @Override
-        public void update(double speed, float motion, float tonal, long gameTime) {
+        public void update(double speed, double grade, float motion, float tonal, long gameTime) {
             speedMps = Math.abs(speed) * METRES_PER_SECOND_PER_BLOCK_PER_TICK;
-            TractionMode mode = detector.update(Math.abs(speed));
+            TractionMode mode = detector.update(Math.abs(speed), grade);
             if (mixer != null) {
                 mixer.setState(speedMps, mode);
             }
@@ -427,6 +504,14 @@ public final class TractionSoundManager {
             this.z = z;
             if (instance != null) {
                 instance.updatePosition(x, y, z);
+            }
+        }
+
+        @Override
+        public void setListenerAboard(boolean aboard) {
+            listenerAboard = aboard;
+            if (instance != null) {
+                instance.setListenerAboard(aboard);
             }
         }
 

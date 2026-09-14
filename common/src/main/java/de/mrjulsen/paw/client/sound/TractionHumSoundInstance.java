@@ -46,6 +46,7 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
 
     private final float baseVolume;
     private final double referenceFrequency;
+    private final ListenerRelativePlacement placement;
 
     private boolean active = true;
     private float fade = 0f;
@@ -76,15 +77,26 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
         this.volume = 0f;
         this.pitch = 1.0f;
         this.attenuation = SoundInstance.Attenuation.LINEAR;
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        // Placed relative to the listener, so it can be centred while the listener rides the train.
+        this.relative = true;
+        this.placement = new ListenerRelativePlacement(x, y, z);
+        place();
     }
 
     public void updatePosition(double x, double y, double z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        placement.setWorldPosition(x, y, z);
+    }
+
+    public void setListenerAboard(boolean aboard) {
+        placement.setAboard(aboard);
+        place();
+    }
+
+    private void place() {
+        double[] at = placement.relative();
+        this.x = at[0];
+        this.y = at[1];
+        this.z = at[2];
     }
 
     /**
@@ -146,6 +158,8 @@ public class TractionHumSoundInstance extends AbstractTickableSoundInstance {
             ? Math.min(1f, this.fade + FADE_STEP)
             : Math.max(0f, this.fade - FADE_STEP);
         this.volume = baseVolume * this.fade * this.loadScale;
+        placement.tick();
+        place();
 
         if (!active && this.fade <= 0f) {
             this.stop();

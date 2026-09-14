@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -25,8 +26,16 @@ class TrainSpeedPlayoutTest {
         return v.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
-    /** Plays a journey whose report for server tick k arrives at client tick k + CLIENT_OFFSET + delay[k]. */
-    private static double[] play(double[] speed, int[] delay) {
+    /** A grade that ramps steadily, so interpolation of it can be checked exactly. */
+    private static double gradeAt(int serverTick) {
+        return serverTick / 1000.0;
+    }
+
+    /**
+     * Plays a journey whose report for server tick k arrives at client tick k + CLIENT_OFFSET + delay[k]
+     * (a negative delay loses the report). Returns {speeds, grades} per client tick.
+     */
+    private static double[][] play(double[] speed, int[] delay) {
         TrainSpeedPlayout playout = new TrainSpeedPlayout();
         int end = speed.length + CLIENT_OFFSET + 40;
         List<List<Integer>> arriving = new ArrayList<>();
@@ -34,11 +43,12 @@ class TrainSpeedPlayoutTest {
         for (int k = 0; k < speed.length; k++) {
             if (delay[k] >= 0) arriving.get(k + CLIENT_OFFSET + delay[k]).add(k);
         }
-        double[] out = new double[end];
+        double[][] out = new double[2][end];
         for (int now = 0; now < end; now++) {
-            for (int k : arriving.get(now)) playout.offer(k, speed[k], now);
+            for (int k : arriving.get(now)) playout.offer(k, speed[k], gradeAt(k), now);
             playout.advance(now);
-            out[now] = playout.speed();
+            out[0][now] = playout.speed();
+            out[1][now] = playout.grade();
         }
         return out;
     }
@@ -50,11 +60,12 @@ class TrainSpeedPlayoutTest {
         int[] choices = {1, 1, 1, 2, 2, 3};
         int[] delay = new int[speed.length];
         for (int k = 0; k < delay.length; k++) delay[k] = choices[random.nextInt(choices.length)];
-        double[] out = play(speed, delay);
+        double[][] out = play(speed, delay);
         // Least delay 1 plus the playout delay of 3.
         int lag = CLIENT_OFFSET + 1 + (int) TrainSpeedPlayout.DELAY_TICKS;
         for (int now = 80; now < speed.length + lag; now++) {
-            assertEquals(speed[now - lag], out[now], 1e-9, "client tick " + now);
+            assertEquals(speed[now - lag], out[0][now], 1e-9, "speed at client tick " + now);
+            assertEquals(gradeAt(now - lag), out[1][now], 1e-9, "grade at client tick " + now);
         }
     }
 
@@ -62,14 +73,15 @@ class TrainSpeedPlayoutTest {
     void aLostOrVeryLateReportIsBridgedSmoothly() {
         double[] speed = journey();
         int[] delay = new int[speed.length];
-        java.util.Arrays.fill(delay, 1);
+        Arrays.fill(delay, 1);
         delay[60] = -1;   // lost while accelerating
         delay[61] = 30;   // far too late to use
         delay[62] = -1;
-        double[] out = play(speed, delay);
+        double[][] out = play(speed, delay);
         int lag = CLIENT_OFFSET + 1 + (int) TrainSpeedPlayout.DELAY_TICKS;
         for (int now = 40; now < speed.length + lag; now++) {
-            assertEquals(speed[now - lag], out[now], 1e-9, "linear across the gap, client tick " + now);
+            assertEquals(speed[now - lag], out[0][now], 1e-9, "linear across the gap, client tick " + now);
+            assertEquals(gradeAt(now - lag), out[1][now], 1e-9);
         }
     }
 
@@ -77,10 +89,11 @@ class TrainSpeedPlayoutTest {
     void reportsGoStaleWhenTheyStop() {
         TrainSpeedPlayout playout = new TrainSpeedPlayout();
         assertFalse(playout.available(0));
-        playout.offer(100, 0.4, 0);
+        playout.offer(100, 0.4, 0.1, 0);
         playout.advance(0);
         assertTrue(playout.available(0));
         assertEquals(0.4, playout.speed(), 0);
+        assertEquals(0.1, playout.grade(), 0);
         for (int now = 1; now <= TrainSpeedPlayout.STALE_AFTER_TICKS + 1; now++) {
             playout.advance(now);
         }
@@ -92,7 +105,7 @@ class TrainSpeedPlayoutTest {
     void sparseReportsAtRestInterpolate() {
         TrainSpeedPlayout playout = new TrainSpeedPlayout();
         for (int now = 0; now < 60; now++) {
-            if (now % 20 == 0) playout.offer(now + 1000, 0, now);
+            if (now % 20 == 0) playout.offer(now + 1000, 0, 0, now);
             playout.advance(now);
             assertEquals(0, playout.speed(), 0);
             assertTrue(playout.available(now));

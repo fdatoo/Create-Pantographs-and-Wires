@@ -75,7 +75,8 @@ public class CollectorShoeMovementBehaviour implements MovementBehaviour {
             speed,
             context.position.x,
             context.position.y,
-            context.position.z
+            context.position.z,
+            TractionSoundManager.listenerAboard(entity)
         );
     }
 

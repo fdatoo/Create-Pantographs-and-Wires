@@ -5,13 +5,14 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Plays back a train's speed as the server reported it, a few ticks behind the newest report.
+ * Plays back a train's speed and grade as the server reported them, a few ticks behind the newest
+ * report.
  *
  * A client's own view of a train is no use for this: Create moves carriages on the client by chasing
  * position updates sent every few ticks, so the distance a carriage covers per client tick lurches
- * with every late or bunched packet. The server's speed is exact, but its reports arrive unevenly too.
- * Holding them in a short buffer and reading it at a steady one tick per tick turns them back into
- * the even series the server produced.
+ * with every late or bunched packet. The server's figures are exact, but its reports arrive unevenly
+ * too. Holding them in a short buffer and reading it at a steady one tick per tick turns them back
+ * into the even series the server produced.
  *
  * Time is counted in client ticks by the caller ({@code now}), so jumps in the world clock don't matter.
  */
@@ -27,19 +28,28 @@ public final class TrainSpeedPlayout {
     /** A playhead this far from its target (a lag spike, a long gap) jumps instead of drifting. */
     public static final double RESYNC_TICKS = 20;
 
-    private final TreeMap<Long, Double> samples = new TreeMap<>();
+    private static final int SPEED = 0;
+    private static final int GRADE = 1;
+
+    /** Server tick to {speed, grade}. */
+    private final TreeMap<Long, double[]> samples = new TreeMap<>();
     /** {client tick received, server tick minus client tick} for recent reports. */
     private final ArrayDeque<long[]> arrivals = new ArrayDeque<>();
     private double playhead = Double.NaN;
     private long lastAdvance = Long.MIN_VALUE;
     private long lastArrival = Long.MIN_VALUE;
 
-    /** Records a report of the train's speed at a server tick, received at client tick {@code now}. */
-    public void offer(long serverTick, double speed, long now) {
+    /**
+     * Records a report received at client tick {@code now}.
+     *
+     * @param speed blocks per tick
+     * @param grade rise over run along the direction of travel, positive when climbing
+     */
+    public void offer(long serverTick, double speed, double grade, long now) {
         if (!Double.isNaN(playhead) && serverTick < Math.floor(playhead)) {
             return;
         }
-        samples.put(serverTick, speed);
+        samples.put(serverTick, new double[] {speed, grade});
         lastArrival = now;
         arrivals.addLast(new long[] {now, serverTick - now});
     }
@@ -76,24 +86,33 @@ public final class TrainSpeedPlayout {
         }
     }
 
-    /** Speed at the playhead, interpolated between reports. */
+    /** Speed at the playhead in blocks per tick, interpolated between reports. */
     public double speed() {
+        return sample(SPEED);
+    }
+
+    /** Grade at the playhead, interpolated between reports. */
+    public double grade() {
+        return sample(GRADE);
+    }
+
+    private double sample(int index) {
         if (samples.isEmpty() || Double.isNaN(playhead)) {
             return 0;
         }
-        Map.Entry<Long, Double> below = samples.floorEntry((long) Math.floor(playhead));
-        Map.Entry<Long, Double> above = samples.ceilingEntry((long) Math.ceil(playhead));
+        Map.Entry<Long, double[]> below = samples.floorEntry((long) Math.floor(playhead));
+        Map.Entry<Long, double[]> above = samples.ceilingEntry((long) Math.ceil(playhead));
         if (below == null) {
-            return above.getValue();
+            return above.getValue()[index];
         }
         if (above == null || above.getKey().equals(below.getKey())) {
-            return below.getValue();
+            return below.getValue()[index];
         }
         double t = (playhead - below.getKey()) / (above.getKey() - below.getKey());
-        return below.getValue() + (above.getValue() - below.getValue()) * t;
+        return below.getValue()[index] + (above.getValue()[index] - below.getValue()[index]) * t;
     }
 
-    /** Whether reports are coming in, so {@link #speed()} can be trusted. */
+    /** Whether reports are coming in, so the playout can be trusted. */
     public boolean available(long now) {
         return lastArrival != Long.MIN_VALUE && !Double.isNaN(playhead) && now - lastArrival <= STALE_AFTER_TICKS;
     }

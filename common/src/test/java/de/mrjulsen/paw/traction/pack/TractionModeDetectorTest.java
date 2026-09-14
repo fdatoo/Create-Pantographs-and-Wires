@@ -49,6 +49,40 @@ class TractionModeDetectorTest {
         assertEquals(TractionMode.COAST, run(detector, speed + 0.024, 0.0001, 40));
     }
 
+    private static TractionMode cruise(TractionModeDetector detector, double grade, int ticks) {
+        TractionMode mode = detector.mode();
+        for (int i = 0; i < ticks; i++) {
+            mode = detector.update(0.5, grade);
+        }
+        return mode;
+    }
+
+    @Test
+    void climbingAtSteadySpeedIsPowering() {
+        assertEquals(TractionMode.POWER, cruise(new TractionModeDetector(), 0.25, 20));
+    }
+
+    @Test
+    void descendingAtSteadySpeedIsBraking() {
+        assertEquals(TractionMode.BRAKE, cruise(new TractionModeDetector(), -0.25, 20));
+    }
+
+    @Test
+    void aMetroGradeIsEnoughButAGentleOneIsNot() {
+        // 4 %, a steep grade on a real metro, needs traction; 2 % stays below the threshold.
+        assertEquals(TractionMode.POWER, cruise(new TractionModeDetector(), 0.04, 20));
+        assertEquals(TractionMode.COAST, cruise(new TractionModeDetector(), 0.02, 20));
+    }
+
+    @Test
+    void gravityCountsOnlyWhileMoving() {
+        TractionModeDetector detector = new TractionModeDetector();
+        for (int i = 0; i < 20; i++) {
+            detector.update(0, 0.25);
+        }
+        assertEquals(TractionMode.COAST, detector.mode());
+    }
+
     @Test
     void persistenceIgnoresABriefBlipWhileMoving() {
         TractionModeDetector quick = new TractionModeDetector();

@@ -8,18 +8,20 @@ import de.mrjulsen.paw.traction.TractionSpeedFeed;
 import dev.architectury.networking.NetworkManager.PacketContext;
 import net.minecraft.network.FriendlyByteBuf;
 
-/** Server to client: a train's exact speed at a server tick, for the traction sound. */
+/** Server to client: a train's exact speed and grade at a server tick, for the traction sound. */
 public class TractionSpeedPacket implements IPacketBase<TractionSpeedPacket> {
     private UUID trainId;
     private long serverTick;
     private float speed;
+    private float grade;
 
     public TractionSpeedPacket() {}
 
-    public TractionSpeedPacket(UUID trainId, long serverTick, float speed) {
+    public TractionSpeedPacket(UUID trainId, long serverTick, float speed, float grade) {
         this.trainId = trainId;
         this.serverTick = serverTick;
         this.speed = speed;
+        this.grade = grade;
     }
 
     @Override
@@ -27,15 +29,16 @@ public class TractionSpeedPacket implements IPacketBase<TractionSpeedPacket> {
         buf.writeUUID(packet.trainId);
         buf.writeLong(packet.serverTick);
         buf.writeFloat(packet.speed);
+        buf.writeFloat(packet.grade);
     }
 
     @Override
     public TractionSpeedPacket decode(FriendlyByteBuf buf) {
-        return new TractionSpeedPacket(buf.readUUID(), buf.readLong(), buf.readFloat());
+        return new TractionSpeedPacket(buf.readUUID(), buf.readLong(), buf.readFloat(), buf.readFloat());
     }
 
     @Override
     public void handle(TractionSpeedPacket packet, Supplier<PacketContext> contextSupplier) {
-        contextSupplier.get().queue(() -> TractionSpeedFeed.offer(packet.trainId, packet.serverTick, packet.speed));
+        contextSupplier.get().queue(() -> TractionSpeedFeed.offer(packet.trainId, packet.serverTick, packet.speed, packet.grade));
     }
 }

@@ -9,12 +9,13 @@ import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
 
 /**
- * The positional sound a streamed traction voice plays through. Its audio comes from a live stream
- * (see SynthStreams); this only follows the train, sets the loudness and fades in and out.
+ * The sound a streamed traction voice plays through. Its audio comes from a live stream (see
+ * SynthStreams); this places it (see ListenerRelativePlacement), sets the loudness and fades in and out.
  */
 @Environment(EnvType.CLIENT)
 public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
     private final float fadeStep;
+    private final ListenerRelativePlacement placement;
 
     private boolean active = true;
     private float fade;
@@ -23,20 +24,23 @@ public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
     public TractionSynthSoundInstance(double x, double y, double z, int fadeTicks) {
         super(ModSounds.TRACTION_SYNTH.get(), SoundSource.BLOCKS, SoundInstance.createUnseededRandom());
         this.fadeStep = 1f / Math.max(1, fadeTicks);
+        this.placement = new ListenerRelativePlacement(x, y, z);
         this.looping = false;
         this.delay = 0;
         this.volume = 0f;
         this.pitch = 1.0f;
         this.attenuation = SoundInstance.Attenuation.LINEAR;
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        this.relative = true;
+        place();
     }
 
     public void updatePosition(double x, double y, double z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        placement.setWorldPosition(x, y, z);
+    }
+
+    public void setListenerAboard(boolean aboard) {
+        placement.setAboard(aboard);
+        place();
     }
 
     public void requestStop() {
@@ -53,8 +57,17 @@ public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
     public void tick() {
         fade = active ? Math.min(1f, fade + fadeStep) : Math.max(0f, fade - fadeStep);
         volume = ModClientConfig.TRACTION_VOLUME.get().floatValue() * fade;
+        placement.tick();
+        place();
         if (!active && fade <= 0f) {
             stop();
         }
+    }
+
+    private void place() {
+        double[] at = placement.relative();
+        x = at[0];
+        y = at[1];
+        z = at[2];
     }
 }
