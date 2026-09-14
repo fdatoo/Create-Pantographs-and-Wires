@@ -11,6 +11,7 @@ public class ModClientConfig {
     public static final ForgeConfigSpec.ConfigValue<Boolean> SILENCE_STEAM_ON_ELECTRIC_TRAINS;
     public static final ForgeConfigSpec.ConfigValue<Double> TRACTION_VOLUME;
     public static final ForgeConfigSpec.EnumValue<TractionSoundProfile> TRACTION_PROFILE;
+    public static final ForgeConfigSpec.ConfigValue<Boolean> TRACTION_DEBUG;
 
     static {
         BUILDER.push(PantographsAndWires.MOD_ID + "_client_config");
@@ -26,6 +27,9 @@ public class ModClientConfig {
 
         TRACTION_PROFILE = BUILDER.comment(new String[] {"Which train the electric traction sound is modelled on. WMATA: Washington Metro 6000-series. MP89: Paris Metro MP 89.", "Default: WMATA"})
             .defineEnum("sound.traction_profile", TractionSoundProfile.WMATA);
+
+        TRACTION_DEBUG = BUILDER.comment(new String[] {"Logs what the traction sound is doing and why, with lines starting [PAW traction], and shows it on the F3 screen. Also switchable in game with /paw_traction_debug client on|off.", "Default: OFF"})
+            .define("debug.traction_log", false);
 
         BUILDER.pop();
         SPEC = BUILDER.build();

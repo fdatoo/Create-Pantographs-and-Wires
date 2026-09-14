@@ -17,6 +17,9 @@ public final class ManualThrottle {
 
     /** Called from Create's manual control each tick it runs. */
     public static void record(UUID trainId, long tick, boolean held) {
+        if (TractionDebug.server() && held != held(trainId, tick)) {
+            TractionDebug.info("server: train {} driver {} a direction", TractionDebug.shortId(trainId), held ? "now holds" : "released");
+        }
         if (held) {
             HELD.put(trainId, tick);
         } else {

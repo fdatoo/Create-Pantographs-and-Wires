@@ -47,6 +47,26 @@ public final class TractionMixer {
     private double renderedSpeed = Double.NaN;
     private TractionMode appliedMode;
 
+    // Diagnostics, written by the sound thread and read by the game thread for logging only.
+    private final double[] layerLevel;
+    private volatile long blocksRendered;
+    private volatile double lastPower;
+    private volatile double lastBrake;
+    private volatile double lastCoast;
+    private volatile double lastDuck = 1;
+    private volatile boolean lastModeChangeMoving;
+    private volatile double lastModeChangeSeconds;
+
+    /**
+     * What the mixer did in its latest block.
+     *
+     * @param modeChangeMoving  whether the latest mode change used the moving blends rather than departure timings
+     * @param modeChangeSeconds how long the envelope for the new mode took to reach full gain
+     * @param loudest           the loudest layers with their effective gains, loudest first
+     */
+    public record Diagnostics(double speedMps, TractionMode mode, boolean modeChangeMoving, double modeChangeSeconds,
+        double power, double brake, double coast, double duck, long blocksRendered, List<String> loudest) {}
+
     public TractionMixer(TractionPack pack, int outputRate) {
         this.layers = pack.layers();
         this.settings = pack.settings();
@@ -56,6 +76,7 @@ public final class TractionMixer {
         this.coast = new Envelope(outputRate);
         this.head = new double[layers.size()];
         this.hasDucked = layers.stream().anyMatch(TractionPack.Layer::ducked);
+        this.layerLevel = new double[layers.size()];
     }
 
     /** @param speedMps train speed in metres per second */
@@ -107,6 +128,13 @@ public final class TractionMixer {
                 duckGain[s] = 1 - depth * traction;
                 duckAudible |= duckGain[s] != 0;
             }
+        }
+
+        if (count > 0) {
+            lastPower = powerGain[count - 1];
+            lastBrake = brakeGain[count - 1];
+            lastCoast = coastGain[count - 1];
+            lastDuck = hasDucked ? duckGain[count - 1] : 1;
         }
 
         int subBlocks = (count + SUB_BLOCK - 1) / SUB_BLOCK;
@@ -167,6 +195,7 @@ public final class TractionMixer {
                     h += (pitchAt[j] + pitchAt[j + 1]) * 0.5 * ratio * subLength;
                 }
                 head[i] = h % length;
+                layerLevel[i] = 0;
                 continue;
             }
 
@@ -193,7 +222,28 @@ public final class TractionMixer {
                 }
             }
             head[i] = h;
+            layerLevel[i] = count > 0 ? volumeAt[subBlocks] * gain * (gate != null ? gate[count - 1] : 1) : 0;
         }
+        blocksRendered++;
+    }
+
+    /** A snapshot for logging: envelope gains, the latest mode change, and the loudest layers. */
+    public Diagnostics diagnostics(int loudestCount) {
+        Integer[] order = new Integer[layers.size()];
+        for (int i = 0; i < order.length; i++) {
+            order[i] = i;
+        }
+        double[] levels = layerLevel.clone();
+        Arrays.sort(order, (a, b) -> Double.compare(levels[b], levels[a]));
+        List<String> loudest = new java.util.ArrayList<>();
+        for (int i = 0; i < order.length && loudest.size() < loudestCount; i++) {
+            if (levels[order[i]] > 0.001) {
+                loudest.add(layers.get(order[i]).name() + " " + String.format("%.2f", levels[order[i]]));
+            }
+        }
+        double speed = renderedSpeed;
+        return new Diagnostics(Double.isNaN(speed) ? 0 : speed, appliedMode, lastModeChangeMoving, lastModeChangeSeconds,
+            lastPower, lastBrake, lastCoast, lastDuck, blocksRendered, loudest);
     }
 
     private void applyMode(TractionMode mode, boolean slopeDriven) {
@@ -207,8 +257,16 @@ public final class TractionMixer {
             power.setTarget(mode == TractionMode.POWER ? 1 : 0, powerBlend, s.modeBlendShape());
             brake.setTarget(mode == TractionMode.BRAKE ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
             coast.setTarget(mode == TractionMode.COAST ? 1 : 0, s.modeBlendSeconds(), s.modeBlendShape());
+            lastModeChangeMoving = true;
+            lastModeChangeSeconds = mode == TractionMode.POWER ? powerBlend : s.modeBlendSeconds();
             return;
         }
+        lastModeChangeMoving = false;
+        lastModeChangeSeconds = switch (mode) {
+            case POWER -> s.powerOnSeconds();
+            case BRAKE -> s.brakeOnSeconds();
+            case COAST -> s.powerOffSeconds();
+        };
         switch (mode) {
             case POWER -> {
                 power.setTarget(1, s.powerOnSeconds(), s.powerOnShape());

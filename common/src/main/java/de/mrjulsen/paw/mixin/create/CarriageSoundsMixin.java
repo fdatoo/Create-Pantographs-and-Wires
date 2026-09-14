@@ -13,6 +13,7 @@ import com.simibubi.create.content.trains.entity.CarriageSounds;
 
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.config.ModClientConfig;
+import de.mrjulsen.paw.traction.TractionDebug;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -54,10 +55,44 @@ public class CarriageSoundsMixin {
         float pitch,
         boolean fade
     ) {
+        TractionDebug.once("chuffing-hook", "client: Create steam chuffing hook is active");
         if (paw$isElectricTrain(level)) {
+            paw$logSilenced(level);
             return;
         }
         soundEntry.playAt(level, position, volume, pitch, fade);
+    }
+
+    /** The release as the train stops: always played, and logged so its timing can be checked. */
+    @Redirect(
+        method = "tick",
+        at = @At(
+            value = "INVOKE",
+            target = "Lcom/simibubi/create/AllSoundEvents$SoundEntry;playAt(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/phys/Vec3;FFZ)V",
+            ordinal = 2
+        ),
+        require = 0
+    )
+    private void paw$playStopHiss(
+        SoundEntry soundEntry,
+        Level level,
+        Vec3 position,
+        float volume,
+        float pitch,
+        boolean fade
+    ) {
+        if (TractionDebug.client() && entity != null) {
+            TractionDebug.info("client: train {} stopped, playing the release hiss (volume {})",
+                TractionDebug.shortId(entity.trainId), String.format("%.2f", volume));
+        }
+        soundEntry.playAt(level, position, volume, pitch, fade);
+    }
+
+    private void paw$logSilenced(Level level) {
+        if (TractionDebug.client() && entity != null
+            && TractionDebug.every("chuffing-" + entity.trainId, level.getGameTime(), 200)) {
+            TractionDebug.info("client: train {} steam chuffing silenced (electric train)", TractionDebug.shortId(entity.trainId));
+        }
     }
 
     @Redirect(
@@ -78,6 +113,7 @@ public class CarriageSoundsMixin {
         boolean fade
     ) {
         if (paw$isElectricTrain(level)) {
+            paw$logSilenced(level);
             return;
         }
         soundEntry.playAt(level, position, volume, pitch, fade);

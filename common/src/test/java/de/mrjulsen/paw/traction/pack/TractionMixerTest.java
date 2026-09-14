@@ -241,6 +241,32 @@ class TractionMixerTest {
     }
 
     @Test
+    void diagnosticsReportWhatWasMixed() {
+        float[] dc = ones();
+        TractionPack pack = new TractionPack(List.of(
+            layer("power/t", TractionMode.POWER, dc, 1.0, 0.6, false),
+            layer("brake/t", TractionMode.BRAKE, dc, 1.0, 0.9, false),
+            new TractionPack.Layer("coast/cruising", TractionMode.COAST, new LayerCurve(List.of(new double[] {0, 1.0, 0.2}, new double[] {40, 1.0, 0.2})), dc, RATE, false, true)
+        ), cruisingSettings(0.25, 1.0));
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        render(mixer, 10, TractionMode.COAST, 2);
+        float[] block = new float[BLOCK];
+        for (int b = 0; b < 30; b++) {
+            mixer.setState(10, TractionMode.POWER, true);
+            mixer.render(block, BLOCK);
+        }
+        TractionMixer.Diagnostics d = mixer.diagnostics(3);
+        assertEquals(TractionMode.POWER, d.mode());
+        assertTrue(d.modeChangeMoving());
+        assertEquals(1.0, d.modeChangeSeconds(), 0, "the climb swell was used");
+        assertEquals(1.0, d.power(), 1e-9);
+        assertEquals(0.0, d.brake(), 1e-9);
+        assertEquals(0.15, d.duck(), 1e-9);
+        assertEquals(32, d.blocksRendered());
+        assertEquals(List.of("power/t 0.60", "coast/cruising 0.03"), d.loudest(), "silent brake layer left out");
+    }
+
+    @Test
     void cubicReadIsExactOnWholeSamples() {
         float[] x = {0.1f, -0.4f, 0.9f, 0.3f};
         for (int i = 0; i < x.length; i++) {

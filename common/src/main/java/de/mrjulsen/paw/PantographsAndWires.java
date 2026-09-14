@@ -9,6 +9,7 @@ import com.simibubi.create.foundation.item.TooltipHelper.Palette;
 
 import de.mrjulsen.paw.event.ModClientEvents;
 import de.mrjulsen.paw.event.ModCommonEvents;
+import de.mrjulsen.paw.network.TractionDebugPacket;
 import de.mrjulsen.paw.network.TractionSpeedPacket;
 import de.mrjulsen.paw.registry.ModBlockEntities;
 import de.mrjulsen.paw.registry.ModBlocks;
@@ -67,7 +68,8 @@ public final class PantographsAndWires {
         cmrNet = new NetworkManagerBase(MOD_ID, "paw_network", List.of(
             // cts
             // stc
-            TractionSpeedPacket.class
+            TractionSpeedPacket.class,
+            TractionDebugPacket.class
         ));
     }
 

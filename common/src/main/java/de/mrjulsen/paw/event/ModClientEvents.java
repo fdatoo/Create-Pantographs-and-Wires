@@ -2,6 +2,7 @@ package de.mrjulsen.paw.event;
 
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.client.ThirdRailPlacementPreview;
+import de.mrjulsen.paw.traction.TractionDebug;
 import de.mrjulsen.paw.client.sound.TractionPacks;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.compat.sodium.IncompatabilityScreen;
@@ -35,6 +36,9 @@ public final class ModClientEvents {
     public static void init() {
 
         ClientGuiEvent.DEBUG_TEXT_LEFT.register((lines) -> {
+            if (TractionDebug.client()) {
+                TractionSoundManager.debugLines(lines);
+            }
             if (!PantographsAndWires.useAdvancedLogging()) {
                 return;
             }

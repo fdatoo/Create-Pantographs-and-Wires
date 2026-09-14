@@ -49,6 +49,11 @@ public class TractionSynthSoundInstance extends AbstractTickableSoundInstance {
         place();
     }
 
+    /** 0 when placed at the collector, 1 when fully centred for a listener aboard. */
+    public double aboardBlend() {
+        return placement.aboardBlend();
+    }
+
     public void requestStop() {
         this.active = false;
     }

@@ -55,6 +55,16 @@ public final class TractionModeDetector {
         return slopeDriven;
     }
 
+    /** Smoothed acceleration from the train's own speeding up or slowing down, in blocks per tick squared. */
+    public double drivenAcceleration() {
+        return drivenAcceleration;
+    }
+
+    /** Smoothed gravity along the slope, in blocks per tick squared; positive when climbing. */
+    public double slopeAcceleration() {
+        return slopeAcceleration;
+    }
+
     /**
      * Call once per game tick.
      *

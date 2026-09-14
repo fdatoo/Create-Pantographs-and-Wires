@@ -15,6 +15,7 @@ import com.simibubi.create.content.trains.graph.TrackEdge;
 import com.simibubi.create.content.trains.track.BezierConnection;
 
 import de.mrjulsen.paw.traction.ManualThrottle;
+import de.mrjulsen.paw.traction.TractionDebug;
 import de.mrjulsen.paw.traction.TrackSlopes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -43,15 +44,29 @@ public abstract class CarriageControlMixin {
         require = 0
     )
     private boolean paw$gentleSlopesAreNotTurns(TrackEdge edge) {
+        TractionDebug.once("slope-rule", "server: hand-driving slope rule is active (Create's manual control is hooked)");
         if (!edge.isTurn()) {
             return false;
         }
         BezierConnection turn = edge.getTurn();
-        return !TrackSlopes.isGentleStraightSlope(
+        double rise = Math.abs(turn.starts.getFirst().y - turn.starts.getSecond().y);
+        boolean gentle = TrackSlopes.isGentleStraightSlope(
             turn.starts.getFirst().y, turn.starts.getSecond().y,
             turn.axes.getFirst().x, turn.axes.getFirst().z,
             turn.axes.getSecond().x, turn.axes.getSecond().z,
             turn.getLength());
+        if (TractionDebug.server()) {
+            CarriageContraptionEntity self = (CarriageContraptionEntity) (Object) this;
+            if (TractionDebug.newEdge(self.trainId, turn, self.level().getGameTime())) {
+                String what = gentle ? "a gentle straight slope, so speed is kept"
+                    : rise > 1 / 16.0 ? "a slope that is steep or curved, so speed is capped to the turning limit"
+                    : "a curve, so speed is capped to the turning limit";
+                TractionDebug.info("server: hand-driven train {} is on {} (rise {} over {} blocks, {}%)",
+                    TractionDebug.shortId(self.trainId), what, String.format("%.2f", rise), String.format("%.1f", turn.getLength()),
+                    String.format("%.1f", rise / Math.max(1e-6, turn.getLength()) * 100));
+            }
+        }
+        return !gentle;
     }
 
     @Inject(method = "control", at = @At("RETURN"), remap = false, require = 0)

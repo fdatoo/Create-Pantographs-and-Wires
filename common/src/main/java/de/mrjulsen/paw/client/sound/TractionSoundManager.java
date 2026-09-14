@@ -17,6 +17,7 @@ import de.mrjulsen.paw.config.TractionSoundProfile;
 import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
+import de.mrjulsen.paw.traction.TractionDebug;
 import de.mrjulsen.paw.traction.TractionSpeedFeed;
 import de.mrjulsen.paw.traction.pack.TractionMixer;
 import de.mrjulsen.paw.traction.pack.TractionMode;
@@ -107,9 +108,20 @@ public final class TractionSoundManager {
         vehicleSpeed.update(vehicleId, gameTime, speed, listenerAboard);
         speed = vehicleSpeed.speed;
 
+        boolean debug = TractionDebug.client();
+        if (debug && vehicleSpeed.aboard != vehicleSpeed.loggedAboard) {
+            vehicleSpeed.loggedAboard = vehicleSpeed.aboard;
+            TractionDebug.info("client: train {} listener is now {}", TractionDebug.shortId(vehicleId),
+                vehicleSpeed.aboard ? "aboard (sound centres in both ears)" : "outside (sound placed at the nearest collector)");
+        }
+
         boolean stopped = vehicleSpeed.stoppedTicks > 0 && (entry == null || vehicleSpeed.stoppedTicks >= STOPPED_AFTER_TICKS);
         if (!snapshot.powered() || stopped) {
             if (entry != null) {
+                if (debug) {
+                    TractionDebug.info("client: train {} voice stopping: {}", TractionDebug.shortId(vehicleId),
+                        !snapshot.powered() ? "no collector touching wire or rail" : String.format("train stopped (%.3f m/s)", speed * METRES_PER_SECOND_PER_BLOCK_PER_TICK));
+                }
                 entry.stop();
                 ACTIVE.remove(vehicleId);
             }
@@ -120,6 +132,9 @@ public final class TractionSoundManager {
         // bank fades out on its own while the new one fades in.
         TractionSoundProfile profile = ModClientConfig.TRACTION_PROFILE.get();
         if (entry != null && entry.profile != profile) {
+            if (debug) {
+                TractionDebug.info("client: train {} profile changed to {}, restarting its voice", TractionDebug.shortId(vehicleId), profile);
+            }
             entry.stop();
             ACTIVE.remove(vehicleId);
             entry = null;
@@ -127,10 +142,17 @@ public final class TractionSoundManager {
 
         if (entry == null || entry.isStopped()) {
             if (entry == null && ACTIVE.size() >= MAX_VEHICLES) {
+                if (debug && TractionDebug.every("max-vehicles", gameTime, 200)) {
+                    TractionDebug.info("client: train {} not played: {} trains already sounding", TractionDebug.shortId(vehicleId), MAX_VEHICLES);
+                }
                 return;
             }
-            entry = start(profile, vehicleSpeed, x, y, z);
+            entry = start(profile, vehicleId, vehicleSpeed, x, y, z);
             ACTIVE.put(vehicleId, entry);
+            if (debug) {
+                TractionDebug.info("client: train {} voice started ({}) at {} m/s, speed from {}, listener {}", TractionDebug.shortId(vehicleId),
+                    profile, String.format("%.3f", speed * METRES_PER_SECOND_PER_BLOCK_PER_TICK), vehicleSpeed.source(), vehicleSpeed.aboard ? "aboard" : "outside");
+            }
         } else if (entry.lastUpdateTick != gameTime) {
             // A train reports once per collector each tick. Only the first report moves the sound, or
             // the rest would see no change in speed and read the train as coasting.
@@ -144,12 +166,33 @@ public final class TractionSoundManager {
         }
         entry.bank.setListenerAboard(vehicleSpeed.aboard);
         entry.lastObservedTick = gameTime;
+
+        if (debug && TractionDebug.every("summary-" + vehicleId, gameTime, 20)) {
+            entry.lastSummary = String.format("%.2f m/s, grade %+.1f%%, driver holding %s, speed from %s, listener %s | %s",
+                speed * METRES_PER_SECOND_PER_BLOCK_PER_TICK, vehicleSpeed.grade * 100, vehicleSpeed.throttleHeld ? "yes" : "no",
+                vehicleSpeed.source(), vehicleSpeed.aboard ? "aboard" : "outside", entry.bank.describe(gameTime));
+            TractionDebug.info("client: train {} {}", TractionDebug.shortId(vehicleId), entry.lastSummary);
+        }
     }
 
-    private static Entry start(TractionSoundProfile profile, VehicleSpeed vehicle, double x, double y, double z) {
+    /** F3 screen lines for every sounding train, while traction logging is on. */
+    public static void debugLines(List<String> lines) {
+        ACTIVE.forEach((id, entry) -> {
+            if (entry.lastSummary.isEmpty()) {
+                return;
+            }
+            String prefix = "[PAW traction] " + TractionDebug.shortId(id) + " ";
+            for (String part : entry.lastSummary.split(" \\| ")) {
+                lines.add(prefix + part);
+                prefix = "    ";
+            }
+        });
+    }
+
+    private static Entry start(TractionSoundProfile profile, UUID vehicleId, VehicleSpeed vehicle, double x, double y, double z) {
         VoiceBank bank = switch (profile) {
             case MP89 -> new Mp89Bank(x, y, z);
-            case WMATA -> new PackBank(x, y, z);
+            case WMATA -> new PackBank(vehicleId, x, y, z);
         };
         Entry entry = new Entry(profile, bank);
         // State is set before playback so nothing starts at the wrong pitch, or off to one side, and
@@ -250,6 +293,13 @@ public final class TractionSoundManager {
         private boolean aboard;
         private long positionTick = Long.MIN_VALUE;
         private double positionDistance;
+        private boolean reported;
+        private Boolean loggedReported;
+        private boolean loggedAboard;
+
+        private String source() {
+            return reported ? "server" : "client estimate";
+        }
 
         private void update(UUID vehicleId, long gameTime, double clientMotion, boolean listenerAboard) {
             if (gameTime == lastTick) {
@@ -275,6 +325,13 @@ public final class TractionSoundManager {
                 speed = sum / recentCount;
                 grade = 0;
                 throttleHeld = false;
+            }
+            this.reported = reported.isPresent();
+            if (TractionDebug.client() && !Boolean.valueOf(this.reported).equals(loggedReported)) {
+                loggedReported = this.reported;
+                TractionDebug.info("client: train {} speed now {}", TractionDebug.shortId(vehicleId), this.reported
+                    ? "from the server's reports"
+                    : "estimated from client motion (no server reports: is the server running this mod version?)");
             }
             double stoppedBelow = reported.isPresent() ? SPEED_CONSIDERED_MOVING_REPORTED : SPEED_CONSIDERED_STOPPED;
             stoppedTicks = speed < stoppedBelow ? stoppedTicks + 1 : 0;
@@ -327,6 +384,7 @@ public final class TractionSoundManager {
         private final VoiceBank bank;
         private long lastObservedTick;
         private long lastUpdateTick = Long.MIN_VALUE;
+        private String lastSummary = "";
         private double previousSpeed;
         private boolean hasPreviousSpeed;
 
@@ -371,6 +429,9 @@ public final class TractionSoundManager {
         void stop();
 
         boolean isStopped();
+
+        /** What the voice is doing, for traction logging. */
+        String describe(long gameTime);
     }
 
     /**
@@ -445,6 +506,11 @@ public final class TractionSoundManager {
         public boolean isStopped() {
             return toneA.isStopped();
         }
+
+        @Override
+        public String describe(long gameTime) {
+            return "MP89 profile (no pack diagnostics)";
+        }
     }
 
     /**
@@ -459,6 +525,7 @@ public final class TractionSoundManager {
         // departure is heard at once. Fading is only for stopping, and for restarting a voice mid-sound.
         private static final int VOICE_FADE_TICKS = 2;
 
+        private final UUID vehicleId;
         private final TractionModeDetector detector = new TractionModeDetector();
         private TractionMixer mixer;
         private TractionSynthSoundInstance instance;
@@ -469,8 +536,11 @@ public final class TractionSoundManager {
         private boolean listenerAboard;
         private boolean stopping;
         private long lastStartTick = Long.MIN_VALUE;
+        private long lastDescribeTick = Long.MIN_VALUE;
+        private long lastDescribeBlocks;
 
-        private PackBank(double x, double y, double z) {
+        private PackBank(UUID vehicleId, double x, double y, double z) {
+            this.vehicleId = vehicleId;
             this.x = x;
             this.y = y;
             this.z = z;
@@ -482,6 +552,9 @@ public final class TractionSoundManager {
             if (mixer == null) {
                 TractionPack pack = TractionPacks.wmataIfLoaded();
                 if (pack == null) {
+                    if (TractionDebug.client()) {
+                        TractionDebug.info("client: train {} waiting for the WMATA sound pack to load", TractionDebug.shortId(vehicleId));
+                    }
                     return;
                 }
                 mixer = new TractionMixer(pack, SynthAudioStream.SAMPLE_RATE);
@@ -497,12 +570,24 @@ public final class TractionSoundManager {
         @Override
         public void update(double speed, double grade, boolean throttleHeld, float motion, float tonal, long gameTime) {
             speedMps = Math.abs(speed) * METRES_PER_SECOND_PER_BLOCK_PER_TICK;
+            TractionMode before = detector.mode();
             TractionMode mode = detector.update(Math.abs(speed), grade, throttleHeld);
+            if (mode != before && TractionDebug.client()) {
+                TractionDebug.info("client: train {} mode {} -> {} ({}) at {} m/s, grade {}%, driver holding {}, own acceleration {} m/s², gravity along slope {} m/s²",
+                    TractionDebug.shortId(vehicleId), before, mode,
+                    mode == TractionMode.COAST ? "demand ended" : detector.slopeDriven() ? "brought in by the slope" : "brought in by speed change",
+                    String.format("%.2f", speedMps), String.format("%+.1f", grade * 100), throttleHeld ? "yes" : "no",
+                    String.format("%+.2f", detector.drivenAcceleration() * 400), String.format("%+.2f", detector.slopeAcceleration() * 400));
+            }
             if (mixer != null) {
                 mixer.setState(speedMps, mode, detector.slopeDriven());
             }
             if (!stopping && gameTime != Long.MIN_VALUE && gameTime - lastStartTick >= RESTART_INTERVAL_TICKS
                 && (instance == null || !Minecraft.getInstance().getSoundManager().isActive(instance))) {
+                if (instance != null && TractionDebug.client()) {
+                    TractionDebug.info("client: train {} voice was dropped by the sound engine (stream ran dry or no free channel), restarting",
+                        TractionDebug.shortId(vehicleId));
+                }
                 lastStartTick = gameTime;
                 start();
             }
@@ -537,6 +622,32 @@ public final class TractionSoundManager {
         @Override
         public boolean isStopped() {
             return stopping && (instance == null || instance.isStopped() || !Minecraft.getInstance().getSoundManager().isActive(instance));
+        }
+
+        @Override
+        public String describe(long gameTime) {
+            if (mixer == null) {
+                return "WMATA pack not loaded yet";
+            }
+            TractionMixer.Diagnostics d = mixer.diagnostics(4);
+            String stream = "-";
+            if (lastDescribeTick != Long.MIN_VALUE && gameTime > lastDescribeTick) {
+                double seconds = (gameTime - lastDescribeTick) / 20.0;
+                double audioSeconds = (d.blocksRendered() - lastDescribeBlocks) * (double) SynthAudioStream.BLOCK_SAMPLES / SynthAudioStream.SAMPLE_RATE;
+                stream = String.format("%.2fx real time", audioSeconds / seconds);
+            }
+            lastDescribeTick = gameTime;
+            lastDescribeBlocks = d.blocksRendered();
+            boolean playing = instance != null && Minecraft.getInstance().getSoundManager().isActive(instance);
+            String ear = instance == null ? "-" : String.format("right %+.1f, up %+.1f, behind %+.1f blocks, centred %.0f%%",
+                instance.getX(), instance.getY(), instance.getZ(), instance.aboardBlend() * 100);
+            return String.format("mode %s%s, last change over %.2f s (%s) | envelopes power %.2f, brake %.2f, coast %.2f, cruising duck %.2f"
+                    + " | loudest %s | voice %s, stream %s | ear %s",
+                d.mode(), d.mode() != TractionMode.COAST && detector.slopeDriven() ? " (slope)" : "",
+                d.modeChangeSeconds(), d.modeChangeMoving() ? "moving blend" : "departure timing",
+                d.power(), d.brake(), d.coast(), d.duck(),
+                d.loudest().isEmpty() ? "none" : String.join(", ", d.loudest()),
+                playing ? "playing" : "not playing", stream, ear);
         }
     }
 }

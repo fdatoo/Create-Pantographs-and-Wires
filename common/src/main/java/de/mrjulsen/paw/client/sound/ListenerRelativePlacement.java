@@ -57,6 +57,11 @@ final class ListenerRelativePlacement {
         aboardBlend += Math.max(-ABOARD_BLEND_PER_TICK, Math.min(ABOARD_BLEND_PER_TICK, target - aboardBlend));
     }
 
+    /** 0 when placed at the collector, 1 when fully centred for a listener aboard. */
+    double aboardBlend() {
+        return aboardBlend;
+    }
+
     /** The voice's relative position for the camera as it is now: {x, y, z}. */
     double[] relative() {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();

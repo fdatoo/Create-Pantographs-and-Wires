@@ -39,7 +39,11 @@ public final class TractionSpeedSync {
         private double rise;
         private double run;
         private double grade;
+        private int reports;
+        private long summaryTick = Long.MIN_VALUE;
     }
+
+    private static final long SUMMARY_TICKS = 100;
 
     private static final Map<AbstractContraptionEntity, Sent> SENT = new WeakHashMap<>();
 
@@ -63,14 +67,26 @@ public final class TractionSpeedSync {
         measureGrade(sent, entity.position());
 
         double speed = Math.abs(carriage.train.speed);
+        boolean held = ManualThrottle.held(carriageEntity.trainId, tick);
+        if (TractionDebug.server() && (sent.summaryTick == Long.MIN_VALUE || tick - sent.summaryTick >= SUMMARY_TICKS || tick < sent.summaryTick)) {
+            if (sent.summaryTick != Long.MIN_VALUE) {
+                TractionDebug.info("server: train {} carriage {}: {} m/s (target {} m/s), grade {}%, driver holding {}, {} speed reports sent in the last {} s",
+                    TractionDebug.shortId(carriageEntity.trainId), carriageEntity.carriageIndex,
+                    String.format("%.2f", speed * 20), String.format("%.2f", Math.abs(carriage.train.targetSpeed) * 20),
+                    String.format("%+.1f", sent.grade * 100), held ? "yes" : "no", sent.reports, SUMMARY_TICKS / 20);
+            }
+            sent.summaryTick = tick;
+            sent.reports = 0;
+        }
         if (speed == 0 && sent.speed == 0 && tick - sent.sentTick < HEARTBEAT_TICKS) {
             return;
         }
         sent.sentTick = tick;
         sent.speed = speed;
+        sent.reports++;
+        TractionDebug.once("speed-sync", "server: sending train speed reports to nearby players");
         level.getChunkSource().broadcast(entity, PantographsAndWires.net().CHANNEL.toPacket(NetworkManager.Side.S2C,
-            new TractionSpeedPacket(carriageEntity.trainId, tick, (float) speed, (float) sent.grade,
-                ManualThrottle.held(carriageEntity.trainId, tick))));
+            new TractionSpeedPacket(carriageEntity.trainId, tick, (float) speed, (float) sent.grade, held)));
     }
 
     private static void measureGrade(Sent sent, Vec3 position) {
