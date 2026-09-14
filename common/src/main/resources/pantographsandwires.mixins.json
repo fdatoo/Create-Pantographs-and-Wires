@@ -18,7 +18,8 @@
     "client.LevelRendererMixin",
     "client.RenderRegionCacheMixin",
     "client.ParticleEngineMixin",
-    "client.MultiPlayerGameModeMixin"
+    "client.MultiPlayerGameModeMixin",
+    "client.SoundBufferLibraryMixin"
   ],
   "mixins": [
     "AbstractBlockStateMixin",

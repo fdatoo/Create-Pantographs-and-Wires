@@ -1,19 +1,19 @@
 package de.mrjulsen.paw.client.sound;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import de.mrjulsen.paw.client.sound.synth.OnixTractionSynth;
+import de.mrjulsen.paw.client.sound.synth.SynthAudioStream;
+import de.mrjulsen.paw.client.sound.synth.SynthStreams;
 import de.mrjulsen.paw.config.ModClientConfig;
 import de.mrjulsen.paw.config.TractionSoundProfile;
 import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
 import de.mrjulsen.paw.traction.TractionDemand;
-import de.mrjulsen.paw.traction.WmataTraction;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -25,17 +25,10 @@ import net.minecraft.sounds.SoundEvent;
  * briefly skipping across an insulator gap) keeps one steady sound instead of
  * stuttering on and off.
  *
- * Each vehicle plays a bank of independently pitched voices built from components
- * measured in a recording, chosen by the traction profile in the client config: the
- * WMATA 6000-series by default, or the Paris MP 89. Every frequency is an observed
- * acoustic feature, not a recovered electrical or switching parameter.
- *
- * Both recordings are a single acceleration, so their sounds are laid out over train
- * speed rather than elapsed time: standing is the start of the departure and top speed
- * is its end. The WMATA profile also follows traction demand, estimated from how the
- * train's speed changes: its tones are strong under power, far quieter while coasting,
- * and replaced by a separate braking curve while braking. That mapping is a design
- * choice. A recording measures frequencies, not how they should follow a throttle.
+ * The traction profile in the client config picks how a vehicle sounds. WMATA (the default) is
+ * synthesised live from a model of the 6000-series drive (see OnixTraction): one streamed voice per
+ * vehicle, following its speed and its traction demand, estimated from how its speed changes. MP89
+ * plays pitched loops of components measured in a recording of a Paris MP 89, laid out over speed.
  */
 @Environment(EnvType.CLIENT)
 public final class TractionSoundManager {
@@ -45,14 +38,13 @@ public final class TractionSoundManager {
     // A vehicle that stops reporting entirely (unloaded, contraption disassembled)
     // is swept out and its voices force-stopped after this many ticks of silence.
     private static final long STALE_AFTER_TICKS = 40;
-    // Each vehicle costs one channel per voice, so cap how many sound at once.
-    private static final int MAX_VEHICLES = 8;
+    // Each vehicle costs channels, so cap how many sound at once. A synthesised voice takes one of
+    // the sound engine's few streaming channels, which music also uses, so leave some free.
+    private static final int MAX_VEHICLES = 6;
 
-    // Speed (blocks/tick) at and beyond which the drive is at its top. Create's
-    // configured maximum is 1.4 (28 m/s), but trains in practice cruise near half that.
+    // MP 89: speed (blocks/tick) at and beyond which the drive is at its top.
     private static final double SPEED_AT_TOP = 0.7;
-    // A standing train has no traction whine and no rolling noise, since nothing is
-    // turning. Below this the whole bank fades out instead of humming at the platform.
+    // MP 89: below this the whole bank fades out instead of humming at the platform.
     private static final double SPEED_AT_FULL_MOTION = 0.08;
     // Below this the vehicle counts as stopped and its voices are released outright.
     private static final double SPEED_CONSIDERED_STOPPED = 0.01;
@@ -111,11 +103,11 @@ public final class TractionSoundManager {
         } else if (entry.lastUpdateTick != gameTime) {
             // A train reports once per collector each tick. Only the first report moves the sound, or
             // the rest would see no change in speed and read the train as coasting.
-            entry.update(speed);
+            entry.update(speed, gameTime);
         }
         entry.lastUpdateTick = gameTime;
         if (touching) {
-            entry.updatePosition(x, y, z);
+            entry.bank.updatePosition(x, y, z);
         }
         entry.lastObservedTick = gameTime;
     }
@@ -123,13 +115,12 @@ public final class TractionSoundManager {
     private static Entry start(TractionSoundProfile profile, double speed, double x, double y, double z) {
         VoiceBank bank = switch (profile) {
             case MP89 -> new Mp89Bank(x, y, z);
-            case WMATA -> new WmataBank(x, y, z);
+            case WMATA -> new OnixSynthBank(x, y, z);
         };
         Entry entry = new Entry(profile, bank);
-        // Frequencies are set before playback so no voice starts at its sample's own
-        // pitch and audibly slides to where the vehicle's speed actually puts it.
-        entry.update(speed);
-        bank.voices().forEach(v -> Minecraft.getInstance().getSoundManager().play(v));
+        // State is set before playback so nothing starts at the wrong pitch and slides into place.
+        entry.update(speed, Long.MIN_VALUE);
+        bank.start();
         return entry;
     }
 
@@ -213,40 +204,40 @@ public final class TractionSoundManager {
             this.bank = bank;
         }
 
-        private void update(double speed) {
+        private void update(double speed, long gameTime) {
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;
             hasPreviousSpeed = true;
             demand.update(Math.abs(speed));
-
-            float motion = motionScale(speed);
-            bank.update(speedFraction(speed), motion, motion * loadScaleFor(acceleration), demand);
-        }
-
-        private void updatePosition(double x, double y, double z) {
-            bank.voices().forEach(voice -> voice.updatePosition(x, y, z));
+            bank.update(speed, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), demand, gameTime);
         }
 
         private void stop() {
-            bank.voices().forEach(TractionHumSoundInstance::requestStop);
+            bank.stop();
         }
 
         private boolean isStopped() {
-            return bank.voices().get(0).isStopped();
+            return bank.isStopped();
         }
     }
 
-    /** One profile's voices and how they follow the vehicle. */
+    /** One profile's sound for a vehicle. */
     private interface VoiceBank {
-        List<TractionHumSoundInstance> voices();
+        void start();
 
         /**
-         * @param fraction speed from standing (0) to the drive's top (1)
-         * @param motion   overall level from speed, for mechanical layers
-         * @param tonal    motion scaled by MP 89's load envelope
-         * @param demand   traction and braking demand, for the WMATA profile
+         * @param speed  blocks per tick
+         * @param motion overall level from speed (MP 89)
+         * @param tonal  motion scaled by MP 89's load envelope
+         * @param demand traction and braking demand
          */
-        void update(double fraction, float motion, float tonal, TractionDemand demand);
+        void update(double speed, float motion, float tonal, TractionDemand demand, long gameTime);
+
+        void updatePosition(double x, double y, double z);
+
+        void stop();
+
+        boolean isStopped();
     }
 
     /**
@@ -283,12 +274,13 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public List<TractionHumSoundInstance> voices() {
-            return voices;
+        public void start() {
+            voices.forEach(v -> Minecraft.getInstance().getSoundManager().play(v));
         }
 
         @Override
-        public void update(double fraction, float motion, float tonal, TractionDemand demand) {
+        public void update(double speed, float motion, float tonal, TractionDemand demand, long gameTime) {
+            double fraction = speedFraction(speed);
             ridge.setTargetFrequency(RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * fraction);
             ridge.setLoadScale(tonal * window(fraction, 0.05, 0.30, 1.0, 1.01));
 
@@ -300,54 +292,83 @@ public final class TractionSoundManager {
 
             texture.setLoadScale(motion);
         }
+
+        @Override
+        public void updatePosition(double x, double y, double z) {
+            voices.forEach(voice -> voice.updatePosition(x, y, z));
+        }
+
+        @Override
+        public void stop() {
+            voices.forEach(TractionHumSoundInstance::requestStop);
+        }
+
+        @Override
+        public boolean isStopped() {
+            return toneA.isStopped();
+        }
     }
 
     /**
-     * WMATA 6000-series: an upper whine near 2.4-2.6kHz in three speed stages, a lower tone
-     * climbing from about 440Hz to 1.6kHz, a brief upper event, a separate braking tone, and a
-     * rising noise bed. Curves, levels and demand mixing live in {@link WmataTraction}.
+     * WMATA 6000-series, synthesised live from the drive model. One streamed voice; if Minecraft drops
+     * it (a stalled client can starve the stream), it is restarted with the same synthesiser so the
+     * sound picks up where it left off.
      */
-    private static final class WmataBank implements VoiceBank {
-        private final Map<WmataTraction.Voice, TractionHumSoundInstance> tonal = new EnumMap<>(WmataTraction.Voice.class);
-        private final TractionHumSoundInstance noise;
-        private final List<TractionHumSoundInstance> voices;
+    private static final class OnixSynthBank implements VoiceBank {
+        private static final long RESTART_INTERVAL_TICKS = 20;
 
-        private WmataBank(double x, double y, double z) {
-            List<TractionHumSoundInstance> all = new ArrayList<>();
-            for (WmataTraction.Voice voice : WmataTraction.Voice.values()) {
-                TractionHumSoundInstance instance = voice(sampleFor(voice), 1.0f, WmataTraction.referenceFrequency(voice), x, y, z);
-                tonal.put(voice, instance);
-                all.add(instance);
-            }
-            noise = voice(ModSounds.WMATA_NOISE.get(), 1.0f, UNPITCHED_REFERENCE_HZ, x, y, z);
-            noise.setTargetFrequency(UNPITCHED_REFERENCE_HZ);
-            all.add(noise);
-            voices = List.copyOf(all);
-        }
+        private final OnixTractionSynth synth = new OnixTractionSynth();
+        private TractionSynthSoundInstance instance;
+        private double x;
+        private double y;
+        private double z;
+        private boolean stopping;
+        private long lastStartTick = Long.MIN_VALUE;
 
-        private static SoundEvent sampleFor(WmataTraction.Voice voice) {
-            return switch (voice) {
-                case STAGE_A, STAGE_B, BRAKE -> ModSounds.WMATA_UPPER_LINE.get();
-                case UPPER_DIFFUSE -> ModSounds.WMATA_UPPER_DIFFUSE.get();
-                case RIDGE -> ModSounds.WMATA_RIDGE.get();
-                case BRIEF -> ModSounds.WMATA_BRIEF.get();
-            };
+        private OnixSynthBank(double x, double y, double z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
 
         @Override
-        public List<TractionHumSoundInstance> voices() {
-            return voices;
+        public void start() {
+            instance = new TractionSynthSoundInstance(x, y, z);
+            SynthStreams.play(instance, new SynthAudioStream(synth));
         }
 
         @Override
-        public void update(double fraction, float motion, float tonalLoad, TractionDemand demand) {
-            for (Map.Entry<WmataTraction.Voice, TractionHumSoundInstance> entry : tonal.entrySet()) {
-                WmataTraction.Voice voice = entry.getKey();
-                TractionHumSoundInstance instance = entry.getValue();
-                instance.setTargetFrequency(WmataTraction.frequency(voice, fraction));
-                instance.setLoadScale(motion * (float) WmataTraction.volume(voice, fraction, demand.power(), demand.brake()));
+        public void update(double speed, float motion, float tonal, TractionDemand demand, long gameTime) {
+            synth.setState(speed, demand.power(), demand.brake());
+            if (instance != null && !stopping && gameTime != Long.MIN_VALUE
+                && !Minecraft.getInstance().getSoundManager().isActive(instance)
+                && gameTime - lastStartTick >= RESTART_INTERVAL_TICKS) {
+                lastStartTick = gameTime;
+                start();
             }
-            noise.setLoadScale(motion * (float) WmataTraction.noiseVolume(fraction));
+        }
+
+        @Override
+        public void updatePosition(double x, double y, double z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            if (instance != null) {
+                instance.updatePosition(x, y, z);
+            }
+        }
+
+        @Override
+        public void stop() {
+            stopping = true;
+            if (instance != null) {
+                instance.requestStop();
+            }
+        }
+
+        @Override
+        public boolean isStopped() {
+            return stopping && (instance == null || instance.isStopped() || !Minecraft.getInstance().getSoundManager().isActive(instance));
         }
     }
 }

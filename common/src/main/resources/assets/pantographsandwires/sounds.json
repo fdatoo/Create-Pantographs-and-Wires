@@ -32,44 +32,12 @@
             }
         ]
     },
-    "electric.wmata_upper_line": {
+    "electric.traction_synth": {
         "subtitle": "subtitle.pantographsandwires.electric_traction_hum",
         "sounds": [
             {
-                "name": "pantographsandwires:electric/wmata_upper_line",
-                "stream": false
-            }
-        ]
-    },
-    "electric.wmata_upper_diffuse": {
-        "sounds": [
-            {
-                "name": "pantographsandwires:electric/wmata_upper_diffuse",
-                "stream": false
-            }
-        ]
-    },
-    "electric.wmata_ridge": {
-        "sounds": [
-            {
-                "name": "pantographsandwires:electric/wmata_ridge",
-                "stream": false
-            }
-        ]
-    },
-    "electric.wmata_brief": {
-        "sounds": [
-            {
-                "name": "pantographsandwires:electric/wmata_brief",
-                "stream": false
-            }
-        ]
-    },
-    "electric.wmata_noise": {
-        "sounds": [
-            {
-                "name": "pantographsandwires:electric/wmata_noise",
-                "stream": false
+                "name": "pantographsandwires:electric/synth",
+                "stream": true
             }
         ]
     }
