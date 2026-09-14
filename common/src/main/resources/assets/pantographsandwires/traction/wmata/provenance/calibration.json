@@ -1,0 +1,621 @@
+{
+  "groups": [
+    {
+      "group": "power",
+      "max_gain_db": 8.91077530514734,
+      "min_gain_db": -8.255258945422735
+    },
+    {
+      "group": "power_steady",
+      "max_gain_db": 12.805401215534342,
+      "min_gain_db": 7.045880673273551
+    },
+    {
+      "group": "brake",
+      "max_gain_db": 1.8225580286998775,
+      "min_gain_db": -5.426956805613205
+    },
+    {
+      "group": "brake_steady",
+      "max_gain_db": 12.517318988917737,
+      "min_gain_db": 6.358051671843721
+    },
+    {
+      "group": "mechanical",
+      "max_gain_db": 3.981622134612124,
+      "min_gain_db": -1.4747670425777384
+    },
+    {
+      "group": "cruising",
+      "max_gain_db": 8.504263106928377,
+      "min_gain_db": -2.1826801425621416
+    }
+  ],
+  "master_changes": [
+    {
+      "layer": "brake/tone_10",
+      "gain_db": 0.32928390309972144,
+      "peak_dbfs": -18.168311265766157
+    },
+    {
+      "layer": "brake_steady/v11_a",
+      "gain_db": 9.418438322240263,
+      "peak_dbfs": -25.19665469855152
+    },
+    {
+      "layer": "brake_steady/v11_b",
+      "gain_db": 9.418438322240263,
+      "peak_dbfs": -23.352228019912662
+    },
+    {
+      "layer": "brake_steady/v11_c",
+      "gain_db": 9.418438322240263,
+      "peak_dbfs": -20.008864689417003
+    },
+    {
+      "layer": "brake_steady/v12p5_a",
+      "gain_db": 9.083472248497777,
+      "peak_dbfs": -32.863645644489175
+    },
+    {
+      "layer": "brake_steady/v12p5_b",
+      "gain_db": 9.083472248497777,
+      "peak_dbfs": -21.228580620669742
+    },
+    {
+      "layer": "brake_steady/v12p5_c",
+      "gain_db": 9.083472248497777,
+      "peak_dbfs": -18.480373360236687
+    },
+    {
+      "layer": "brake_steady/v14_a",
+      "gain_db": 6.065418350221556,
+      "peak_dbfs": -33.02052740183387
+    },
+    {
+      "layer": "brake_steady/v14_b",
+      "gain_db": 6.065418350221556,
+      "peak_dbfs": -20.475140453517128
+    },
+    {
+      "layer": "brake_steady/v14_c",
+      "gain_db": 6.065418350221556,
+      "peak_dbfs": -20.00064010312681
+    },
+    {
+      "layer": "brake_steady/v16_a",
+      "gain_db": 3.8367591298886317,
+      "peak_dbfs": -21.62212921523135
+    },
+    {
+      "layer": "brake_steady/v16_b",
+      "gain_db": 3.8367591298886317,
+      "peak_dbfs": -22.766222716842933
+    },
+    {
+      "layer": "brake_steady/v16_c",
+      "gain_db": 3.8367591298886317,
+      "peak_dbfs": -18.76171995132583
+    },
+    {
+      "layer": "brake_steady/v18p5_a",
+      "gain_db": 5.609200495162226,
+      "peak_dbfs": -23.5338880498893
+    },
+    {
+      "layer": "brake_steady/v18p5_b",
+      "gain_db": 5.609200495162226,
+      "peak_dbfs": -18.446996560979365
+    },
+    {
+      "layer": "brake_steady/v18p5_c",
+      "gain_db": 5.609200495162226,
+      "peak_dbfs": -16.66612089709591
+    },
+    {
+      "layer": "brake_steady/v21_a",
+      "gain_db": 7.7325800034133,
+      "peak_dbfs": -29.311752326269207
+    },
+    {
+      "layer": "brake_steady/v21_b",
+      "gain_db": 7.7325800034133,
+      "peak_dbfs": -18.394143657638534
+    },
+    {
+      "layer": "brake_steady/v21_c",
+      "gain_db": 7.7325800034133,
+      "peak_dbfs": -13.230859981271006
+    },
+    {
+      "layer": "brake_steady/v24_a",
+      "gain_db": 7.076374326024585,
+      "peak_dbfs": -20.61261373767144
+    },
+    {
+      "layer": "brake_steady/v24_b",
+      "gain_db": 7.076374326024585,
+      "peak_dbfs": -17.80928369751615
+    },
+    {
+      "layer": "brake_steady/v24_c",
+      "gain_db": 7.076374326024585,
+      "peak_dbfs": -14.189609324672045
+    },
+    {
+      "layer": "brake_steady/v26_a",
+      "gain_db": 5.676017273960515,
+      "peak_dbfs": -28.371791648204354
+    },
+    {
+      "layer": "brake_steady/v26_b",
+      "gain_db": 5.676017273960515,
+      "peak_dbfs": -16.03039646055445
+    },
+    {
+      "layer": "brake_steady/v26_c",
+      "gain_db": 5.676017273960515,
+      "peak_dbfs": -13.58170823323544
+    },
+    {
+      "layer": "brake_steady/v28_a",
+      "gain_db": 5.563373447549134,
+      "peak_dbfs": -27.099626944944852
+    },
+    {
+      "layer": "brake_steady/v28_b",
+      "gain_db": 5.563373447549134,
+      "peak_dbfs": -16.455350152822007
+    },
+    {
+      "layer": "brake_steady/v28_c",
+      "gain_db": 5.563373447549134,
+      "peak_dbfs": -11.279863634507151
+    },
+    {
+      "layer": "brake_steady/v32_a",
+      "gain_db": 6.6252826081621325,
+      "peak_dbfs": -25.932864506544675
+    },
+    {
+      "layer": "brake_steady/v32_b",
+      "gain_db": 6.6252826081621325,
+      "peak_dbfs": -16.89156664452712
+    },
+    {
+      "layer": "brake_steady/v32_c",
+      "gain_db": 6.6252826081621325,
+      "peak_dbfs": -10.521564470235381
+    },
+    {
+      "layer": "brake_steady/v36_a",
+      "gain_db": 6.436360382295549,
+      "peak_dbfs": -26.687104034719166
+    },
+    {
+      "layer": "brake_steady/v36_b",
+      "gain_db": 6.436360382295549,
+      "peak_dbfs": -17.180453668746697
+    },
+    {
+      "layer": "brake_steady/v36_c",
+      "gain_db": 6.436360382295549,
+      "peak_dbfs": -10.726119668230565
+    },
+    {
+      "layer": "brake_steady/v40_a",
+      "gain_db": 6.540078893160366,
+      "peak_dbfs": -26.714889292666015
+    },
+    {
+      "layer": "brake_steady/v40_b",
+      "gain_db": 6.540078893160366,
+      "peak_dbfs": -16.071831161160222
+    },
+    {
+      "layer": "brake_steady/v40_c",
+      "gain_db": 6.540078893160366,
+      "peak_dbfs": -11.196097189865322
+    },
+    {
+      "layer": "brake_steady/v5_a",
+      "gain_db": 8.656833823864234,
+      "peak_dbfs": -38.5937434738148
+    },
+    {
+      "layer": "brake_steady/v5_b",
+      "gain_db": 8.656833823864234,
+      "peak_dbfs": -31.324246551188615
+    },
+    {
+      "layer": "brake_steady/v5_c",
+      "gain_db": 8.656833823864234,
+      "peak_dbfs": -23.011612484308635
+    },
+    {
+      "layer": "brake_steady/v5p8_a",
+      "gain_db": 8.62819810872844,
+      "peak_dbfs": -35.57662910345841
+    },
+    {
+      "layer": "brake_steady/v5p8_b",
+      "gain_db": 8.62819810872844,
+      "peak_dbfs": -37.23704239620243
+    },
+    {
+      "layer": "brake_steady/v5p8_c",
+      "gain_db": 8.62819810872844,
+      "peak_dbfs": -22.551241347646204
+    },
+    {
+      "layer": "brake_steady/v6p5_a",
+      "gain_db": 9.286510134761913,
+      "peak_dbfs": -33.187113653906735
+    },
+    {
+      "layer": "brake_steady/v6p5_b",
+      "gain_db": 9.286510134761913,
+      "peak_dbfs": -35.12455682084579
+    },
+    {
+      "layer": "brake_steady/v6p5_c",
+      "gain_db": 9.286510134761913,
+      "peak_dbfs": -21.090408362198616
+    },
+    {
+      "layer": "brake_steady/v7p25_a",
+      "gain_db": 7.411842749085322,
+      "peak_dbfs": -31.607903430648676
+    },
+    {
+      "layer": "brake_steady/v7p25_b",
+      "gain_db": 7.411842749085322,
+      "peak_dbfs": -32.52595185848176
+    },
+    {
+      "layer": "brake_steady/v7p25_c",
+      "gain_db": 7.411842749085322,
+      "peak_dbfs": -20.871453294469656
+    },
+    {
+      "layer": "brake_steady/v7p8_a",
+      "gain_db": 7.37655494522214,
+      "peak_dbfs": -30.387927837857198
+    },
+    {
+      "layer": "brake_steady/v7p8_b",
+      "gain_db": 7.37655494522214,
+      "peak_dbfs": -30.88412170439431
+    },
+    {
+      "layer": "brake_steady/v7p8_c",
+      "gain_db": 7.37655494522214,
+      "peak_dbfs": -21.71777888693154
+    },
+    {
+      "layer": "brake_steady/v8p3_a",
+      "gain_db": 8.779294795453765,
+      "peak_dbfs": -28.169050970400548
+    },
+    {
+      "layer": "brake_steady/v8p3_b",
+      "gain_db": 8.779294795453765,
+      "peak_dbfs": -29.333731830407594
+    },
+    {
+      "layer": "brake_steady/v8p3_c",
+      "gain_db": 8.779294795453765,
+      "peak_dbfs": -20.657178652246472
+    },
+    {
+      "layer": "brake_steady/v9p5_a",
+      "gain_db": 9.622143279347213,
+      "peak_dbfs": -22.472158449893538
+    },
+    {
+      "layer": "brake_steady/v9p5_b",
+      "gain_db": 9.622143279347213,
+      "peak_dbfs": -20.049853239818486
+    },
+    {
+      "layer": "brake_steady/v9p5_c",
+      "gain_db": 9.622143279347213,
+      "peak_dbfs": -24.4882471988994
+    },
+    {
+      "layer": "power/tone_00",
+      "gain_db": 7.467815638818919,
+      "peak_dbfs": -42.688827577103574
+    },
+    {
+      "layer": "power/tone_01",
+      "gain_db": 1.112575596595791,
+      "peak_dbfs": -32.58389800537552
+    },
+    {
+      "layer": "power_steady/v11_a",
+      "gain_db": 5.292135694761511,
+      "peak_dbfs": -21.63743488903509
+    },
+    {
+      "layer": "power_steady/v11_b",
+      "gain_db": 5.292135694761511,
+      "peak_dbfs": -21.154066549354013
+    },
+    {
+      "layer": "power_steady/v11_c",
+      "gain_db": 5.292135694761511,
+      "peak_dbfs": -22.08533989854487
+    },
+    {
+      "layer": "power_steady/v12p5_a",
+      "gain_db": 4.863162757599521,
+      "peak_dbfs": -21.82306072110005
+    },
+    {
+      "layer": "power_steady/v12p5_b",
+      "gain_db": 4.863162757599521,
+      "peak_dbfs": -22.176505184917726
+    },
+    {
+      "layer": "power_steady/v12p5_c",
+      "gain_db": 4.863162757599521,
+      "peak_dbfs": -19.525239193921337
+    },
+    {
+      "layer": "power_steady/v14_a",
+      "gain_db": 4.4021229958137456,
+      "peak_dbfs": -27.173067275120893
+    },
+    {
+      "layer": "power_steady/v14_b",
+      "gain_db": 4.4021229958137456,
+      "peak_dbfs": -19.945958353420302
+    },
+    {
+      "layer": "power_steady/v14_c",
+      "gain_db": 4.4021229958137456,
+      "peak_dbfs": -17.925846406658295
+    },
+    {
+      "layer": "power_steady/v16_a",
+      "gain_db": 6.5217014078111655,
+      "peak_dbfs": -23.015887463454217
+    },
+    {
+      "layer": "power_steady/v16_b",
+      "gain_db": 6.5217014078111655,
+      "peak_dbfs": -18.69888506574783
+    },
+    {
+      "layer": "power_steady/v16_c",
+      "gain_db": 6.5217014078111655,
+      "peak_dbfs": -15.915491637837107
+    },
+    {
+      "layer": "power_steady/v18p5_a",
+      "gain_db": 5.016543695019769,
+      "peak_dbfs": -30.702451910438032
+    },
+    {
+      "layer": "power_steady/v18p5_b",
+      "gain_db": 5.016543695019769,
+      "peak_dbfs": -17.34114964314934
+    },
+    {
+      "layer": "power_steady/v18p5_c",
+      "gain_db": 5.016543695019769,
+      "peak_dbfs": -15.715040247913908
+    },
+    {
+      "layer": "power_steady/v21_a",
+      "gain_db": 7.115916790070985,
+      "peak_dbfs": -18.335268433717857
+    },
+    {
+      "layer": "power_steady/v21_b",
+      "gain_db": 7.115916790070985,
+      "peak_dbfs": -15.18712615941312
+    },
+    {
+      "layer": "power_steady/v21_c",
+      "gain_db": 7.115916790070985,
+      "peak_dbfs": -16.070502350494493
+    },
+    {
+      "layer": "power_steady/v24_a",
+      "gain_db": 6.054270127423898,
+      "peak_dbfs": -28.333383242436355
+    },
+    {
+      "layer": "power_steady/v24_b",
+      "gain_db": 6.054270127423898,
+      "peak_dbfs": -16.289348615394474
+    },
+    {
+      "layer": "power_steady/v24_c",
+      "gain_db": 6.054270127423898,
+      "peak_dbfs": -13.751726034125564
+    },
+    {
+      "layer": "power_steady/v26_a",
+      "gain_db": 7.990272266560709,
+      "peak_dbfs": -27.049874072709947
+    },
+    {
+      "layer": "power_steady/v26_b",
+      "gain_db": 7.990272266560709,
+      "peak_dbfs": -16.355520450202043
+    },
+    {
+      "layer": "power_steady/v26_c",
+      "gain_db": 7.990272266560709,
+      "peak_dbfs": -15.321934132625017
+    },
+    {
+      "layer": "power_steady/v28_a",
+      "gain_db": 4.549374633318728,
+      "peak_dbfs": -27.571846908337744
+    },
+    {
+      "layer": "power_steady/v28_b",
+      "gain_db": 4.549374633318728,
+      "peak_dbfs": -17.13525210425074
+    },
+    {
+      "layer": "power_steady/v28_c",
+      "gain_db": 4.549374633318728,
+      "peak_dbfs": -14.232113103679506
+    },
+    {
+      "layer": "power_steady/v32_a",
+      "gain_db": 5.966966908890274,
+      "peak_dbfs": -26.50832140942091
+    },
+    {
+      "layer": "power_steady/v32_b",
+      "gain_db": 5.966966908890274,
+      "peak_dbfs": -15.397320250208892
+    },
+    {
+      "layer": "power_steady/v32_c",
+      "gain_db": 5.966966908890274,
+      "peak_dbfs": -12.358353973763847
+    },
+    {
+      "layer": "power_steady/v36_a",
+      "gain_db": 6.528259720591927,
+      "peak_dbfs": -26.566166932460284
+    },
+    {
+      "layer": "power_steady/v36_b",
+      "gain_db": 6.528259720591927,
+      "peak_dbfs": -15.302260389167667
+    },
+    {
+      "layer": "power_steady/v36_c",
+      "gain_db": 6.528259720591927,
+      "peak_dbfs": -11.561001803518282
+    },
+    {
+      "layer": "power_steady/v40_a",
+      "gain_db": 6.349696436056088,
+      "peak_dbfs": -27.036959371417044
+    },
+    {
+      "layer": "power_steady/v40_b",
+      "gain_db": 6.349696436056088,
+      "peak_dbfs": -15.826423230275806
+    },
+    {
+      "layer": "power_steady/v40_c",
+      "gain_db": 6.349696436056088,
+      "peak_dbfs": -13.395063340722713
+    },
+    {
+      "layer": "power_steady/v5_a",
+      "gain_db": 7.97742074507177,
+      "peak_dbfs": -27.479468498553405
+    },
+    {
+      "layer": "power_steady/v5_b",
+      "gain_db": 7.97742074507177,
+      "peak_dbfs": -27.530989192920163
+    },
+    {
+      "layer": "power_steady/v5_c",
+      "gain_db": 7.97742074507177,
+      "peak_dbfs": -36.22824661700576
+    },
+    {
+      "layer": "power_steady/v5p8_a",
+      "gain_db": 6.834198560622572,
+      "peak_dbfs": -32.61391786827002
+    },
+    {
+      "layer": "power_steady/v5p8_b",
+      "gain_db": 6.834198560622572,
+      "peak_dbfs": -28.100824374942697
+    },
+    {
+      "layer": "power_steady/v5p8_c",
+      "gain_db": 6.834198560622572,
+      "peak_dbfs": -25.44325004984985
+    },
+    {
+      "layer": "power_steady/v6p5_a",
+      "gain_db": 7.855037223726856,
+      "peak_dbfs": -35.30077234490627
+    },
+    {
+      "layer": "power_steady/v6p5_b",
+      "gain_db": 7.855037223726856,
+      "peak_dbfs": -37.39140567588108
+    },
+    {
+      "layer": "power_steady/v6p5_c",
+      "gain_db": 7.855037223726856,
+      "peak_dbfs": -22.19046669480061
+    },
+    {
+      "layer": "power_steady/v7p25_a",
+      "gain_db": 4.188588292548295,
+      "peak_dbfs": -31.177152775649326
+    },
+    {
+      "layer": "power_steady/v7p25_b",
+      "gain_db": 4.188588292548295,
+      "peak_dbfs": -32.69818348453488
+    },
+    {
+      "layer": "power_steady/v7p25_c",
+      "gain_db": 4.188588292548295,
+      "peak_dbfs": -23.908826617202912
+    },
+    {
+      "layer": "power_steady/v7p8_a",
+      "gain_db": 6.540028000071782,
+      "peak_dbfs": -32.56878212320122
+    },
+    {
+      "layer": "power_steady/v7p8_b",
+      "gain_db": 6.540028000071782,
+      "peak_dbfs": -33.08170502851644
+    },
+    {
+      "layer": "power_steady/v7p8_c",
+      "gain_db": 6.540028000071782,
+      "peak_dbfs": -20.954244582668938
+    },
+    {
+      "layer": "power_steady/v8p3_a",
+      "gain_db": 9.983440147191912,
+      "peak_dbfs": -22.94211634820548
+    },
+    {
+      "layer": "power_steady/v8p3_b",
+      "gain_db": 9.983440147191912,
+      "peak_dbfs": -23.702916576851692
+    },
+    {
+      "layer": "power_steady/v8p3_c",
+      "gain_db": 9.983440147191912,
+      "peak_dbfs": -21.155176755712834
+    },
+    {
+      "layer": "power_steady/v9p5_a",
+      "gain_db": 7.224666405337235,
+      "peak_dbfs": -22.936278646284084
+    },
+    {
+      "layer": "power_steady/v9p5_b",
+      "gain_db": 7.224666405337235,
+      "peak_dbfs": -23.31329249726448
+    },
+    {
+      "layer": "power_steady/v9p5_c",
+      "gain_db": 7.224666405337235,
+      "peak_dbfs": -21.359305198825634
+    }
+  ]
+}

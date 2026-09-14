@@ -1,5 +1,5 @@
 {
-  "baseline": "C spectral treatment preserved; speed-dependent loudness correction and equal-power speed overlaps authored into CSV; selected masters receive scalar gain only",
+  "baseline": "C mix: gear -9 dB, rolling +2 dB in CSV; steady whine and residual reductions baked into WAVs",
   "continuous_mechanical_layers": [
     "coast/rolling_low",
     "coast/rolling_high",
@@ -16,10 +16,10 @@
   "brake_on_curve": "smoothstep attack",
   "gain_matching_or_master_processing": "none",
   "scope": "Requires explicit support in the player; loading only curves.csv with coast-only gating will not reproduce the accepted previews.",
-  "not_yet_tested": "Revised pack has not been approved by ear or tested in game. Survey uses PCM masters, not shipped Vorbis conversions.",
-  "pack_id": "wmata-alstom-C-v5-loudness",
+  "not_yet_tested": "C mix has been approved in the 14 m/s demos. Other speeds and in-game C playback still need listening checks.",
+  "pack_id": "wmata-alstom-C-v4",
   "settings_format": "proposed custom player metadata, not an existing game standard",
-  "status": "Loudness survey passed; revised mix awaits listening and game checks",
+  "status": "C balance accepted at 14 m/s; extension to other steady speeds awaits listening",
   "speed_domain_mps": [
     0,
     40
@@ -50,9 +50,9 @@
   "steady_loop_rule": "Play every nonzero-volume row in the active steady family. The a/b/c files are simultaneous components, not alternatives. Keep their independent read heads continuous across entry, speed changes, and exit. Retain phase while inaudible, for example by advancing a virtual read head. Never align or restart all components at a loop boundary.",
   "steady_existing_mode_timing_rule": "Keep existing 0.25-second mode blend and 1-second slope-load ramp, with the additional 1.5-second steady blend. Curves are already combined; do not append older addon rows.",
   "steady_contact_rule": "Honor the player's existing availability gate for each family. Loss of contact disables power as it already does. Use the existing electrical-braking availability rule for brake_steady; do not invent a new brake availability rule from this addon. Driver direction input alone is not a steady-load requirement.",
-  "steady_status": "Steady family loudness matched to smoothed sweep; original whine-to-rest spectral treatment retained",
-  "mix_rule": "Use v5 WAVs and CSV together exactly once. No runtime normalization, extra equal-power speed transform, or additional C EQ/gain offsets. The speed curves already contain calibrated overlap gains.",
-  "player_keys_note": "All operational values and rule strings retained from the user-supplied current mod settings, including the 0.4-second / 0.5 m/s steady exit revision.",
+  "steady_status": "Updated C balance; 14 m/s approved, other anchors extrapolated using the same spectral treatment",
+  "mix_rule": "Use files and CSV exactly once. Do not apply additional C EQ or gear/rolling gain changes: they are already baked into assets or CSV.",
+  "player_keys_note": "Keys from here on are not in the wmata-alstom-C-v4 delivery. They carry the player's existing cruising duck, mode timing and slope ramp, which INTEGRATION.md says to keep; steady_exit_hold_seconds, steady_exit_speed_deviation_mps and steady_exit_rule above also keep the player's tested exit revision in place of the delivery's 0.15 s rule.",
   "ducked_layers": [
     "coast/cruising"
   ],

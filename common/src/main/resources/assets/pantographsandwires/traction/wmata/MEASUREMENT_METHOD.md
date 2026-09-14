@@ -1,0 +1,7 @@
+# Loudness measurement protocol
+
+pyloudnorm Meter(48000), default K-weighting and 400 ms gating blocks. 3 s rendered at fixed speed, full mode gain. Start each layer at read-head age zero for the required survey. Playback uses the CSV's interpolated pitch and volume, linear audio sample interpolation with wraparound, and sums simultaneous layers. Mechanical group is the four named continuous layers; cruising group is coast/cruising at full CSV volume. Heard mix adds mechanical plus cruising*0.15 to the selected traction family. No runtime gain compensation or normalization.
+
+Survey: 0.5–40 m/s in 0.5 steps. Blank steady group LUFS below its actual nonzero range; heard steady columns below 5 are only the bed/fade-guard behavior, not eligible full steady operation. Comparisons of steady endpoints are restricted to 5–40 inclusive. Additional offset grid runs 0.75–39.75 by 0.5 m/s. Alternate read-head checks start all continuously advancing heads at elapsed ages 11 and 23 s, rendering 3 s per speed. These are finite tests, not an exhaustive bound over all possible phases.
+
+WAV validation checks mono/48k/PCM24, -6 dBFS maximum master peaks, scalar-only modifications within PCM24 quantization error, unchanged WAV hashes, speed ordering, CSV volume limits and pitch range. Existing seam steps are recorded; constant scalar gain changes do not introduce new time-domain edits. The original source folder is never modified.
