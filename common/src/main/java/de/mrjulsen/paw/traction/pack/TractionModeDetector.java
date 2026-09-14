@@ -20,6 +20,7 @@ public final class TractionModeDetector {
     public static final double GRAVITY = 9.81 / 400;
 
     private int persistenceTicks;
+    private int coastPersistenceTicks;
     private double departureSpeed;
 
     private double previousSpeed;
@@ -36,7 +37,18 @@ public final class TractionModeDetector {
      * @param departureSpeed   speed (blocks per tick) below which changes take effect at once
      */
     public void configure(int persistenceTicks, double departureSpeed) {
+        configure(persistenceTicks, persistenceTicks, departureSpeed);
+    }
+
+    /**
+     * @param persistenceTicks      ticks a new power or brake mode must hold while moving before it takes effect
+     * @param coastPersistenceTicks ticks the end of demand must hold while moving before cruising takes over;
+     *                              longer, so demand handing from a slope to speeding up doesn't dip to cruise
+     * @param departureSpeed        speed (blocks per tick) below which changes take effect at once
+     */
+    public void configure(int persistenceTicks, int coastPersistenceTicks, double departureSpeed) {
         this.persistenceTicks = Math.max(0, persistenceTicks);
+        this.coastPersistenceTicks = Math.max(0, coastPersistenceTicks);
         this.departureSpeed = departureSpeed;
     }
 
@@ -91,10 +103,11 @@ public final class TractionModeDetector {
             case BRAKE -> acceleration > ENTER ? TractionMode.POWER : acceleration > -EXIT ? TractionMode.COAST : TractionMode.BRAKE;
             case COAST -> acceleration > ENTER ? TractionMode.POWER : acceleration < -ENTER ? TractionMode.BRAKE : TractionMode.COAST;
         };
+        int needed = candidate == TractionMode.COAST ? coastPersistenceTicks : persistenceTicks;
         if (candidate == mode) {
             pending = null;
             pendingTicks = 0;
-        } else if (persistenceTicks == 0 || speed < departureSpeed) {
+        } else if (needed == 0 || speed < departureSpeed) {
             mode = candidate;
             pending = null;
             pendingTicks = 0;
@@ -103,7 +116,7 @@ public final class TractionModeDetector {
                 pending = candidate;
                 pendingTicks = 0;
             }
-            if (++pendingTicks >= persistenceTicks) {
+            if (++pendingTicks >= needed) {
                 mode = candidate;
                 pending = null;
                 pendingTicks = 0;

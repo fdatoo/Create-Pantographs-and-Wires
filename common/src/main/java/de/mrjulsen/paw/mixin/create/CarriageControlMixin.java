@@ -61,9 +61,15 @@ public abstract class CarriageControlMixin {
                 String what = gentle ? "a gentle straight slope, so speed is kept"
                     : rise > 1 / 16.0 ? "a slope that is steep or curved, so speed is capped to the turning limit"
                     : "a curve, so speed is capped to the turning limit";
-                TractionDebug.info("server: hand-driven train {} is on {} (rise {} over {} blocks, {}%)",
+                double ax = turn.axes.getFirst().x;
+                double az = turn.axes.getFirst().z;
+                double bx = turn.axes.getSecond().x;
+                double bz = turn.axes.getSecond().z;
+                TractionDebug.info("server: hand-driven train {} is on {} (rise {} over {} blocks, {}%; {} in plan, end directions ({}, {}) and ({}, {}))",
                     TractionDebug.shortId(self.trainId), what, String.format("%.2f", rise), String.format("%.1f", turn.getLength()),
-                    String.format("%.1f", rise / Math.max(1e-6, turn.getLength()) * 100));
+                    String.format("%.1f", rise / Math.max(1e-6, turn.getLength()) * 100),
+                    TrackSlopes.isStraight(ax, az, bx, bz) ? "straight" : "curving",
+                    String.format("%+.3f", ax), String.format("%+.3f", az), String.format("%+.3f", bx), String.format("%+.3f", bz));
             }
         }
         return !gentle;

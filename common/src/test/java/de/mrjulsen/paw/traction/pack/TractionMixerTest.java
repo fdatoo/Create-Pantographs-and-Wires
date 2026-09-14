@@ -160,7 +160,7 @@ class TractionMixerTest {
         float[] loop = sine(96000, 200);
         PackSettings settings = new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
             PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0,
-            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0);
+            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0, 0);
         TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
         float[] powering = render(new TractionMixer(pack, RATE), 12, TractionMode.POWER, 4);
         float[] braking = render(new TractionMixer(pack, RATE), 12, TractionMode.BRAKE, 4);
@@ -180,7 +180,7 @@ class TractionMixerTest {
     private static PackSettings cruisingSettings(double blendSeconds, double slopePowerBlendSeconds) {
         return new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
             PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of(), 1.0,
-            Set.of("coast/cruising"), 0.85, 0.2, blendSeconds, PackSettings.Shape.SMOOTHSTEP, 1.0, slopePowerBlendSeconds);
+            Set.of("coast/cruising"), 0.85, 0.2, blendSeconds, PackSettings.Shape.SMOOTHSTEP, 1.0, slopePowerBlendSeconds, 0);
     }
 
     @Test

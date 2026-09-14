@@ -25,9 +25,13 @@ public final class TrackSlopes {
         if (rise <= MIN_RISE || length <= 0) {
             return false;
         }
+        return isStraight(axisAx, axisAz, axisBx, axisBz) && rise / length < MAX_GENTLE_RISE_PER_LENGTH;
+    }
+
+    /** Whether an edge's two ends face each other in plan, so it runs straight when seen from above. */
+    public static boolean isStraight(double axisAx, double axisAz, double axisBx, double axisBz) {
         double dx = axisAx + axisBx;
         double dz = axisAz + axisBz;
-        boolean straight = Math.sqrt(dx * dx + dz * dz) < STRAIGHT_TOLERANCE;
-        return straight && rise / length < MAX_GENTLE_RISE_PER_LENGTH;
+        return Math.sqrt(dx * dx + dz * dz) < STRAIGHT_TOLERANCE;
     }
 }

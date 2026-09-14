@@ -163,6 +163,55 @@ class TractionModeDetectorTest {
     }
 
     @Test
+    void cruiseNeedsALongerHoldThanPowerOrBrake() {
+        TractionModeDetector quick = new TractionModeDetector();
+        TractionModeDetector held = new TractionModeDetector();
+        quick.configure(4, 0.05);
+        held.configure(4, 12, 0.05);
+        double speed = 0.5;
+        for (int i = 0; i < 20; i++) {
+            quick.update(speed);
+            held.update(speed);
+            speed += CREATE_ACCELERATION;
+        }
+        int quickTick = -1;
+        int heldTick = -1;
+        for (int tick = 0; tick < 40; tick++) {
+            if (quick.update(speed) == TractionMode.COAST && quickTick < 0) quickTick = tick;
+            if (held.update(speed) == TractionMode.COAST && heldTick < 0) heldTick = tick;
+        }
+        assertEquals(quickTick + 8, heldTick);
+    }
+
+    private static boolean cruisesAtACrest(TractionModeDetector detector) {
+        double speed = 0.7;
+        for (int i = 0; i < 30; i++) {
+            detector.update(speed, 0.2, true);   // climbing at Create's cap
+        }
+        assertEquals(TractionMode.POWER, detector.mode());
+        boolean cruised = false;
+        for (int i = 0; i < 10; i++) {
+            cruised |= detector.update(speed, 0, true) == TractionMode.COAST;   // over the crest, cap still on
+        }
+        for (int i = 0; i < 20; i++) {
+            speed += MANUAL_ACCELERATION;   // cap lifts, the train speeds up
+            cruised |= detector.update(speed, 0, true) == TractionMode.COAST;
+        }
+        return cruised;
+    }
+
+    @Test
+    void aSlopeHandingOverToSpeedingUpDoesNotDipToCruise() {
+        TractionModeDetector quick = new TractionModeDetector();
+        quick.configure(4, 0.05);
+        assertEquals(true, cruisesAtACrest(quick), "with the short hold the power dips to cruise at the crest");
+        TractionModeDetector held = new TractionModeDetector();
+        held.configure(4, 12, 0.05);
+        assertEquals(false, cruisesAtACrest(held));
+        assertEquals(TractionMode.POWER, held.mode());
+    }
+
+    @Test
     void departingFromRestIsNotDelayed() {
         TractionModeDetector quick = new TractionModeDetector();
         TractionModeDetector persistent = new TractionModeDetector();

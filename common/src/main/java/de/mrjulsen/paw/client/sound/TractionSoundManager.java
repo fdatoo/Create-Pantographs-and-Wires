@@ -87,6 +87,8 @@ public final class TractionSoundManager {
     // and standing on the roof.
     private static final double ABOARD_MARGIN = 0.5;
     private static final double ABOARD_MARGIN_VERTICAL = 1.0;
+    // How long a sounding train may run without collector contact before its voice is released.
+    private static final long CONTACT_RELEASE_TICKS = 200;
 
     private TractionSoundManager() {}
 
@@ -116,17 +118,33 @@ public final class TractionSoundManager {
         }
 
         boolean stopped = vehicleSpeed.stoppedTicks > 0 && (entry == null || vehicleSpeed.stoppedTicks >= STOPPED_AFTER_TICKS);
-        if (!snapshot.powered() || stopped) {
+        // Losing contact while a voice plays (a gap in the wire, a pantograph leaving it on a slope or
+        // curve) takes the traction off but keeps the voice, so it doesn't cut out and restart. Only a
+        // long loss releases it, and a train that never had contact doesn't start one.
+        if (snapshot.powered()) {
+            vehicleSpeed.lastPoweredTick = gameTime;
+        }
+        boolean contactLost = !snapshot.powered() && (entry == null || vehicleSpeed.lastPoweredTick == Long.MIN_VALUE
+            || gameTime - vehicleSpeed.lastPoweredTick > CONTACT_RELEASE_TICKS);
+        if (contactLost || stopped) {
             if (entry != null) {
                 if (debug) {
                     TractionDebug.info("client: train {} voice stopping: {}", TractionDebug.shortId(vehicleId),
-                        !snapshot.powered() ? "no collector touching wire or rail" : String.format("train stopped (%.3f m/s)", speed * METRES_PER_SECOND_PER_BLOCK_PER_TICK));
+                        stopped ? String.format("train stopped (%.3f m/s)", speed * METRES_PER_SECOND_PER_BLOCK_PER_TICK)
+                            : "no collector touching wire or rail for " + CONTACT_RELEASE_TICKS / 20 + " s");
                 }
                 entry.stop();
                 ACTIVE.remove(vehicleId);
             }
             return;
         }
+        vehicleSpeed.powered = snapshot.powered();
+        if (debug && entry != null && vehicleSpeed.powered != vehicleSpeed.loggedPowered) {
+            TractionDebug.info("client: train {} {}", TractionDebug.shortId(vehicleId), vehicleSpeed.powered
+                ? "collector contact restored, traction back on"
+                : "collector contact lost, traction off (voice kept)");
+        }
+        vehicleSpeed.loggedPowered = vehicleSpeed.powered;
 
         // A profile changed in the config takes over on the next observation: the old
         // bank fades out on its own while the new one fades in.
@@ -168,9 +186,9 @@ public final class TractionSoundManager {
         entry.lastObservedTick = gameTime;
 
         if (debug && TractionDebug.every("summary-" + vehicleId, gameTime, 20)) {
-            entry.lastSummary = String.format("%.2f m/s, grade %+.1f%%, driver holding %s, speed from %s, listener %s | %s",
+            entry.lastSummary = String.format("%.2f m/s, grade %+.1f%%, driver holding %s, contact %s, speed from %s, listener %s | %s",
                 speed * METRES_PER_SECOND_PER_BLOCK_PER_TICK, vehicleSpeed.grade * 100, vehicleSpeed.throttleHeld ? "yes" : "no",
-                vehicleSpeed.source(), vehicleSpeed.aboard ? "aboard" : "outside", entry.bank.describe(gameTime));
+                vehicleSpeed.powered ? "yes" : "no", vehicleSpeed.source(), vehicleSpeed.aboard ? "aboard" : "outside", entry.bank.describe(gameTime));
             TractionDebug.info("client: train {} {}", TractionDebug.shortId(vehicleId), entry.lastSummary);
         }
     }
@@ -296,6 +314,10 @@ public final class TractionSoundManager {
         private boolean reported;
         private Boolean loggedReported;
         private boolean loggedAboard;
+        /** Whether a collector touches wire or rail (within the tracker's grace). */
+        private boolean powered = true;
+        private boolean loggedPowered = true;
+        private long lastPoweredTick = Long.MIN_VALUE;
 
         private String source() {
             return reported ? "server" : "client estimate";
@@ -398,7 +420,7 @@ public final class TractionSoundManager {
             double acceleration = hasPreviousSpeed ? speed - previousSpeed : 0;
             previousSpeed = speed;
             hasPreviousSpeed = true;
-            bank.update(speed, vehicle.grade, vehicle.throttleHeld, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), gameTime);
+            bank.update(speed, vehicle.grade, vehicle.throttleHeld, vehicle.powered, motionScale(speed), motionScale(speed) * loadScaleFor(acceleration), gameTime);
         }
 
         private void stop() {
@@ -419,7 +441,7 @@ public final class TractionSoundManager {
          * @param motion overall level from speed (MP 89)
          * @param tonal  motion scaled by MP 89's load envelope
          */
-        void update(double speed, double grade, boolean throttleHeld, float motion, float tonal, long gameTime);
+        void update(double speed, double grade, boolean throttleHeld, boolean powered, float motion, float tonal, long gameTime);
 
         void updatePosition(double x, double y, double z);
 
@@ -473,7 +495,10 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public void update(double speed, double grade, boolean throttleHeld, float motion, float tonal, long gameTime) {
+        public void update(double speed, double grade, boolean throttleHeld, boolean powered, float motion, float tonal, long gameTime) {
+            if (!powered) {
+                tonal = 0;
+            }
             double fraction = speedFraction(speed);
             ridge.setTargetFrequency(RIDGE_AT_REST_HZ + (RIDGE_AT_TOP_HZ - RIDGE_AT_REST_HZ) * fraction);
             ridge.setLoadScale(tonal * window(fraction, 0.05, 0.30, 1.0, 1.01));
@@ -527,6 +552,8 @@ public final class TractionSoundManager {
 
         private final UUID vehicleId;
         private final TractionModeDetector detector = new TractionModeDetector();
+        /** The mode the voice plays: the detector's, or cruising while contact is lost. */
+        private TractionMode heardMode = TractionMode.COAST;
         private TractionMixer mixer;
         private TractionSynthSoundInstance instance;
         private double x;
@@ -558,9 +585,13 @@ public final class TractionSoundManager {
                     return;
                 }
                 mixer = new TractionMixer(pack, SynthAudioStream.SAMPLE_RATE);
-                detector.configure((int) Math.round(pack.settings().modePersistenceSeconds() * 20),
+                int persistenceTicks = (int) Math.round(pack.settings().modePersistenceSeconds() * 20);
+                int endPersistenceTicks = pack.settings().modeEndPersistenceSeconds() > 0
+                    ? (int) Math.round(pack.settings().modeEndPersistenceSeconds() * 20)
+                    : persistenceTicks;
+                detector.configure(persistenceTicks, endPersistenceTicks,
                     pack.settings().departureSpeedMps() / METRES_PER_SECOND_PER_BLOCK_PER_TICK);
-                mixer.setState(speedMps, detector.mode(), detector.slopeDriven());
+                mixer.setState(speedMps, heardMode, detector.slopeDriven());
             }
             instance = new TractionSynthSoundInstance(x, y, z, restart ? VOICE_FADE_TICKS : 0, VOICE_FADE_TICKS);
             instance.setListenerAboard(listenerAboard);
@@ -568,14 +599,19 @@ public final class TractionSoundManager {
         }
 
         @Override
-        public void update(double speed, double grade, boolean throttleHeld, float motion, float tonal, long gameTime) {
+        public void update(double speed, double grade, boolean throttleHeld, boolean powered, float motion, float tonal, long gameTime) {
             speedMps = Math.abs(speed) * METRES_PER_SECOND_PER_BLOCK_PER_TICK;
-            TractionMode before = detector.mode();
+            TractionMode before = heardMode;
             TractionMode mode = detector.update(Math.abs(speed), grade, throttleHeld);
+            if (!powered) {
+                // No contact, no traction: only the rolling noise and the neutral tone.
+                mode = TractionMode.COAST;
+            }
+            heardMode = mode;
             if (mode != before && TractionDebug.client()) {
                 TractionDebug.info("client: train {} mode {} -> {} ({}) at {} m/s, grade {}%, driver holding {}, own acceleration {} m/s², gravity along slope {} m/s²",
                     TractionDebug.shortId(vehicleId), before, mode,
-                    mode == TractionMode.COAST ? "demand ended" : detector.slopeDriven() ? "brought in by the slope" : "brought in by speed change",
+                    !powered ? "collector contact lost" : mode == TractionMode.COAST ? "demand ended" : detector.slopeDriven() ? "brought in by the slope" : "brought in by speed change",
                     String.format("%.2f", speedMps), String.format("%+.1f", grade * 100), throttleHeld ? "yes" : "no",
                     String.format("%+.2f", detector.drivenAcceleration() * 400), String.format("%+.2f", detector.slopeAcceleration() * 400));
             }

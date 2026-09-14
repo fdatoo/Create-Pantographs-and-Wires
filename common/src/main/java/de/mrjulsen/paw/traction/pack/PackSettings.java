@@ -24,6 +24,8 @@ import com.google.gson.JsonParser;
  *                               effect at once, with the onset and release timings
  * @param slopePowerBlendSeconds while moving, how long power brought in by a climb (not by speeding up)
  *                               takes to swell in; 0 to use modeBlendSeconds
+ * @param modeEndPersistenceSeconds while moving, how long the end of demand must hold before cruising takes over;
+ *                               0 to use modePersistenceSeconds
  */
 public record PackSettings(
     double powerOnSeconds, Shape powerOnShape,
@@ -38,7 +40,8 @@ public record PackSettings(
     double modeBlendSeconds,
     Shape modeBlendShape,
     double departureSpeedMps,
-    double slopePowerBlendSeconds
+    double slopePowerBlendSeconds,
+    double modeEndPersistenceSeconds
 ) {
     public enum Shape {
         LINEAR,
@@ -53,7 +56,7 @@ public record PackSettings(
      */
     public static PackSettings defaults() {
         return new PackSettings(0.06, Shape.LINEAR, 0.18, Shape.SMOOTHSTEP, 0.35, Shape.SMOOTHSTEP, 0.18, Shape.SMOOTHSTEP, Set.of(), 1.0,
-            Set.of(), 0.85, 0, 0, Shape.SMOOTHSTEP, 1.0, 0);
+            Set.of(), 0.85, 0, 0, Shape.SMOOTHSTEP, 1.0, 0, 0);
     }
 
     public static PackSettings parse(Reader reader) throws IOException {
@@ -79,7 +82,8 @@ public record PackSettings(
             number(json, "mode_blend_seconds", d.modeBlendSeconds()),
             shape(json, "mode_blend_curve", d.modeBlendShape()),
             number(json, "departure_speed_mps", d.departureSpeedMps()),
-            number(json, "slope_power_blend_seconds", d.slopePowerBlendSeconds())
+            number(json, "slope_power_blend_seconds", d.slopePowerBlendSeconds()),
+            number(json, "mode_end_persistence_seconds", d.modeEndPersistenceSeconds())
         );
     }
 

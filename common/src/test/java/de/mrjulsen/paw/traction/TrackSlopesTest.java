@@ -23,6 +23,13 @@ class TrackSlopesTest {
     }
 
     @Test
+    void straightInPlanIncludesDiagonals() {
+        double s = Math.sqrt(0.5);
+        assertTrue(TrackSlopes.isStraight(s, s, -s, -s));
+        assertFalse(TrackSlopes.isStraight(1, 0, 0, 1));
+    }
+
+    @Test
     void aFlatCurveStillCounts() {
         assertFalse(TrackSlopes.isGentleStraightSlope(64, 64, 1, 0, -1, 0, 20));
     }
