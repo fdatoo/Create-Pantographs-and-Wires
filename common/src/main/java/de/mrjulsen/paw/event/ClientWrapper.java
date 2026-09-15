@@ -20,6 +20,11 @@ public class ClientWrapper {
         DLScreen.setScreen(new CantileverSettingsScreen(stack));
     }
 
+    /** Whether the key Create's track uses for a maximised curve, sprint, is held. */
+    public static boolean maximiseCurveHeld() {
+        return Minecraft.getInstance().options.keySprint.isDown();
+    }
+
     public static void showTractionControllerScreen(TrainSettingsPacket.Target target, TrainSettings settings) {
         DLScreen.setScreen(new TractionControllerScreen(target, settings));
     }

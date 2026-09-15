@@ -110,6 +110,48 @@ class ThirdRailPlacementRulesTest {
     }
 
     @Test
+    void aCompactQuarterTurnLeadsInStraightLikeTrack() {
+        // Ends 11.5 blocks from the corner; Create's standard 90 degree turn is 7, the rest is straight rail.
+        Outcome compact = ThirdRailPlacementRules.evaluate(0, 64, 0, Z, 12, 64, 12, X, MAX, false);
+        assertTrue(compact.valid());
+        assertEquals(4, compact.extent1());
+        assertEquals(4, compact.extent2());
+        assertEquals(5, compact.end1().z, 1e-9);
+        assertEquals(8, compact.end2().x, 1e-9);
+        assertTrue(compact.hasStraights());
+
+        Outcome maximised = ThirdRailPlacementRules.evaluate(0, 64, 0, Z, 12, 64, 12, X, MAX, true);
+        assertTrue(maximised.valid());
+        assertEquals(0, maximised.extent1());
+        assertEquals(0, maximised.extent2());
+        assertEquals(1, maximised.end1().z, 1e-9);
+    }
+
+    @Test
+    void aLopsidedTurnLeadsInOnItsLongerSideEvenWhenMaximised() {
+        Outcome outcome = ThirdRailPlacementRules.evaluate(0, 64, 0, Z, 8, 64, 12, X, MAX, true);
+        assertTrue(outcome.valid());
+        assertEquals(4, outcome.extent1());
+        assertEquals(0, outcome.extent2());
+    }
+
+    @Test
+    void aCompactSBendLeadsInStraightAtBothEnds() {
+        Outcome compact = ThirdRailPlacementRules.evaluate(0, 64, 0, Z, 1, 64, 12, Z, MAX, false);
+        assertTrue(compact.valid());
+        assertEquals(4, compact.extent1());
+        assertEquals(4, compact.extent2());
+        assertFalse(ThirdRailPlacementRules.evaluate(0, 64, 0, Z, 1, 64, 12, Z, MAX, true).hasStraights());
+    }
+
+    @Test
+    void aFlatStraightNeverNeedsLeadIns() {
+        Outcome outcome = ThirdRailPlacementRules.evaluate(0, 64, 0, Z, 0, 64, 20, Z, MAX, false);
+        assertTrue(outcome.valid());
+        assertFalse(outcome.hasStraights());
+    }
+
+    @Test
     void alongLookFlipsAnAxisPointingBehindThePlayer() {
         Vector3d look = new Vector3d(0.2, -0.3, -0.9);
         assertEquals(-1, ThirdRailPlacementRules.alongLook(Z, look).z, 1e-9);

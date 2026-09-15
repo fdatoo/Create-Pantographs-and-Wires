@@ -1,5 +1,10 @@
 package de.mrjulsen.paw.traction;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 import javax.annotation.Nullable;
 
 import org.joml.Vector3d;
@@ -9,6 +14,7 @@ import de.mrjulsen.paw.block.property.EThirdRailShape;
 import de.mrjulsen.paw.blockentity.ThirdRailBlockEntity;
 import de.mrjulsen.paw.config.ModServerConfig;
 import de.mrjulsen.paw.item.ThirdRailItem;
+import de.mrjulsen.paw.registry.ModBlocks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -34,26 +40,45 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Laying a third rail between two points, the way Create lays track: click a rail block to select
  * it, then click a second point (an existing rail block, or anywhere a rail block could go) to lay a
- * straight or curved rail to it. A solid block held in the off hand fills the blocks under the new rail,
- * as it paves under Create track. Shared by the item on both sides and the client preview.
+ * straight or curved rail to it. Curves are Create's compact size with straight rail blocks leading into
+ * them, or with the sprint key held, as large as the room allows (ThirdRailPlacementRules). A solid block
+ * held in the off hand fills the blocks under the new rail, as it paves under Create track. Shared by the
+ * item on both sides and the client preview.
  */
 public final class ThirdRailPlacement {
     private static final String NBT_SELECTION = "ConnectingFrom";
     private static final String NBT_POS = "Pos";
     private static final String NBT_AXIS = "Axis";
+    /** Set by ThirdRailMaximisePacket just before the click that uses it, as Create does for track. */
+    private static final String NBT_MAXIMISE = "MaximiseCurve";
 
     /** Where the second click lands: an existing rail block, or a new one to place. */
     public record Target(BlockPos pos, EThirdRailShape shape, boolean existing, @Nullable BlockState placementState) {}
 
     /**
-     * @param connection  the rail from the selected block to the target, for previewing, or null when
-     *                    the problem leaves nothing sensible to draw
-     * @param railsNeeded rails used up, including the new end block when one is placed
-     * @param pavement    the off-hand block to pave under the rail with, or null for no paving
+     * A straight rail block leading into the curve.
+     *
+     * @param existing whether a matching rail block is already there
+     */
+    public record Extension(BlockPos pos, BlockState state, boolean existing) {}
+
+    /**
+     * @param connection     the rail from the selected block to the target, for previewing, or null when
+     *                       the problem leaves nothing sensible to draw
+     * @param railsNeeded    rails used up: the curve, and every new rail block
+     * @param extensions     straight rail blocks leading into the curve
+     * @param maximisable    whether holding the sprint key would lay a larger curve instead of straight rail
+     * @param pavement       the off-hand block to pave under the rail with, or null for no paving
+     * @param paveAt         where pavement goes
      * @param pavementNeeded blocks of pavement used up
      */
     public record Attempt(boolean valid, @Nullable Component message, @Nullable ThirdRailConnection connection, int railsNeeded,
-        @Nullable Block pavement, int pavementNeeded) {}
+        List<Extension> extensions, boolean maximisable, @Nullable Block pavement, Set<BlockPos> paveAt, int pavementNeeded) {
+
+        static Attempt failed(Component message, @Nullable ThirdRailConnection connection) {
+            return new Attempt(false, message, connection, 0, List.of(), false, null, Set.of(), 0);
+        }
+    }
 
     private ThirdRailPlacement() {}
 
@@ -75,7 +100,25 @@ public final class ThirdRailPlacement {
     public static void clearSelection(ItemStack stack) {
         if (stack.hasTag()) {
             stack.removeTagKey(NBT_SELECTION);
+            stack.removeTagKey(NBT_MAXIMISE);
         }
+    }
+
+    /** Server: the client says the sprint key is held for the click that follows. */
+    public static void markMaximise(ItemStack stack) {
+        if (hasSelection(stack)) {
+            stack.getTag().putBoolean(NBT_MAXIMISE, true);
+        }
+    }
+
+    /** Server: whether the click being handled was made with the sprint key held, clearing the mark. */
+    public static boolean takeMaximise(ItemStack stack) {
+        if (!stack.hasTag() || !stack.getTag().contains(NBT_MAXIMISE)) {
+            return false;
+        }
+        boolean maximise = stack.getTag().getBoolean(NBT_MAXIMISE);
+        stack.removeTagKey(NBT_MAXIMISE);
+        return maximise;
     }
 
     @Nullable
@@ -102,12 +145,13 @@ public final class ThirdRailPlacement {
         return new Target(pos, state.getValue(ThirdRailBlock.SHAPE), false, state);
     }
 
-    public static Attempt tryConnect(Level level, Player player, ItemStack stack, Target target) {
+    /** @param maximise whether the sprint key is held: the curve takes up all the room instead of Create's compact size */
+    public static Attempt tryConnect(Level level, Player player, ItemStack stack, Target target, boolean maximise) {
         CompoundTag selection = stack.getTag().getCompound(NBT_SELECTION);
         BlockPos pos1 = NbtUtils.readBlockPos(selection.getCompound(NBT_POS));
         BlockState state1 = level.getBlockState(pos1);
         if (!(state1.getBlock() instanceof ThirdRailBlock)) {
-            return new Attempt(false, Component.translatable("create.track.original_missing").withStyle(ChatFormatting.RED), null, 0, null, 0);
+            return Attempt.failed(Component.translatable("create.track.original_missing").withStyle(ChatFormatting.RED), null);
         }
 
         // Only the stored direction's sign is trusted: the axis itself always comes from the block.
@@ -121,65 +165,107 @@ public final class ThirdRailPlacement {
         ThirdRailPlacementRules.Outcome outcome = ThirdRailPlacementRules.evaluate(
             pos1.getX(), pos1.getY(), pos1.getZ(), axis1,
             pos2.getX(), pos2.getY(), pos2.getZ(), axis2,
-            maxLength()
+            maxLength(), maximise
         );
 
         ThirdRailConnection connection = null;
         if (outcome.hasCurve()) {
-            connection = new ThirdRailConnection(pos1, pos2, vec(outcome.end1()), vec(outcome.axis1()), vec(outcome.end2()), vec(outcome.axis2()), true, true, 0);
+            BlockPos owner = step(pos1, outcome.step1(), outcome.extent1());
+            BlockPos other = step(pos2, outcome.step2(), outcome.extent2());
+            connection = new ThirdRailConnection(owner, other, vec(outcome.end1()), vec(outcome.axis1()), vec(outcome.end2()), vec(outcome.axis2()), true, true, 0);
             connection = connection.withSupportsOnRight(supportsAwayFrom(connection, player.position()));
             connection = connection.withRailCost(connection.computedRailCost());
         }
 
         if (!outcome.valid()) {
             ChatFormatting colour = "second_point".equals(outcome.problem()) ? ChatFormatting.WHITE : ChatFormatting.RED;
-            return new Attempt(false, Component.translatable("create.track." + outcome.problem()).withStyle(colour), connection, 0, null, 0);
+            return Attempt.failed(Component.translatable("create.track." + outcome.problem()).withStyle(colour), connection);
         }
 
-        if (target.existing() && level.getBlockEntity(pos1) instanceof ThirdRailBlockEntity first && first.hasConnectionTo(pos2)) {
-            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.already_connected").withStyle(ChatFormatting.RED), connection, 0, null, 0);
+        List<Extension> extensions = new ArrayList<>();
+        for (int side = 0; side < 2; side++) {
+            BlockPos start = side == 0 ? pos1 : pos2;
+            Vector3d direction = side == 0 ? outcome.step1() : outcome.step2();
+            int extent = side == 0 ? outcome.extent1() : outcome.extent2();
+            EThirdRailShape shape = EThirdRailShape.fromAxis(direction.x, direction.z);
+            for (int i = 1; i <= extent; i++) {
+                BlockPos at = step(start, direction, i);
+                BlockState there = level.getBlockState(at);
+                if (there.getBlock() instanceof ThirdRailBlock && there.getValue(ThirdRailBlock.SHAPE) == shape) {
+                    extensions.add(new Extension(at, there, true));
+                } else if (there.canBeReplaced() && !at.equals(pos1) && !at.equals(pos2)) {
+                    extensions.add(new Extension(at, ModBlocks.THIRD_RAIL.get().defaultBlockState().setValue(ThirdRailBlock.SHAPE, shape), false));
+                } else {
+                    return Attempt.failed(Component.translatable("pantographsandwires.third_rail.obstructed").withStyle(ChatFormatting.RED), connection);
+                }
+            }
         }
 
-        int needed = connection.railCost() + (target.existing() ? 0 : 1);
+        if (level.getBlockEntity(connection.owner()) instanceof ThirdRailBlockEntity first && first.hasConnectionTo(connection.other())) {
+            return Attempt.failed(Component.translatable("pantographsandwires.third_rail.already_connected").withStyle(ChatFormatting.RED), connection);
+        }
+
+        int newBlocks = (int) extensions.stream().filter(extension -> !extension.existing()).count();
+        int needed = connection.railCost() + newBlocks + (target.existing() ? 0 : 1);
+        boolean maximisable = !maximise && outcome.hasStraights();
         if (!player.isCreative() && countItems(player.getInventory(), stack.getItem()) < needed) {
-            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.not_enough_rails").withStyle(ChatFormatting.RED), connection, needed, null, 0);
+            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.not_enough_rails").withStyle(ChatFormatting.RED),
+                connection, needed, extensions, maximisable, null, Set.of(), 0);
         }
 
         Block pavement = player.getOffhandItem().getItem() instanceof BlockItem blockItem
             && ThirdRailPaver.canPaveWith(level, blockItem.getBlock(), pos1) ? blockItem.getBlock() : null;
+        Set<BlockPos> paveAt = Set.of();
         int pavementNeeded = 0;
         if (pavement != null) {
-            pavementNeeded = ThirdRailPaver.pave(level, ThirdRailPaver.positions(connection), pavement, true);
+            Set<BlockPos> positions = new LinkedHashSet<>();
+            positions.add(pos1.below());
+            extensions.forEach(extension -> positions.add(extension.pos().below()));
+            positions.addAll(ThirdRailPaver.positions(connection));
+            positions.add(pos2.below());
+            paveAt = positions;
+            pavementNeeded = ThirdRailPaver.pave(level, paveAt, pavement, true);
             if (!player.isCreative() && countItems(player.getInventory(), pavement.asItem()) < pavementNeeded) {
-                return new Attempt(false, Component.translatable("create.track.not_enough_pavement").withStyle(ChatFormatting.RED), connection, needed, pavement, pavementNeeded);
+                return new Attempt(false, Component.translatable("create.track.not_enough_pavement").withStyle(ChatFormatting.RED),
+                    connection, needed, extensions, maximisable, pavement, paveAt, pavementNeeded);
             }
         }
-        return new Attempt(true, Component.translatable("create.track.valid_connection").withStyle(ChatFormatting.GREEN), connection, needed, pavement, pavementNeeded);
+        return new Attempt(true, Component.translatable("create.track.valid_connection").withStyle(ChatFormatting.GREEN),
+            connection, needed, extensions, maximisable, pavement, paveAt, pavementNeeded);
     }
 
     /**
-     * Places the end block if needed, lays the rail at both ends, paves under it and uses up the rails and
-     * pavement. Server only.
-     * Takes nothing and returns false if the rail couldn't be laid.
+     * Places the end block and any straight rail leading into the curve, lays the rail at both ends, paves
+     * under it and uses up the rails and pavement. Server only. Takes nothing and returns false if the rail
+     * couldn't be laid.
      */
     public static boolean commit(Level level, Player player, InteractionHand hand, Target target, Attempt attempt) {
         ThirdRailConnection connection = attempt.connection();
         if (connection == null) {
             return false;
         }
-        if (!target.existing() && !level.setBlock(target.pos(), target.placementState(), 3)) {
-            return false;
+        List<BlockPos> placed = new ArrayList<>();
+        if (!target.existing()) {
+            if (!level.setBlock(target.pos(), target.placementState(), 3)) {
+                return false;
+            }
+            placed.add(target.pos());
+        }
+        for (Extension extension : attempt.extensions()) {
+            if (!extension.existing() && level.setBlock(extension.pos(), extension.state(), 3)) {
+                placed.add(extension.pos());
+            }
         }
         if (!(level.getBlockEntity(connection.owner()) instanceof ThirdRailBlockEntity first)
             || !(level.getBlockEntity(connection.other()) instanceof ThirdRailBlockEntity second)) {
-            if (!target.existing()) {
-                level.removeBlock(target.pos(), false);
-            }
+            placed.forEach(pos -> level.removeBlock(pos, false));
             return false;
         }
         first.addConnection(connection);
         second.addConnection(connection.secondary());
-        int paved = attempt.pavement() == null ? 0 : ThirdRailPaver.pave(level, ThirdRailPaver.positions(connection), attempt.pavement(), false);
+        matchSupports(level, connection, attempt, target);
+
+        int paved = attempt.pavement() == null ? 0 : ThirdRailPaver.pave(level, attempt.paveAt(), attempt.pavement(), false);
 
         ItemStack held = player.getItemInHand(hand);
         Item rail = held.getItem();
@@ -191,10 +277,31 @@ public final class ThirdRailPlacement {
             }
         }
 
-        BlockState placed = level.getBlockState(target.pos());
-        SoundType sound = placed.getSoundType();
+        BlockState placedState = level.getBlockState(target.pos());
+        SoundType sound = placedState.getSoundType();
         level.playSound(null, target.pos(), sound.getPlaceSound(), SoundSource.BLOCKS, (sound.getVolume() + 1.0F) / 2.0F, sound.getPitch() * 0.8F);
         return true;
+    }
+
+    /**
+     * Straight rail leading into a curve has no rail of its own to take its supports' side from, so each
+     * block is told the side the curve's supports are on, as seen travelling towards the curve.
+     */
+    private static void matchSupports(Level level, ThirdRailConnection connection, Attempt attempt, Target target) {
+        List<BlockPos> straights = new ArrayList<>();
+        attempt.extensions().forEach(extension -> straights.add(extension.pos()));
+        straights.add(target.pos());
+        for (BlockPos pos : straights) {
+            if (pos.equals(connection.owner()) || pos.equals(connection.other())
+                || !(level.getBlockEntity(pos) instanceof ThirdRailBlockEntity rail) || !rail.getConnections().isEmpty()) {
+                continue;
+            }
+            boolean nearFirstEnd = pos.distSqr(connection.owner()) <= pos.distSqr(connection.other());
+            Vec3 towardsCurve = nearFirstEnd ? connection.axis1() : connection.secondary().axis1();
+            boolean onRight = nearFirstEnd ? connection.supportsOnRight() : !connection.supportsOnRight();
+            boolean forward = towardsCurve.dot(rail.shape().axis()) > 0;
+            rail.setPieceSupportsOnRight(forward == onRight);
+        }
     }
 
     /**
@@ -208,6 +315,11 @@ public final class ThirdRailPlacement {
         Vector3d right = curve.derivative(t, new Vector3d()).cross(0, 1, 0);
         double side = (player.x - mid.x) * right.x + (player.z - mid.z) * right.z;
         return side < 0;
+    }
+
+    /** The block a number of whole steps along an (integer) axis. */
+    private static BlockPos step(BlockPos from, Vector3d axis, int steps) {
+        return from.offset((int) Math.round(axis.x * steps), 0, (int) Math.round(axis.z * steps));
     }
 
     /** The server's limit, or its default while a client has not received the server config yet. */

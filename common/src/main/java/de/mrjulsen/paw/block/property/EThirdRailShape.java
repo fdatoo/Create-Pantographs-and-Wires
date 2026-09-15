@@ -40,6 +40,17 @@ public enum EThirdRailShape implements StringRepresentable {
         return axisX != 0 && axisZ != 0;
     }
 
+    /** The shape running along a horizontal direction, either way round. */
+    public static EThirdRailShape fromAxis(double x, double z) {
+        if (Math.abs(x) < 1e-6) {
+            return Z;
+        }
+        if (Math.abs(z) < 1e-6) {
+            return X;
+        }
+        return (x > 0) == (z > 0) ? PD : ND;
+    }
+
     /** The shape closest to a horizontal look direction, snapped to eighths of a turn. */
     public static EThirdRailShape fromLook(Vec3 look) {
         int octant = Math.floorMod((int) Math.round(Math.toDegrees(Math.atan2(look.z, look.x)) / 45.0), 8);
