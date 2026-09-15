@@ -17,6 +17,7 @@ import com.tterrag.registrate.util.nullness.NonNullSupplier;
 
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.block.CantileverBlock;
+import de.mrjulsen.paw.block.TractionControllerBlock;
 import de.mrjulsen.paw.block.CollectorShoeBlock;
 import de.mrjulsen.paw.block.ThirdRailBlock;
 import de.mrjulsen.paw.block.CantileverBracketBlock;
@@ -38,6 +39,8 @@ import de.mrjulsen.paw.block.property.EInsulatorType;
 import de.mrjulsen.paw.blockentity.CollectorShoeMovementBehaviour;
 import de.mrjulsen.paw.blockentity.PantographInteractionBehaviour;
 import de.mrjulsen.paw.blockentity.PantographMovementBehaviour;
+import de.mrjulsen.paw.blockentity.TractionControllerInteractionBehaviour;
+import de.mrjulsen.paw.blockentity.TractionControllerMovementBehaviour;
 import de.mrjulsen.paw.client.model.RotatedBlockModel;
 import de.mrjulsen.paw.item.CantileverBlockItem;
 import de.mrjulsen.paw.item.FuelBlockItem;
@@ -85,6 +88,17 @@ public class ModBlocks {
 		.properties(p -> p.noOcclusion())
 		.transform(TagGen.pickaxeOnly())
 		.onRegister(AllMovementBehaviours.movementBehaviour(new CollectorShoeMovementBehaviour()))
+		.item()
+		.tab(ModCreativeModeTab.MAIN_TAB.getKey())
+		.build()
+		.register();
+
+	public static final BlockEntry<TractionControllerBlock> TRACTION_CONTROLLER = PantographsAndWires.REGISTRATE.block("traction_controller", TractionControllerBlock::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.noOcclusion())
+		.transform(TagGen.pickaxeOnly())
+		.onRegister(AllMovementBehaviours.movementBehaviour(new TractionControllerMovementBehaviour()))
+		.onRegister(AllInteractionBehaviours.interactionBehaviour(new TractionControllerInteractionBehaviour()))
 		.item()
 		.tab(ModCreativeModeTab.MAIN_TAB.getKey())
 		.build()

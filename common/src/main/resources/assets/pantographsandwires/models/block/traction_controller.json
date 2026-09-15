@@ -1,0 +1,45 @@
+{
+	"credit": "Traction controller, facing north: an andesite casing base with a brass settings panel along its north edge and a display window, built from Create's own textures.",
+	"parent": "block/block",
+	"textures": {
+		"casing": "create:block/andesite_casing",
+		"panel": "create:block/brass_casing",
+		"display": "create:block/display_link",
+		"particle": "create:block/andesite_casing"
+	},
+	"elements": [
+		{
+			"name": "base",
+			"from": [1, 0, 1],
+			"to": [15, 6, 15],
+			"faces": {
+				"north": {"uv": [1, 10, 15, 16], "texture": "#casing"},
+				"east": {"uv": [1, 10, 15, 16], "texture": "#casing"},
+				"south": {"uv": [1, 10, 15, 16], "texture": "#casing"},
+				"west": {"uv": [1, 10, 15, 16], "texture": "#casing"},
+				"up": {"uv": [1, 1, 15, 15], "texture": "#casing"},
+				"down": {"uv": [1, 1, 15, 15], "texture": "#casing"}
+			}
+		},
+		{
+			"name": "panel",
+			"from": [2, 6, 2],
+			"to": [14, 10, 7],
+			"faces": {
+				"north": {"uv": [2, 6, 14, 10], "texture": "#panel"},
+				"east": {"uv": [9, 6, 14, 10], "texture": "#panel"},
+				"south": {"uv": [2, 6, 14, 10], "texture": "#panel"},
+				"west": {"uv": [2, 6, 7, 10], "texture": "#panel"},
+				"up": {"uv": [2, 2, 14, 7], "texture": "#panel"}
+			}
+		},
+		{
+			"name": "display",
+			"from": [4, 6.5, 1.5],
+			"to": [12, 9.5, 2],
+			"faces": {
+				"north": {"uv": [4, 5, 12, 8], "texture": "#display"}
+			}
+		}
+	]
+}

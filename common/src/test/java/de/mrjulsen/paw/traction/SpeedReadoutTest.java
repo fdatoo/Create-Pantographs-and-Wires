@@ -46,6 +46,17 @@ class SpeedReadoutTest {
     }
 
     @Test
+    void aRowOfTubesShowsThreeDigitsRightAligned() {
+        SpeedReadout readout = new SpeedReadout();
+        readout.update(144, SpeedReadout.maxFor(2));
+        assertEquals(" 144", readout.text(4));
+        readout.update(0, SpeedReadout.maxFor(2));
+        assertEquals("  00", readout.text(4));
+        readout.update(250, SpeedReadout.maxFor(1));
+        assertEquals("99", readout.text(2));
+    }
+
+    @Test
     void reversingShowsTheSameSpeedAndOddInputsStayInRange() {
         SpeedReadout readout = new SpeedReadout();
         readout.update(-21);

@@ -7,6 +7,7 @@ import com.tterrag.registrate.util.nullness.NonNullSupplier;
 
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.blockentity.MultiblockWireConnectorBlockEntity;
+import de.mrjulsen.paw.blockentity.TractionControllerBlockEntity;
 import de.mrjulsen.paw.blockentity.PantographBlockEntity;
 import de.mrjulsen.paw.blockentity.ThirdRailBlockEntity;
 import de.mrjulsen.paw.blockentity.client.PantographBlockRenderer;
@@ -34,6 +35,13 @@ public class ModBlockEntities {
 			ModBlocks.THIRD_RAIL
 		)
 		.renderer(() -> ThirdRailRenderer::new)
+		.register();
+
+	public static final BlockEntityEntry<TractionControllerBlockEntity> TRACTION_CONTROLLER_BLOCK_ENTITY = PantographsAndWires.REGISTRATE
+		.blockEntity("traction_controller", TractionControllerBlockEntity::new)
+		.validBlocks(
+			ModBlocks.TRACTION_CONTROLLER
+		)
 		.register();
 
 	static {

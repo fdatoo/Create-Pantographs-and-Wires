@@ -3,6 +3,7 @@ package de.mrjulsen.paw.event;
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.client.ThirdRailPlacementPreview;
 import de.mrjulsen.paw.traction.TractionDebug;
+import de.mrjulsen.paw.traction.TrainSettingsRegistry;
 import de.mrjulsen.paw.client.sound.TractionPacks;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
 import de.mrjulsen.paw.config.ModClientConfig;
@@ -68,6 +69,7 @@ public final class ModClientEvents {
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register((server) -> {
             WireClientNetwork.clear();
             TractionSoundManager.stopAll();
+            TrainSettingsRegistry.CLIENT.clear();
         });
 
         ClientTickEvent.CLIENT_POST.register((mc) -> {

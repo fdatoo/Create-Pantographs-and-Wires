@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "pantographsandwires:block/traction_controller" },
+        "facing=east": { "model": "pantographsandwires:block/traction_controller", "y": 90 },
+        "facing=south": { "model": "pantographsandwires:block/traction_controller", "y": 180 },
+        "facing=west": { "model": "pantographsandwires:block/traction_controller", "y": 270 }
+    }
+}

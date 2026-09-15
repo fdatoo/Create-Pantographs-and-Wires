@@ -14,6 +14,8 @@ import de.mrjulsen.paw.client.sound.synth.SynthAudioStream;
 import de.mrjulsen.paw.client.sound.synth.SynthStreams;
 import de.mrjulsen.paw.config.ModClientConfig;
 import de.mrjulsen.paw.config.TractionSoundProfile;
+import de.mrjulsen.paw.traction.TrainSettings;
+import de.mrjulsen.paw.traction.TrainSettingsRegistry;
 import de.mrjulsen.paw.registry.ModSounds;
 import de.mrjulsen.paw.traction.ElectricTrainSnapshot;
 import de.mrjulsen.paw.traction.ElectricTrainStateTracker;
@@ -148,9 +150,18 @@ public final class TractionSoundManager {
         }
         vehicleSpeed.loggedPowered = vehicleSpeed.powered;
 
-        // A profile changed in the config takes over on the next observation: the old
-        // bank fades out on its own while the new one fades in.
-        TractionSoundProfile profile = ModClientConfig.TRACTION_PROFILE.get();
+        // The train's Traction Controller picks the pack; without one, or set to default, the player's
+        // own setting does. A change takes over on the next observation: the old bank fades out on its
+        // own while the new one fades in.
+        TrainSettings.SoundPack pack = TrainSettingsRegistry.CLIENT.of(vehicleId, gameTime).soundPack();
+        if (pack == TrainSettings.SoundPack.NONE) {
+            if (entry != null) {
+                entry.stop();
+                ACTIVE.remove(vehicleId);
+            }
+            return;
+        }
+        TractionSoundProfile profile = pack.profile() != null ? pack.profile() : ModClientConfig.TRACTION_PROFILE.get();
         if (entry != null && entry.profile != profile) {
             if (debug) {
                 TractionDebug.info("client: train {} profile changed to {}, restarting its voice", TractionDebug.shortId(vehicleId), profile);

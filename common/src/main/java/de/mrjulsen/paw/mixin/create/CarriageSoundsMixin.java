@@ -12,6 +12,8 @@ import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import com.simibubi.create.content.trains.entity.CarriageSounds;
 
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
+import de.mrjulsen.paw.traction.TrainSettings;
+import de.mrjulsen.paw.traction.TrainSettingsRegistry;
 import de.mrjulsen.paw.config.ModClientConfig;
 import de.mrjulsen.paw.traction.TractionDebug;
 import net.minecraft.world.level.Level;
@@ -119,14 +121,16 @@ public class CarriageSoundsMixin {
         soundEntry.playAt(level, position, volume, pitch, fade);
     }
 
+    /** The train's Traction Controller decides; set to default, or without one, the player's setting for electric trains does. */
     private boolean paw$isElectricTrain(Level level) {
-        if (!ModClientConfig.SILENCE_STEAM_ON_ELECTRIC_TRAINS.get()) {
-            return false;
-        }
-        if (entity == null || level == null) {
+        if (entity == null || level == null || entity.trainId == null) {
             return false;
         }
         UUID trainId = entity.trainId;
-        return trainId != null && TractionSoundManager.isElectric(trainId, level.getGameTime());
+        TrainSettings.SteamSound steam = TrainSettingsRegistry.CLIENT.of(trainId, level.getGameTime()).steamSound();
+        if (steam != TrainSettings.SteamSound.DEFAULT) {
+            return steam == TrainSettings.SteamSound.SILENCED;
+        }
+        return ModClientConfig.SILENCE_STEAM_ON_ELECTRIC_TRAINS.get() && TractionSoundManager.isElectric(trainId, level.getGameTime());
     }
 }

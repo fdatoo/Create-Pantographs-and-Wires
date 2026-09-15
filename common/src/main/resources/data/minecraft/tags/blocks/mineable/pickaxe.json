@@ -42,6 +42,7 @@
         "pantographsandwires:cantilever_double_6_brown",
         "pantographsandwires:cantilever_double_7_brown",
         "pantographsandwires:third_rail",
-        "pantographsandwires:collector_shoe"
+        "pantographsandwires:collector_shoe",
+    "pantographsandwires:traction_controller"
     ]
 }
