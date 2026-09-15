@@ -17,15 +17,22 @@ import net.minecraft.world.phys.Vec3;
  * One laid third rail between two rail blocks. Like Create's track connections, each end keeps its
  * own copy: the owner's copy starts at the owner, and exactly one of the two copies is primary, so
  * the rail is rendered and checked for shocks once.
+ *
+ * The rail is a Bezier between its ends, or, when it was laid along a real track, a path of points
+ * following that track (CreateTrackRoute).
  */
 public final class ThirdRailConnection {
     /** Longest straight piece of the conductor used for contact and shock checks. */
     public static final double CONDUCTOR_PIECE_LENGTH = 0.5;
     /** The furthest apart two connected rail blocks can be, matching the largest allowed max_length. */
     public static final int MAX_SPAN = 128;
+    /** Most points a stored path may have: well over MAX_SPAN of winding track at TrackFollowPath.SPACING. */
+    public static final int MAX_PATH_POINTS = 2048;
 
     /** A curve end must sit within this distance of its block's base centre (a diagonal corner is 0.71 away). */
     private static final double END_TOLERANCE = 1.0;
+    /** Longest gap allowed between neighbouring points of a stored path. */
+    private static final double MAX_PATH_GAP = 2.0;
 
     private static final String NBT_OTHER = "Other";
     private static final String NBT_START1 = "Start1";
@@ -36,6 +43,7 @@ public final class ThirdRailConnection {
     private static final String NBT_SUPPORTS_ON_RIGHT = "SupportsOnRight";
     private static final String NBT_RAIL_COST = "RailCost";
     private static final String NBT_RELATIVE = "Relative";
+    private static final String NBT_PATH = "Path";
 
     private final BlockPos owner;
     private final BlockPos other;
@@ -47,6 +55,9 @@ public final class ThirdRailConnection {
     private final boolean supportsOnRight;
     /** Rails paid when this rail was laid, refunded on removal; 0 when unknown. */
     private final int railCost;
+    /** The followed path as flattened world x, y, z from this end to the other, or null for a Bezier. */
+    @Nullable
+    private final double[] path;
 
     private ThirdRailCurve curve;
     private double[] conductor;
@@ -57,6 +68,11 @@ public final class ThirdRailConnection {
      *                        from owner to other (right is the tangent crossed with up)
      */
     public ThirdRailConnection(BlockPos owner, BlockPos other, Vec3 start1, Vec3 axis1, Vec3 start2, Vec3 axis2, boolean primary, boolean supportsOnRight, int railCost) {
+        this(owner, other, start1, axis1, start2, axis2, primary, supportsOnRight, railCost, null);
+    }
+
+    private ThirdRailConnection(BlockPos owner, BlockPos other, Vec3 start1, Vec3 axis1, Vec3 start2, Vec3 axis2, boolean primary, boolean supportsOnRight, int railCost,
+        @Nullable double[] path) {
         this.owner = owner;
         this.other = other;
         this.start1 = start1;
@@ -66,6 +82,21 @@ public final class ThirdRailConnection {
         this.primary = primary;
         this.supportsOnRight = supportsOnRight;
         this.railCost = Math.max(0, railCost);
+        this.path = path;
+    }
+
+    /**
+     * A rail following a path from owner to other. Its ends and their directions come from the path.
+     *
+     * @param path flattened world x, y, z points, at least two
+     */
+    public static ThirdRailConnection alongPath(BlockPos owner, BlockPos other, double[] path, boolean primary, boolean supportsOnRight, int railCost) {
+        int last = path.length / 3 - 1;
+        Vec3 start1 = new Vec3(path[0], path[1], path[2]);
+        Vec3 start2 = new Vec3(path[last * 3], path[last * 3 + 1], path[last * 3 + 2]);
+        Vec3 axis1 = horizontalDirection(path, 0, 1);
+        Vec3 axis2 = horizontalDirection(path, last, last - 1);
+        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, supportsOnRight, railCost, path.clone());
     }
 
     public BlockPos owner() {
@@ -92,22 +123,27 @@ public final class ThirdRailConnection {
         return supportsOnRight;
     }
 
+    /** Whether the rail follows a track's path rather than being a Bezier. */
+    public boolean followsPath() {
+        return path != null;
+    }
+
     /** The same rail seen from the other end. */
     public ThirdRailConnection secondary() {
-        return new ThirdRailConnection(other, owner, start2, axis2, start1, axis1, !primary, !supportsOnRight, railCost);
+        return new ThirdRailConnection(other, owner, start2, axis2, start1, axis1, !primary, !supportsOnRight, railCost, reversed(path));
     }
 
     public ThirdRailConnection withSupportsOnRight(boolean onRight) {
-        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, onRight, railCost);
+        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, onRight, railCost, path);
     }
 
     public ThirdRailConnection withRailCost(int cost) {
-        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, supportsOnRight, cost);
+        return new ThirdRailConnection(owner, other, start1, axis1, start2, axis2, primary, supportsOnRight, cost, path);
     }
 
     public ThirdRailCurve curve() {
         if (curve == null) {
-            curve = new ThirdRailCurve(joml(start1), joml(axis1), joml(start2), joml(axis2));
+            curve = path != null ? ThirdRailCurve.along(path) : new ThirdRailCurve(joml(start1), joml(axis1), joml(start2), joml(axis2));
         }
         return curve;
     }
@@ -157,6 +193,14 @@ public final class ThirdRailConnection {
         tag.putBoolean(NBT_PRIMARY, primary);
         tag.putBoolean(NBT_SUPPORTS_ON_RIGHT, supportsOnRight);
         tag.putInt(NBT_RAIL_COST, railCost());
+        if (path != null) {
+            ListTag points = new ListTag();
+            for (int i = 0; i < path.length; i++) {
+                double originAxis = i % 3 == 0 ? origin.x : i % 3 == 1 ? origin.y : origin.z;
+                points.add(DoubleTag.valueOf(path[i] - originAxis));
+            }
+            tag.put(NBT_PATH, points);
+        }
         return tag;
     }
 
@@ -184,12 +228,51 @@ public final class ThirdRailConnection {
         if (!isPlausible(owner, other, start1, axis1, start2, axis2)) {
             return null;
         }
+        double[] path = null;
+        if (tag.contains(NBT_PATH)) {
+            path = readPath(tag.getList(NBT_PATH, Tag.TAG_DOUBLE), origin, start1, start2);
+            if (path == null) {
+                return null;
+            }
+        }
         return new ThirdRailConnection(
             owner, other, start1, axis1, start2, axis2,
             tag.getBoolean(NBT_PRIMARY),
             tag.getBoolean(NBT_SUPPORTS_ON_RIGHT),
-            Math.min(MAX_SPAN, tag.getInt(NBT_RAIL_COST))
+            Math.min(MAX_SPAN, tag.getInt(NBT_RAIL_COST)),
+            path
         );
+    }
+
+    /** A stored path, or null unless it is finite, bounded, unbroken and runs from start1 to start2. */
+    @Nullable
+    private static double[] readPath(ListTag list, Vec3 origin, Vec3 start1, Vec3 start2) {
+        int count = list.size() / 3;
+        if (list.size() % 3 != 0 || count < 2 || count > MAX_PATH_POINTS) {
+            return null;
+        }
+        double[] path = new double[count * 3];
+        for (int i = 0; i < path.length; i++) {
+            double originAxis = i % 3 == 0 ? origin.x : i % 3 == 1 ? origin.y : origin.z;
+            path[i] = list.getDouble(i) + originAxis;
+            if (!Double.isFinite(path[i])) {
+                return null;
+            }
+        }
+        for (int i = 1; i < count; i++) {
+            double dx = path[i * 3] - path[(i - 1) * 3];
+            double dy = path[i * 3 + 1] - path[(i - 1) * 3 + 1];
+            double dz = path[i * 3 + 2] - path[(i - 1) * 3 + 2];
+            if (dx * dx + dy * dy + dz * dz > MAX_PATH_GAP * MAX_PATH_GAP) {
+                return null;
+            }
+        }
+        int last = count - 1;
+        if (new Vec3(path[0], path[1], path[2]).distanceTo(start1) > 1e-3
+            || new Vec3(path[last * 3], path[last * 3 + 1], path[last * 3 + 2]).distanceTo(start2) > 1e-3) {
+            return null;
+        }
+        return path;
     }
 
     static boolean isPlausible(BlockPos owner, BlockPos other, Vec3 start1, Vec3 axis1, Vec3 start2, Vec3 axis2) {
@@ -218,6 +301,30 @@ public final class ThirdRailConnection {
             maxZ = Math.max(maxZ, xyz[i + 2]);
         }
         return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    /** The unit horizontal direction from one path point towards another, looking a little further along for stability. */
+    private static Vec3 horizontalDirection(double[] path, int from, int towards) {
+        int count = path.length / 3;
+        int step = towards > from ? 1 : -1;
+        int to = Math.max(0, Math.min(count - 1, from + step * 2));
+        double dx = path[to * 3] - path[from * 3];
+        double dz = path[to * 3 + 2] - path[from * 3 + 2];
+        double length = Math.sqrt(dx * dx + dz * dz);
+        return length > 1e-9 ? new Vec3(dx / length, 0, dz / length) : new Vec3(0, 0, 1);
+    }
+
+    @Nullable
+    private static double[] reversed(@Nullable double[] path) {
+        if (path == null) {
+            return null;
+        }
+        int count = path.length / 3;
+        double[] result = new double[path.length];
+        for (int i = 0; i < count; i++) {
+            System.arraycopy(path, (count - 1 - i) * 3, result, i * 3, 3);
+        }
+        return result;
     }
 
     private static boolean finite(Vec3 v) {

@@ -17,6 +17,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
@@ -34,7 +35,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Laying a third rail between two points, the way Create lays track: click a rail block to select
  * it, then click a second point (an existing rail block, or anywhere a rail block could go) to lay a
- * straight or curved rail to it. A solid block held in the off hand fills the blocks under the new rail,
+ * straight or curved rail to it. When both points sit the same distance beside a Create track, the rail follows
+ * that track's path, curves and slopes included (CreateTrackRoute). A solid block held in the off hand fills the blocks under the new rail,
  * as it paves under Create track. Shared by the item on both sides and the client preview.
  */
 public final class ThirdRailPlacement {
@@ -118,22 +120,33 @@ public final class ThirdRailPlacement {
 
         Vector3d axis2 = ThirdRailPlacementRules.alongLook(joml(target.shape().axis()), joml(player.getLookAngle()));
         BlockPos pos2 = target.pos();
-        ThirdRailPlacementRules.Outcome outcome = ThirdRailPlacementRules.evaluate(
-            pos1.getX(), pos1.getY(), pos1.getZ(), axis1,
-            pos2.getX(), pos2.getY(), pos2.getZ(), axis2,
-            maxLength()
-        );
-
         ThirdRailConnection connection = null;
-        if (outcome.hasCurve()) {
-            connection = new ThirdRailConnection(pos1, pos2, vec(outcome.end1()), vec(outcome.axis1()), vec(outcome.end2()), vec(outcome.axis2()), true, true, 0);
-            connection = connection.withSupportsOnRight(supportsAwayFrom(connection, player.position()));
-            connection = connection.withRailCost(connection.computedRailCost());
-        }
+        MutableComponent validMessage = Component.translatable("create.track.valid_connection").withStyle(ChatFormatting.GREEN);
 
-        if (!outcome.valid()) {
-            ChatFormatting colour = "second_point".equals(outcome.problem()) ? ChatFormatting.WHITE : ChatFormatting.RED;
-            return new Attempt(false, Component.translatable("create.track." + outcome.problem()).withStyle(colour), connection, 0, null, 0);
+        // Beside a real track, the rail follows it; anywhere else it is a free curve by Create's track rules.
+        CreateTrackRoute.Result follow = !pos1.equals(pos2) && pos1.distSqr(pos2) <= (double) maxLength() * maxLength()
+            ? CreateTrackRoute.follow(level, pos1, pos2, maxLength())
+            : null;
+        if (follow != null && follow.follows()) {
+            // Supports stand on the side away from the track.
+            connection = ThirdRailConnection.alongPath(pos1, pos2, follow.path(), true, follow.side1() > 0, 0);
+            connection = connection.withRailCost(connection.computedRailCost());
+            validMessage.append(" ").append(Component.translatable("pantographsandwires.third_rail.following_track"));
+        } else {
+            ThirdRailPlacementRules.Outcome outcome = ThirdRailPlacementRules.evaluate(
+                pos1.getX(), pos1.getY(), pos1.getZ(), axis1,
+                pos2.getX(), pos2.getY(), pos2.getZ(), axis2,
+                maxLength()
+            );
+            if (outcome.hasCurve()) {
+                connection = new ThirdRailConnection(pos1, pos2, vec(outcome.end1()), vec(outcome.axis1()), vec(outcome.end2()), vec(outcome.axis2()), true, true, 0);
+                connection = connection.withSupportsOnRight(supportsAwayFrom(connection, player.position()));
+                connection = connection.withRailCost(connection.computedRailCost());
+            }
+            if (!outcome.valid()) {
+                ChatFormatting colour = "second_point".equals(outcome.problem()) ? ChatFormatting.WHITE : ChatFormatting.RED;
+                return new Attempt(false, Component.translatable("create.track." + outcome.problem()).withStyle(colour), connection, 0, null, 0);
+            }
         }
 
         if (target.existing() && level.getBlockEntity(pos1) instanceof ThirdRailBlockEntity first && first.hasConnectionTo(pos2)) {
@@ -154,7 +167,7 @@ public final class ThirdRailPlacement {
                 return new Attempt(false, Component.translatable("create.track.not_enough_pavement").withStyle(ChatFormatting.RED), connection, needed, pavement, pavementNeeded);
             }
         }
-        return new Attempt(true, Component.translatable("create.track.valid_connection").withStyle(ChatFormatting.GREEN), connection, needed, pavement, pavementNeeded);
+        return new Attempt(true, validMessage, connection, needed, pavement, pavementNeeded);
     }
 
     /**

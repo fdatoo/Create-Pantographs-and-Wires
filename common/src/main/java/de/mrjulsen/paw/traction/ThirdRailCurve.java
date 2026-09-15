@@ -4,16 +4,21 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
 /**
- * The centreline of a placed third rail: a cubic Bezier between two rail ends. Handles follow Create's
- * curved track (BezierConnection.determineHandles): a third of the distance for straight runs, a
- * gentler S-bend when parallel ends are offset, and a circular-arc approximation for turns. The curve
- * runs along the base of the rail blocks; the conductor sits {@link #CONDUCTOR_HEIGHT} above it.
+ * The centreline of a placed third rail. Usually a cubic Bezier between two rail ends; a rail laid along a
+ * real track is instead a path of points that follows it (along).
+ *
+ * Bezier handles follow Create's curved track (BezierConnection.determineHandles): a third of the distance
+ * for straight runs, a gentler S-bend when parallel ends are offset, and a circular-arc approximation for
+ * turns. The curve runs along the base of the rail blocks; the conductor sits {@link #CONDUCTOR_HEIGHT} above it.
  *
  * Unlike Create, a turn sizes each end's handle from that end's own leg to the corner. Create pads the
  * longer leg with straight track so both legs match; a rail is one curve, so with its legs unequal a
  * single shared handle would give a different curve depending on which end it was built from, and
  * the two ends' stored copies would disagree. Per-end handles make the curve identical from either
  * end and keep it between its legs. With equal legs they match Create exactly.
+ *
+ * A path's parameter is its arc length as a fraction of its length, and positions between its points are
+ * straight lines.
  *
  * Pure maths without Minecraft classes, so it can be tested.
  */
@@ -33,8 +38,10 @@ public final class ThirdRailCurve {
     private final Vector3d control2;
     private final double handleLength1;
     private final double handleLength2;
-    /** Arc length from the start to parameter i / LENGTH_SAMPLES. */
-    private final double[] cumulative = new double[LENGTH_SAMPLES + 1];
+    /** Arc length from the start to parameter i / LENGTH_SAMPLES, or to point i of a path. */
+    private final double[] cumulative;
+    /** A path's points as flattened x, y, z, or null for a Bezier. */
+    private final double[] path;
 
     /**
      * @param start1 where the curve leaves the first rail end
@@ -43,6 +50,7 @@ public final class ThirdRailCurve {
      * @param axis2  direction the curve leaves the second end in, also pointing into the curve
      */
     public ThirdRailCurve(Vector3dc start1, Vector3dc axis1, Vector3dc start2, Vector3dc axis2) {
+        this.path = null;
         this.start1 = new Vector3d(start1);
         this.start2 = new Vector3d(start2);
         Vector3d a1 = new Vector3d(axis1).normalize();
@@ -53,6 +61,7 @@ public final class ThirdRailCurve {
         this.control1 = new Vector3d(a1).mul(handleLength1).add(this.start1);
         this.control2 = new Vector3d(a2).mul(handleLength2).add(this.start2);
 
+        this.cumulative = new double[LENGTH_SAMPLES + 1];
         Vector3d previous = new Vector3d(this.start1);
         Vector3d current = new Vector3d();
         for (int i = 1; i <= LENGTH_SAMPLES; i++) {
@@ -60,6 +69,37 @@ public final class ThirdRailCurve {
             cumulative[i] = cumulative[i - 1] + current.distance(previous);
             previous.set(current);
         }
+    }
+
+    private ThirdRailCurve(double[] points) {
+        this.path = points.clone();
+        int count = path.length / 3;
+        this.start1 = point(0, new Vector3d());
+        this.start2 = point(count - 1, new Vector3d());
+        this.control1 = new Vector3d(start1);
+        this.control2 = new Vector3d(start2);
+        this.handleLength1 = 0;
+        this.handleLength2 = 0;
+        this.cumulative = new double[count];
+        Vector3d previous = new Vector3d();
+        Vector3d current = new Vector3d();
+        for (int i = 1; i < count; i++) {
+            point(i - 1, previous);
+            point(i, current);
+            cumulative[i] = cumulative[i - 1] + current.distance(previous);
+        }
+    }
+
+    /** A rail along a path of at least two points, given as flattened x, y, z. */
+    public static ThirdRailCurve along(double[] points) {
+        if (points.length < 6 || points.length % 3 != 0) {
+            throw new IllegalArgumentException("a path needs at least two points");
+        }
+        return new ThirdRailCurve(points);
+    }
+
+    public boolean isPath() {
+        return path != null;
     }
 
     public double handleLength1() {
@@ -71,10 +111,20 @@ public final class ThirdRailCurve {
     }
 
     public double length() {
-        return cumulative[LENGTH_SAMPLES];
+        return cumulative[cumulative.length - 1];
     }
 
     public Vector3d position(double t, Vector3d dest) {
+        if (path != null) {
+            int count = path.length / 3;
+            double distance = Math.max(0, Math.min(1, t)) * length();
+            int index = segmentAt(distance);
+            double span = cumulative[index + 1] - cumulative[index];
+            double fraction = span > 0 ? (distance - cumulative[index]) / span : 0;
+            Vector3d a = point(index, new Vector3d());
+            Vector3d b = point(Math.min(count - 1, index + 1), new Vector3d());
+            return dest.set(a).lerp(b, fraction);
+        }
         double u = 1 - t;
         double b0 = u * u * u;
         double b1 = 3 * u * u * t;
@@ -88,6 +138,14 @@ public final class ThirdRailCurve {
     }
 
     public Vector3d derivative(double t, Vector3d dest) {
+        if (path != null) {
+            int index = segmentAt(Math.max(0, Math.min(1, t)) * length());
+            Vector3d a = point(index, new Vector3d());
+            Vector3d b = point(index + 1, new Vector3d());
+            dest.set(b).sub(a);
+            double span = dest.length();
+            return span > 0 ? dest.mul(length() / span) : dest.set(0, 0, 1);
+        }
         double u = 1 - t;
         double d0 = 3 * u * u;
         double d1 = 6 * u * t;
@@ -107,6 +165,9 @@ public final class ThirdRailCurve {
         }
         if (distance >= total) {
             return 1;
+        }
+        if (path != null) {
+            return distance / total;
         }
         int lo = 0;
         int hi = LENGTH_SAMPLES;
@@ -159,6 +220,26 @@ public final class ThirdRailCurve {
             vertices[i * 3 + 2] = point.z;
         }
         return vertices;
+    }
+
+    /** The path segment containing an arc length: the index of its first point. */
+    private int segmentAt(double distance) {
+        int count = path.length / 3;
+        int lo = 0;
+        int hi = count - 1;
+        while (hi - lo > 1) {
+            int mid = (lo + hi) >>> 1;
+            if (cumulative[mid] <= distance) {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        return Math.min(lo, count - 2);
+    }
+
+    private Vector3d point(int index, Vector3d dest) {
+        return dest.set(path[index * 3], path[index * 3 + 1], path[index * 3 + 2]);
     }
 
     /** Handle lengths {at end 1, at end 2} for a curve between two ends. Swapping the ends swaps the result. */

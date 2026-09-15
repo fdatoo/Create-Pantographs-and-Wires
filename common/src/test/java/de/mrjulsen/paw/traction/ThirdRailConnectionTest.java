@@ -112,6 +112,53 @@ class ThirdRailConnectionTest {
         assertEquals(ThirdRailConnection.MAX_SPAN, read.railCost());
     }
 
+    private static double[] pathBeside(int length) {
+        double[] path = new double[(length * 2 + 1) * 3];
+        for (int i = 0; i <= length * 2; i++) {
+            path[i * 3] = 2.5 + Math.sin(i / 8.0) * 0.4;
+            path[i * 3 + 1] = 200;
+            path[i * 3 + 2] = 2.5 + i * 0.5;
+        }
+        path[path.length - 3] = 2.5;
+        return path;
+    }
+
+    @Test
+    void aFollowedPathSurvivesSavingAndMovesWithItsBlock() {
+        BlockPos end = A.offset(0, 0, 10);
+        ThirdRailConnection rail = ThirdRailConnection.alongPath(A, end, pathBeside(10), true, true, 5);
+        assertTrue(rail.followsPath());
+
+        ThirdRailConnection read = ThirdRailConnection.read(A, rail.write());
+        assertNotNull(read);
+        assertTrue(read.followsPath());
+        assertEquals(rail.curve().length(), read.curve().length(), 1e-9);
+
+        ThirdRailConnection moved = ThirdRailConnection.read(A.offset(7, 3, 0), rail.write());
+        assertNotNull(moved);
+        assertEquals(rail.curve().length(), moved.curve().length(), 1e-9);
+        assertEquals(rail.midpoint().x + 7, moved.midpoint().x, 1e-9);
+        assertEquals(rail.midpoint().y + 3, moved.midpoint().y, 1e-9);
+    }
+
+    @Test
+    void theOtherEndSeesThePathReversed() {
+        ThirdRailConnection rail = ThirdRailConnection.alongPath(A, A.offset(0, 0, 10), pathBeside(10), true, true, 5);
+        ThirdRailConnection other = rail.secondary();
+        assertEquals(rail.curve().length(), other.curve().length(), 1e-9);
+        assertEquals(rail.midpoint().z, other.midpoint().z, 1e-9);
+        assertEquals(12.5, other.start1().z, 1e-9);
+    }
+
+    @Test
+    void aBrokenPathIsRejected() {
+        ThirdRailConnection rail = ThirdRailConnection.alongPath(A, A.offset(0, 0, 10), pathBeside(10), true, true, 5);
+        CompoundTag gap = rail.write();
+        ListTag points = gap.getList("Path", 6);
+        points.set(20 * 3 + 2, DoubleTag.valueOf(40));
+        assertNull(ThirdRailConnection.read(A, gap));
+    }
+
     private static ListTag vec(double x, double y, double z) {
         ListTag list = new ListTag();
         list.add(DoubleTag.valueOf(x));
