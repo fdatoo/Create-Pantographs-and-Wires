@@ -25,14 +25,14 @@ public class ClientWrapper {
     }
 
     /** Applies a changed Traction Controller on a train to this client's copy of the train. */
-    public static void applyTrainSettings(int entityId, BlockPos localPos, TrainSettings settings) {
+    public static void applyTrainSettings(int entityId, BlockPos localPos, TrainSettings settings, long changed) {
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null || !(level.getEntity(entityId) instanceof AbstractContraptionEntity entity)) {
             return;
         }
         MutablePair<StructureBlockInfo, MovementContext> actor = entity.getContraption().getActorAt(localPos);
         if (actor != null && actor.right != null && actor.right.blockEntityData != null) {
-            actor.right.blockEntityData.put(TrainSettings.NBT_KEY, settings.write());
+            actor.right.blockEntityData.put(TrainSettings.NBT_KEY, settings.write(changed));
         }
     }
     

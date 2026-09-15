@@ -6,12 +6,14 @@ import org.apache.commons.lang3.tuple.MutablePair;
 
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
+import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 
 import de.mrjulsen.mcdragonlib.net.IPacketBase;
 import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.block.TractionControllerBlock;
 import de.mrjulsen.paw.blockentity.TractionControllerBlockEntity;
 import de.mrjulsen.paw.traction.TrainSettings;
+import de.mrjulsen.paw.traction.TrainSettingsRegistry;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.networking.NetworkManager.PacketContext;
 import net.minecraft.core.BlockPos;
@@ -73,10 +75,12 @@ public class TrainSettingsPacket implements IPacketBase<TrainSettingsPacket> {
                 return;
             }
             Target target = packet.target;
+            // The train's other controllers take the settings with the newest time (TractionControllerMovementBehaviour).
+            long changed = System.currentTimeMillis();
             if (!target.onTrain()) {
                 if (player.distanceToSqr(Vec3.atCenterOf(target.pos())) <= REACH * REACH
                     && level.getBlockEntity(target.pos()) instanceof TractionControllerBlockEntity controller) {
-                    controller.setSettings(packet.settings);
+                    controller.setSettings(packet.settings, changed);
                 }
                 return;
             }
@@ -89,9 +93,13 @@ public class TrainSettingsPacket implements IPacketBase<TrainSettingsPacket> {
                 || player.distanceToSqr(entity.toGlobalVector(Vec3.atCenterOf(target.pos()), 1)) > REACH * REACH) {
                 return;
             }
-            actor.right.blockEntityData.put(TrainSettings.NBT_KEY, packet.settings.write());
+            actor.right.blockEntityData.put(TrainSettings.NBT_KEY, packet.settings.write(changed));
+            if (entity instanceof CarriageContraptionEntity carriage && carriage.trainId != null) {
+                TrainSettingsRegistry.SERVER.report(carriage.trainId, carriage.carriageIndex, target.pos().asLong(),
+                    new TrainSettingsRegistry.Stamped(packet.settings, changed), level.getGameTime());
+            }
             level.getChunkSource().broadcast(entity, PantographsAndWires.net().CHANNEL.toPacket(NetworkManager.Side.S2C,
-                new TrainSettingsSyncPacket(entity.getId(), target.pos(), packet.settings)));
+                new TrainSettingsSyncPacket(entity.getId(), target.pos(), packet.settings, changed)));
         });
     }
 }

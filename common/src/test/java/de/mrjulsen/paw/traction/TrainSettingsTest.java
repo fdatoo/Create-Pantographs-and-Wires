@@ -50,16 +50,36 @@ class TrainSettingsTest {
     }
 
     @Test
-    void theLowestCarriageControllerWinsAndStaleReportsExpire() {
+    void theMostRecentlyChosenSettingsWinWhicheverCarriageHoldsThem() {
+        TrainSettingsRegistry registry = new TrainSettingsRegistry();
+        TrainSettings older = TrainSettings.DEFAULT.withSoundPack(TrainSettings.SoundPack.BART);
+        TrainSettings newer = TrainSettings.DEFAULT.withSoundPack(TrainSettings.SoundPack.WMATA);
+        registry.report(TRAIN, 0, 5, new TrainSettingsRegistry.Stamped(older, 1_000), 100);
+        registry.report(TRAIN, 2, 0, new TrainSettingsRegistry.Stamped(newer, 2_000), 100);
+        assertEquals(newer, registry.of(TRAIN, 100));
+        assertEquals(2_000, registry.find(TRAIN, 100).orElseThrow().changed());
+    }
+
+    @Test
+    void equalTimesGoToTheLowestCarriageAndStaleReportsExpire() {
         TrainSettingsRegistry registry = new TrainSettingsRegistry();
         TrainSettings rear = TrainSettings.DEFAULT.withSoundPack(TrainSettings.SoundPack.WMATA);
         TrainSettings front = TrainSettings.DEFAULT.withSoundPack(TrainSettings.SoundPack.BART);
-        registry.report(TRAIN, 2, 0, rear, 100);
-        registry.report(TRAIN, 0, 5, front, 100);
+        registry.report(TRAIN, 2, 0, new TrainSettingsRegistry.Stamped(rear, 0), 100);
+        registry.report(TRAIN, 0, 5, new TrainSettingsRegistry.Stamped(front, 0), 100);
         assertEquals(front, registry.of(TRAIN, 100));
 
-        registry.report(TRAIN, 2, 0, rear, 100 + TrainSettingsRegistry.STALE_TICKS + 1);
+        registry.report(TRAIN, 2, 0, new TrainSettingsRegistry.Stamped(rear, 0), 100 + TrainSettingsRegistry.STALE_TICKS + 1);
         assertEquals(rear, registry.of(TRAIN, 100 + TrainSettingsRegistry.STALE_TICKS + 1), "the front controller went quiet");
         assertEquals(TrainSettings.DEFAULT, registry.of(UUID.randomUUID(), 100));
+    }
+
+    @Test
+    void theChangeTimeIsSavedWithTheSettings() {
+        CompoundTag data = new CompoundTag();
+        assertEquals(0, TrainSettings.changedAt(data));
+        data.put(TrainSettings.NBT_KEY, TrainSettings.DEFAULT.withSpeedUnit(TrainSettings.SpeedUnit.MILES_PER_HOUR).write(123_456L));
+        assertEquals(123_456L, TrainSettings.changedAt(data));
+        assertEquals(TrainSettings.SpeedUnit.MILES_PER_HOUR, TrainSettings.from(data).speedUnit());
     }
 }

@@ -124,6 +124,21 @@ public record TrainSettings(SoundPack soundPack, SpeedUnit speedUnit, SteamSound
         return tag;
     }
 
+    /**
+     * @param changed when the settings were chosen, in milliseconds since the epoch: the controllers on a
+     *                train all adopt the most recently chosen settings
+     */
+    public CompoundTag write(long changed) {
+        CompoundTag tag = write();
+        tag.putLong("Changed", changed);
+        return tag;
+    }
+
+    /** When the settings in a controller's block entity data were chosen, or 0 if never. */
+    public static long changedAt(@Nullable CompoundTag blockEntityData) {
+        return blockEntityData != null && blockEntityData.contains(NBT_KEY) ? blockEntityData.getCompound(NBT_KEY).getLong("Changed") : 0;
+    }
+
     /** Reads settings; missing or unknown values fall back to their defaults. */
     public static TrainSettings read(CompoundTag tag) {
         return new TrainSettings(

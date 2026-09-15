@@ -14,13 +14,15 @@ public class TrainSettingsSyncPacket implements IPacketBase<TrainSettingsSyncPac
     private int entityId;
     private BlockPos localPos;
     private TrainSettings settings;
+    private long changed;
 
     public TrainSettingsSyncPacket() {}
 
-    public TrainSettingsSyncPacket(int entityId, BlockPos localPos, TrainSettings settings) {
+    public TrainSettingsSyncPacket(int entityId, BlockPos localPos, TrainSettings settings, long changed) {
         this.entityId = entityId;
         this.localPos = localPos;
         this.settings = settings;
+        this.changed = changed;
     }
 
     @Override
@@ -28,15 +30,16 @@ public class TrainSettingsSyncPacket implements IPacketBase<TrainSettingsSyncPac
         buf.writeVarInt(packet.entityId);
         buf.writeBlockPos(packet.localPos);
         packet.settings.writeTo(buf);
+        buf.writeLong(packet.changed);
     }
 
     @Override
     public TrainSettingsSyncPacket decode(FriendlyByteBuf buf) {
-        return new TrainSettingsSyncPacket(buf.readVarInt(), buf.readBlockPos(), TrainSettings.readFrom(buf));
+        return new TrainSettingsSyncPacket(buf.readVarInt(), buf.readBlockPos(), TrainSettings.readFrom(buf), buf.readLong());
     }
 
     @Override
     public void handle(TrainSettingsSyncPacket packet, Supplier<PacketContext> contextSupplier) {
-        contextSupplier.get().queue(() -> ClientWrapper.applyTrainSettings(packet.entityId, packet.localPos, packet.settings));
+        contextSupplier.get().queue(() -> ClientWrapper.applyTrainSettings(packet.entityId, packet.localPos, packet.settings, packet.changed));
     }
 }

@@ -1,0 +1,26 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "key": {
+      "N": {
+        "item": "create:nixie_tube"
+      },
+      "B": {
+        "item": "create:brass_sheet"
+      },
+      "E": {
+        "item": "create:electron_tube"
+      },
+      "C": {
+        "item": "create:andesite_casing"
+      }
+    },
+    "pattern": [
+      " N ",
+      "BEB",
+      " C "
+    ],
+    "result": {
+      "count": 1,
+      "item": "pantographsandwires:traction_controller"
+    }
+  }
