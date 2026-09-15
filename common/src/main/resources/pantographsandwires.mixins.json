@@ -32,7 +32,8 @@
     "BlockPlaceContextMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin",
-    "create.CarriageControlMixin"
+    "create.CarriageControlMixin",
+    "create.NixieTubeBlockEntityAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

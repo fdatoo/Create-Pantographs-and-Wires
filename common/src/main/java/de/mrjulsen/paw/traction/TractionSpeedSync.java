@@ -16,8 +16,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Server side: sends the players near a carriage carrying a current collector its train's exact speed,
  * the grade the carriage is on and whether a driver holds a direction, every tick while it moves and now
- * and then at rest. Called by collector movement behaviours; a carriage with several collectors still
- * sends once per tick.
+ * and then at rest. Called by collector and nixie speedometer movement behaviours; a carriage with several
+ * of them still sends once per tick.
  *
  * Create doesn't slow trains on hills, so the grade is what lets the sound tell a climb at steady speed
  * from cruising on the flat. It is measured from the carriage's own movement over the last stretch of

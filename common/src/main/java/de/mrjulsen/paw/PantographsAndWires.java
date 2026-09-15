@@ -12,6 +12,7 @@ import de.mrjulsen.paw.event.ModCommonEvents;
 import de.mrjulsen.paw.network.TractionDebugPacket;
 import de.mrjulsen.paw.network.TractionSpeedPacket;
 import de.mrjulsen.paw.registry.ModBlockEntities;
+import de.mrjulsen.paw.blockentity.NixieSpeedometerMovementBehaviour;
 import de.mrjulsen.paw.registry.ModBlocks;
 import de.mrjulsen.paw.registry.ModCreativeModeTab;
 import de.mrjulsen.paw.registry.ModItems;
@@ -54,6 +55,7 @@ public final class PantographsAndWires {
         ModNetworkAccessor.init();
         ModWireRegistry.init();
         ModBlocks.init();
+        NixieSpeedometerMovementBehaviour.register();
         ModItems.init();
         ModBlockEntities.init();
         ModCreativeModeTab.setup();
