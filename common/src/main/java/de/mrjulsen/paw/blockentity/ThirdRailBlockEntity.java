@@ -90,9 +90,27 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
         return state.hasProperty(ThirdRailBlock.SHAPE) ? state.getValue(ThirdRailBlock.SHAPE) : EThirdRailShape.Z;
     }
 
-    /** Identifies the current rail geometry, for the renderer's cache. */
+    /**
+     * Identifies the current rail geometry, for the renderer's cache. Includes whether the neighbouring
+     * rail blocks continue the piece, so placing or breaking one rebuilds it.
+     */
     public long renderKey() {
-        return ((long) geometryVersion << 3) | shape().ordinal();
+        return ((long) geometryVersion << 5) | (continuesInto(1) ? 16 : 0) | (continuesInto(-1) ? 8 : 0) | shape().ordinal();
+    }
+
+    /**
+     * Whether the next block along this block's axis (sign 1 forward, -1 backward) is a rail block laid
+     * the same way. Rail blocks in a row, as a stacked or hand-placed straight makes, then join into one
+     * rail instead of each dipping into its own end ramps. Their conductors already meet at the block edge.
+     */
+    public boolean continuesInto(int sign) {
+        if (level == null) {
+            return false;
+        }
+        EThirdRailShape shape = shape();
+        Vec3 axis = shape.axis();
+        BlockState next = level.getBlockState(worldPosition.offset((int) axis.x * sign, 0, (int) axis.z * sign));
+        return next.getBlock() instanceof ThirdRailBlock && next.getValue(ThirdRailBlock.SHAPE) == shape;
     }
 
     public void addConnection(ThirdRailConnection connection) {

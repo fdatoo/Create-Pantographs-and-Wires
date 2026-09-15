@@ -97,6 +97,10 @@ final class ThirdRailMesh {
             forward |= direction > 0;
             backward |= direction < 0;
         }
+        boolean joinsForward = rail.continuesInto(1);
+        boolean joinsBackward = rail.continuesInto(-1);
+        forward |= joinsForward;
+        backward |= joinsBackward;
 
         Vector3d tangent = new Vector3d(axis.x, axis.y, axis.z).normalize();
         Frame[] frames = new Frame[PIECE_STEPS + 1];
@@ -108,7 +112,12 @@ final class ThirdRailMesh {
         }
         sweep(frames, CONDUCTOR);
         sweep(frames, COVER);
-        supports(frames[PIECE_STEPS / 2], rail.pieceSupportsOnRight() ? 1 : -1);
+        // In a run of rail blocks, supports go every SUPPORT_SPACING blocks, as along a laid rail, not under every block.
+        BlockPos pos = rail.getBlockPos();
+        int along = axis.x != 0 ? pos.getX() : pos.getZ();
+        if (!(joinsForward && joinsBackward) || Math.floorMod(along, (int) SUPPORT_SPACING) == 0) {
+            supports(frames[PIECE_STEPS / 2], rail.pieceSupportsOnRight() ? 1 : -1);
+        }
     }
 
     private void connection(ThirdRailConnection connection) {
