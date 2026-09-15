@@ -21,10 +21,12 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -32,7 +34,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Laying a third rail between two points, the way Create lays track: click a rail block to select
  * it, then click a second point (an existing rail block, or anywhere a rail block could go) to lay a
- * straight or curved rail to it. Shared by the item on both sides and the client preview.
+ * straight or curved rail to it. A solid block held in the off hand fills the blocks under the new rail,
+ * as it paves under Create track. Shared by the item on both sides and the client preview.
  */
 public final class ThirdRailPlacement {
     private static final String NBT_SELECTION = "ConnectingFrom";
@@ -46,8 +49,11 @@ public final class ThirdRailPlacement {
      * @param connection  the rail from the selected block to the target, for previewing, or null when
      *                    the problem leaves nothing sensible to draw
      * @param railsNeeded rails used up, including the new end block when one is placed
+     * @param pavement    the off-hand block to pave under the rail with, or null for no paving
+     * @param pavementNeeded blocks of pavement used up
      */
-    public record Attempt(boolean valid, @Nullable Component message, @Nullable ThirdRailConnection connection, int railsNeeded) {}
+    public record Attempt(boolean valid, @Nullable Component message, @Nullable ThirdRailConnection connection, int railsNeeded,
+        @Nullable Block pavement, int pavementNeeded) {}
 
     private ThirdRailPlacement() {}
 
@@ -101,7 +107,7 @@ public final class ThirdRailPlacement {
         BlockPos pos1 = NbtUtils.readBlockPos(selection.getCompound(NBT_POS));
         BlockState state1 = level.getBlockState(pos1);
         if (!(state1.getBlock() instanceof ThirdRailBlock)) {
-            return new Attempt(false, Component.translatable("create.track.original_missing").withStyle(ChatFormatting.RED), null, 0);
+            return new Attempt(false, Component.translatable("create.track.original_missing").withStyle(ChatFormatting.RED), null, 0, null, 0);
         }
 
         // Only the stored direction's sign is trusted: the axis itself always comes from the block.
@@ -127,22 +133,33 @@ public final class ThirdRailPlacement {
 
         if (!outcome.valid()) {
             ChatFormatting colour = "second_point".equals(outcome.problem()) ? ChatFormatting.WHITE : ChatFormatting.RED;
-            return new Attempt(false, Component.translatable("create.track." + outcome.problem()).withStyle(colour), connection, 0);
+            return new Attempt(false, Component.translatable("create.track." + outcome.problem()).withStyle(colour), connection, 0, null, 0);
         }
 
         if (target.existing() && level.getBlockEntity(pos1) instanceof ThirdRailBlockEntity first && first.hasConnectionTo(pos2)) {
-            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.already_connected").withStyle(ChatFormatting.RED), connection, 0);
+            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.already_connected").withStyle(ChatFormatting.RED), connection, 0, null, 0);
         }
 
         int needed = connection.railCost() + (target.existing() ? 0 : 1);
         if (!player.isCreative() && countItems(player.getInventory(), stack.getItem()) < needed) {
-            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.not_enough_rails").withStyle(ChatFormatting.RED), connection, needed);
+            return new Attempt(false, Component.translatable("pantographsandwires.third_rail.not_enough_rails").withStyle(ChatFormatting.RED), connection, needed, null, 0);
         }
-        return new Attempt(true, Component.translatable("create.track.valid_connection").withStyle(ChatFormatting.GREEN), connection, needed);
+
+        Block pavement = player.getOffhandItem().getItem() instanceof BlockItem blockItem
+            && ThirdRailPaver.canPaveWith(level, blockItem.getBlock(), pos1) ? blockItem.getBlock() : null;
+        int pavementNeeded = 0;
+        if (pavement != null) {
+            pavementNeeded = ThirdRailPaver.pave(level, ThirdRailPaver.positions(connection), pavement, true);
+            if (!player.isCreative() && countItems(player.getInventory(), pavement.asItem()) < pavementNeeded) {
+                return new Attempt(false, Component.translatable("create.track.not_enough_pavement").withStyle(ChatFormatting.RED), connection, needed, pavement, pavementNeeded);
+            }
+        }
+        return new Attempt(true, Component.translatable("create.track.valid_connection").withStyle(ChatFormatting.GREEN), connection, needed, pavement, pavementNeeded);
     }
 
     /**
-     * Places the end block if needed, lays the rail at both ends and uses up the rails. Server only.
+     * Places the end block if needed, lays the rail at both ends, paves under it and uses up the rails and
+     * pavement. Server only.
      * Takes nothing and returns false if the rail couldn't be laid.
      */
     public static boolean commit(Level level, Player player, InteractionHand hand, Target target, Attempt attempt) {
@@ -162,12 +179,16 @@ public final class ThirdRailPlacement {
         }
         first.addConnection(connection);
         second.addConnection(connection.secondary());
+        int paved = attempt.pavement() == null ? 0 : ThirdRailPaver.pave(level, ThirdRailPaver.positions(connection), attempt.pavement(), false);
 
         ItemStack held = player.getItemInHand(hand);
         Item rail = held.getItem();
         clearSelection(held);
         if (!player.isCreative()) {
             removeItems(player.getInventory(), rail, attempt.railsNeeded());
+            if (paved > 0) {
+                removeItems(player.getInventory(), attempt.pavement().asItem(), paved);
+            }
         }
 
         BlockState placed = level.getBlockState(target.pos());

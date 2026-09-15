@@ -35,6 +35,7 @@ public final class ThirdRailConnection {
     private static final String NBT_PRIMARY = "Primary";
     private static final String NBT_SUPPORTS_ON_RIGHT = "SupportsOnRight";
     private static final String NBT_RAIL_COST = "RailCost";
+    private static final String NBT_RELATIVE = "Relative";
 
     private final BlockPos owner;
     private final BlockPos other;
@@ -140,12 +141,18 @@ public final class ThirdRailConnection {
         return Math.max(1, (int) Math.min(MAX_SPAN, Math.ceil(curve().length() / 2)));
     }
 
+    /**
+     * Positions are stored relative to the owner block, so a copy of the block carries its rail along:
+     * WorldEdit's copy, paste and stack, and schematics, move block entity data without rewriting it.
+     */
     public CompoundTag write() {
         CompoundTag tag = new CompoundTag();
-        tag.put(NBT_OTHER, NbtUtils.writeBlockPos(other));
-        tag.put(NBT_START1, writeVec(start1));
+        Vec3 origin = Vec3.atLowerCornerOf(owner);
+        tag.putBoolean(NBT_RELATIVE, true);
+        tag.put(NBT_OTHER, NbtUtils.writeBlockPos(other.subtract(owner)));
+        tag.put(NBT_START1, writeVec(start1.subtract(origin)));
         tag.put(NBT_AXIS1, writeVec(axis1));
-        tag.put(NBT_START2, writeVec(start2));
+        tag.put(NBT_START2, writeVec(start2.subtract(origin)));
         tag.put(NBT_AXIS2, writeVec(axis2));
         tag.putBoolean(NBT_PRIMARY, primary);
         tag.putBoolean(NBT_SUPPORTS_ON_RIGHT, supportsOnRight);
@@ -155,7 +162,8 @@ public final class ThirdRailConnection {
 
     /**
      * Reads a stored rail, or null when the data doesn't describe a rail between its two blocks. That
-     * rejects damaged or crafted data, and rails whose owner block has been carried off somewhere else.
+     * rejects damaged or crafted data. Rails saved before positions became relative are in world
+     * coordinates, so those are still rejected when their block has been carried somewhere else.
      */
     @Nullable
     public static ThirdRailConnection read(BlockPos owner, CompoundTag tag) {
@@ -163,10 +171,15 @@ public final class ThirdRailConnection {
             || !tag.contains(NBT_AXIS1) || !tag.contains(NBT_AXIS2)) {
             return null;
         }
+        boolean relative = tag.getBoolean(NBT_RELATIVE);
+        Vec3 origin = relative ? Vec3.atLowerCornerOf(owner) : Vec3.ZERO;
         BlockPos other = NbtUtils.readBlockPos(tag.getCompound(NBT_OTHER));
-        Vec3 start1 = readVec(tag.getList(NBT_START1, Tag.TAG_DOUBLE));
+        if (relative) {
+            other = owner.offset(other);
+        }
+        Vec3 start1 = readVec(tag.getList(NBT_START1, Tag.TAG_DOUBLE)).add(origin);
         Vec3 axis1 = readVec(tag.getList(NBT_AXIS1, Tag.TAG_DOUBLE));
-        Vec3 start2 = readVec(tag.getList(NBT_START2, Tag.TAG_DOUBLE));
+        Vec3 start2 = readVec(tag.getList(NBT_START2, Tag.TAG_DOUBLE)).add(origin);
         Vec3 axis2 = readVec(tag.getList(NBT_AXIS2, Tag.TAG_DOUBLE));
         if (!isPlausible(owner, other, start1, axis1, start2, axis2)) {
             return null;

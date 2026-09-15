@@ -12,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.phys.Vec3;
 
 class ThirdRailConnectionTest {
@@ -57,9 +58,30 @@ class ThirdRailConnectionTest {
     }
 
     @Test
-    void railReadAtAnotherOwnerIsRejected() {
-        // The same data loaded into a block that has been carried somewhere else.
-        assertNull(ThirdRailConnection.read(A.offset(0, 0, -5), straight(7).write()));
+    void aCopiedRailBlockCarriesItsRailAlong() {
+        // What WorldEdit's //stack or a schematic does: the same data loaded into a block further along.
+        BlockPos moved = A.offset(0, 0, 40);
+        ThirdRailConnection read = ThirdRailConnection.read(moved, straight(7).write());
+        assertNotNull(read);
+        assertEquals(B.offset(0, 0, 40), read.other());
+        assertEquals(new Vec3(2.5, 200, 43), read.start1());
+        assertEquals(straight(7).curve().length(), read.curve().length(), 1e-9);
+    }
+
+    @Test
+    void olderWorldCoordinateDataStillLoadsButNotAtAnotherOwner() {
+        CompoundTag old = new CompoundTag();
+        old.put("Other", NbtUtils.writeBlockPos(B));
+        old.put("Start1", vec(2.5, 200, 3));
+        old.put("Axis1", vec(0, 0, 1));
+        old.put("Start2", vec(2.5, 200, 12));
+        old.put("Axis2", vec(0, 0, -1));
+        old.putBoolean("Primary", true);
+        old.putInt("RailCost", 7);
+        ThirdRailConnection read = ThirdRailConnection.read(A, old);
+        assertNotNull(read);
+        assertEquals(B, read.other());
+        assertNull(ThirdRailConnection.read(A.offset(0, 0, -5), old));
     }
 
     @Test

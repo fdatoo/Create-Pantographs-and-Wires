@@ -23,7 +23,8 @@ import net.minecraft.world.level.block.state.BlockState;
 /**
  * Places third rail the way Create's track item places track. Without a selection it places a single
  * rail block, or selects a clicked rail block as the start of a new rail. With a selection, clicking
- * a second point lays a straight or curved rail to it, and sneak-clicking clears the selection.
+ * a second point lays a straight or curved rail to it, and sneak-clicking clears the selection. A solid
+ * block in the off hand paves under the new rail.
  */
 public class ThirdRailItem extends BlockItem {
 
