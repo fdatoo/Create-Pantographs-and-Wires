@@ -4,10 +4,7 @@ import javax.annotation.Nullable;
 
 import com.simibubi.create.AllSoundEvents;
 
-import de.mrjulsen.paw.PantographsAndWires;
 import de.mrjulsen.paw.block.ThirdRailBlock;
-import de.mrjulsen.paw.event.ClientWrapper;
-import de.mrjulsen.paw.network.ThirdRailMaximisePacket;
 import de.mrjulsen.paw.traction.ThirdRailPlacement;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -26,9 +23,8 @@ import net.minecraft.world.level.block.state.BlockState;
 /**
  * Places third rail the way Create's track item places track. Without a selection it places a single
  * rail block, or selects a clicked rail block as the start of a new rail. With a selection, clicking
- * a second point lays a straight or curved rail to it, and sneak-clicking clears the selection. Holding
- * the sprint key makes a curve as large as the room allows instead of leading into it with straight rail.
- * A solid block in the off hand paves under the new rail.
+ * a second point lays a straight or curved rail to it, and sneak-clicking clears the selection. A solid
+ * block in the off hand paves under the new rail.
  */
 public class ThirdRailItem extends BlockItem {
 
@@ -65,22 +61,11 @@ public class ThirdRailItem extends BlockItem {
             return InteractionResult.SUCCESS;
         }
 
-        // The client sends the sprint key's state ahead of this click; the server reads it back off the stack.
-        boolean maximise;
-        if (level.isClientSide) {
-            maximise = ClientWrapper.maximiseCurveHeld();
-            if (maximise) {
-                PantographsAndWires.net().CHANNEL.sendToServer(new ThirdRailMaximisePacket(true));
-            }
-        } else {
-            maximise = ThirdRailPlacement.takeMaximise(stack);
-        }
-
         ThirdRailPlacement.Target target = ThirdRailPlacement.target(level, new BlockPlaceContext(context), context.getClickedPos(), this);
         if (target == null) {
             return InteractionResult.FAIL;
         }
-        ThirdRailPlacement.Attempt attempt = ThirdRailPlacement.tryConnect(level, player, stack, target, maximise);
+        ThirdRailPlacement.Attempt attempt = ThirdRailPlacement.tryConnect(level, player, stack, target);
         if (attempt.message() != null && !level.isClientSide) {
             player.displayClientMessage(attempt.message(), true);
         }

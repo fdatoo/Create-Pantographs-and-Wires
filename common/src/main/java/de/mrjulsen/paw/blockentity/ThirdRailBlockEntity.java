@@ -45,7 +45,6 @@ import net.minecraft.world.phys.Vec3;
  */
 public class ThirdRailBlockEntity extends SmartBlockEntity {
     private static final String NBT_CONNECTIONS = "Connections";
-    private static final String NBT_PIECE_SUPPORTS_ON_RIGHT = "PieceSupportsOnRight";
     /** How often the server checks for entities touching the conductor. */
     private static final int SHOCK_INTERVAL_TICKS = 5;
     /** Entities count as touching when their box comes this close to the conductor's centreline. */
@@ -56,8 +55,6 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
     private AABB blockConductorBounds;
     private EThirdRailShape blockConductorShape;
     private int shockTicker;
-    /** Which side a block without rails of its own draws its supports on, or null for the right; see pieceSupportsOnRight. */
-    private Boolean pieceSupportsOnRight;
     private boolean cancelDrops;
     private boolean indexed;
     /** Bumped whenever the rails change, so cached client geometry knows to rebuild. */
@@ -153,10 +150,6 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
 
     /** Moves the cover's supports to the other side of every rail laid from this block. */
     public void flipSupports() {
-        if (connections.isEmpty()) {
-            setPieceSupportsOnRight(!pieceSupportsOnRight());
-            return;
-        }
         for (ThirdRailConnection connection : new ArrayList<>(connections.values())) {
             ThirdRailConnection flipped = connection.withSupportsOnRight(!connection.supportsOnRight());
             connections.put(flipped.other(), flipped);
@@ -178,14 +171,7 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
             boolean leavesForward = connection.axis1().dot(axis) > 0;
             return leavesForward == connection.supportsOnRight();
         }
-        return pieceSupportsOnRight == null || pieceSupportsOnRight;
-    }
-
-    /** Sets the supports' side for a block without rails of its own, such as straight rail leading into a curve. */
-    public void setPieceSupportsOnRight(boolean onRight) {
-        this.pieceSupportsOnRight = onRight;
-        railsChanged();
-        notifyUpdate();
+        return true;
     }
 
     /** The conductor of this block's own straight piece, in world space. */
@@ -345,15 +331,11 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
             list.add(connection.write());
         }
         tag.put(NBT_CONNECTIONS, list);
-        if (pieceSupportsOnRight != null) {
-            tag.putBoolean(NBT_PIECE_SUPPORTS_ON_RIGHT, pieceSupportsOnRight);
-        }
     }
 
     @Override
     protected void read(CompoundTag tag, boolean clientPacket) {
         super.read(tag, clientPacket);
-        pieceSupportsOnRight = tag.contains(NBT_PIECE_SUPPORTS_ON_RIGHT) ? tag.getBoolean(NBT_PIECE_SUPPORTS_ON_RIGHT) : null;
         connections.clear();
         for (Tag entry : tag.getList(NBT_CONNECTIONS, Tag.TAG_COMPOUND)) {
             ThirdRailConnection connection = ThirdRailConnection.read(worldPosition, (CompoundTag) entry);

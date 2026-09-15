@@ -97,7 +97,5 @@
     "pantographsandwires.third_rail.supports_moved": "Cover supports moved to the other side",
     "death.attack.pantographsandwires.third_rail": "%1$s touched the third rail",
     "death.attack.pantographsandwires.third_rail.player": "%1$s touched the third rail while fleeing %2$s",
-    "pantographsandwires.third_rail.already_connected": "These rails are already connected",
-    "pantographsandwires.third_rail.obstructed": "Something is in the way of the straight rail",
-    "pantographsandwires.third_rail.hold_for_full_curve": "(hold %s for the full curve)"
+    "pantographsandwires.third_rail.already_connected": "These rails are already connected"
 }

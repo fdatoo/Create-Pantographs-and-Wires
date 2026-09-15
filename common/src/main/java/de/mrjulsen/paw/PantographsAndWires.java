@@ -11,7 +11,6 @@ import de.mrjulsen.paw.event.ModClientEvents;
 import de.mrjulsen.paw.event.ModCommonEvents;
 import de.mrjulsen.paw.network.TractionDebugPacket;
 import de.mrjulsen.paw.network.TractionSpeedPacket;
-import de.mrjulsen.paw.network.ThirdRailMaximisePacket;
 import de.mrjulsen.paw.network.TrainSettingsPacket;
 import de.mrjulsen.paw.network.TrainSettingsSyncPacket;
 import de.mrjulsen.paw.registry.ModBlockEntities;
@@ -73,7 +72,6 @@ public final class PantographsAndWires {
         cmrNet = new NetworkManagerBase(MOD_ID, "paw_network", List.of(
             // cts
             TrainSettingsPacket.class,
-            ThirdRailMaximisePacket.class,
             // stc
             TractionSpeedPacket.class,
             TractionDebugPacket.class,
