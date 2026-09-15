@@ -20,6 +20,7 @@ import de.mrjulsen.paw.util.Const;
 import de.mrjulsen.wires.debug.WireDebugRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -189,19 +190,15 @@ public class PantographBlockEntity extends SmartBlockEntity implements GeoBlockE
         this.currentPos = worldPos == null ? null : new Vector3d(worldPos);
         this.rotationFunc = rotationFunc;
 
-        final Vector3d currPos = this.currentPos == null
+        final ContactProbe probe = ContactProbe.of(this.currentPos == null
             ? new Vector3d(getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ())
-            : new Vector3d(this.currentPos);
-        final Vector3d upVec = rotatedSnapshot(BASE_UP_VECTOR, this.rotationFunc);
-        final Vector3d rightVec = rotatedSnapshot(BASE_RIGHT_VECTOR, this.rotationFunc);
-        final Vector3d forwardVec = rotatedSnapshot(BASE_FORWARD_VECTOR, this.rotationFunc);
-        currPos.add(forwardVec);
+            : this.currentPos, this.rotationFunc);
 
         ContactResult contact = ContactResult.none();
         BlockPos anchor = null;
-        if (isFinite(currPos) && PantographContactGeometry.isValidCollectorFrame(upVec, rightVec)) {
-            anchor = BlockPos.containing(currPos.x, currPos.y, currPos.z);
-            contact = CatenaryContactDetector.findContact(level, currPos, upVec, rightVec);
+        if (probe.valid()) {
+            anchor = BlockPos.containing(probe.position().x, probe.position().y, probe.position().z);
+            contact = probe.find(level);
         }
         updateDebugContact(contact, anchor);
         this.touchingWire = contact.touching();
@@ -210,6 +207,27 @@ public class PantographBlockEntity extends SmartBlockEntity implements GeoBlockE
         this.catenaryWireHeight = this.catenaryWireHeight < 0 ? 0 : this.catenaryWireHeight;
         if (this.expanded) {
             animationTransition.chase(this.catenaryWireHeight, 1, Chaser.LINEAR);
+        }
+    }
+
+    /**
+     * Where a pantograph's collector sits and which way it faces, from its base position and the rotation
+     * that carries it. Shared by the client (animation and sound) and the server (electric supply), so
+     * both see the same contact.
+     */
+    public record ContactProbe(Vector3d position, Vector3d up, Vector3d right) {
+        public static ContactProbe of(Vector3d basePosition, UnaryOperator<Vector3d> rotation) {
+            Vector3d position = new Vector3d(basePosition);
+            position.add(rotatedSnapshot(BASE_FORWARD_VECTOR, rotation));
+            return new ContactProbe(position, rotatedSnapshot(BASE_UP_VECTOR, rotation), rotatedSnapshot(BASE_RIGHT_VECTOR, rotation));
+        }
+
+        public boolean valid() {
+            return isFinite(position) && PantographContactGeometry.isValidCollectorFrame(up, right);
+        }
+
+        public ContactResult find(Level level) {
+            return valid() ? CatenaryContactDetector.findContact(level, position, up, right) : ContactResult.none();
         }
     }
 

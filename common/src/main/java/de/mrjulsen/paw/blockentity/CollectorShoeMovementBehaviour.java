@@ -8,6 +8,7 @@ import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 
 import de.mrjulsen.paw.block.CollectorShoeBlock;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
+import de.mrjulsen.paw.traction.ElectricSupply;
 import de.mrjulsen.paw.traction.ThirdRailContactDetector;
 import de.mrjulsen.paw.traction.TractionSpeedSync;
 import net.minecraft.core.Direction;
@@ -44,6 +45,9 @@ public class CollectorShoeMovementBehaviour implements MovementBehaviour {
         Level level = entity.level();
         if (!level.isClientSide()) {
             TractionSpeedSync.tick(entity);
+            if (context.position != null && touches(level, context)) {
+                ElectricSupply.recordContact(entity, "collector shoe");
+            }
             return;
         }
         if (context.position == null) {
@@ -52,9 +56,8 @@ public class CollectorShoeMovementBehaviour implements MovementBehaviour {
         Direction facing = context.state.getValue(CollectorShoeBlock.FACING);
         Vec3 outward = context.rotation.apply(Vec3.atLowerCornerOf(facing.getNormal()));
         Vec3 up = context.rotation.apply(new Vec3(0, 1, 0));
-        Vec3 forward = context.rotation.apply(Vec3.atLowerCornerOf(facing.getClockWise().getNormal()));
 
-        boolean touching = ThirdRailContactDetector.touches(level, joml(context.position), joml(outward), joml(up), joml(forward));
+        boolean touching = touches(level, context);
         double speed = context.motion.length();
 
         ShoeState state = context.temporaryData instanceof ShoeState existing ? existing : new ShoeState();
@@ -78,6 +81,15 @@ public class CollectorShoeMovementBehaviour implements MovementBehaviour {
             context.position.z,
             TractionSoundManager.listenerAboard(entity)
         );
+    }
+
+    /** Whether the shoe is on a third rail's conductor. Works on either side; rails are indexed on both. */
+    private static boolean touches(Level level, MovementContext context) {
+        Direction facing = context.state.getValue(CollectorShoeBlock.FACING);
+        Vec3 outward = context.rotation.apply(Vec3.atLowerCornerOf(facing.getNormal()));
+        Vec3 up = context.rotation.apply(new Vec3(0, 1, 0));
+        Vec3 forward = context.rotation.apply(Vec3.atLowerCornerOf(facing.getClockWise().getNormal()));
+        return ThirdRailContactDetector.touches(level, joml(context.position), joml(outward), joml(up), joml(forward));
     }
 
     /** Making or breaking contact under load: a flash of sparks flying off the shoe. */

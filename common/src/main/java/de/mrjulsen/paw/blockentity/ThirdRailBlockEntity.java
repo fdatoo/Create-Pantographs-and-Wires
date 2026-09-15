@@ -216,7 +216,7 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
 
     private void railsChanged() {
         geometryVersion++;
-        if (level != null && level.isClientSide && indexed) {
+        if (level != null && indexed) {
             ThirdRailIndex.update(level, this);
         }
     }
@@ -224,16 +224,15 @@ public class ThirdRailBlockEntity extends SmartBlockEntity {
     @Override
     public void initialize() {
         super.initialize();
-        if (level.isClientSide) {
-            indexed = true;
-            ThirdRailIndex.update(level, this);
-        }
+        // Indexed on both sides: the client for the traction sound, the server for electric supply.
+        indexed = true;
+        ThirdRailIndex.update(level, this);
     }
 
     @Override
     public void invalidate() {
         super.invalidate();
-        if (level != null && level.isClientSide) {
+        if (level != null) {
             indexed = false;
             ThirdRailIndex.remove(level, this);
         }

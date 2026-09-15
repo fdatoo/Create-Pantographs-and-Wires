@@ -33,7 +33,8 @@
     "ServerLevelMixin",
     "ServerPlayerMixin",
     "create.CarriageControlMixin",
-    "create.NixieTubeBlockEntityAccessor"
+    "create.NixieTubeBlockEntityAccessor",
+    "create.TrainFuelMixin"
   ],
   "injectors": {
     "defaultRequire": 1

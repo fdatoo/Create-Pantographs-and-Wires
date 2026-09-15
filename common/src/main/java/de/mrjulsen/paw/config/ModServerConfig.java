@@ -17,6 +17,7 @@ public class ModServerConfig {
     public static final ForgeConfigSpec.ConfigValue<Integer> THIRD_RAIL_MAX_LENGTH;
     public static final ForgeConfigSpec.ConfigValue<Boolean> THIRD_RAIL_ENTITY_DAMAGE;
     public static final ForgeConfigSpec.ConfigValue<Double> THIRD_RAIL_DAMAGE_AMOUNT;
+    public static final ForgeConfigSpec.ConfigValue<Boolean> ELECTRIC_TRAINS_POWERED;
     public static final ForgeConfigSpec.ConfigValue<Boolean> TRACTION_DEBUG;
 
     static {
@@ -40,6 +41,9 @@ public class ModServerConfig {
             .define("third_rail.entity_damage", true);
         THIRD_RAIL_DAMAGE_AMOUNT = BUILDER.comment(new String[] {"[in half hearts]", "Damage dealt each time an entity touches a third rail's conductor.", "Default: 8"})
             .defineInRange("third_rail.damage_amount", 8.0D, 0.0D, 1000.0D);
+
+        ELECTRIC_TRAINS_POWERED = BUILDER.comment(new String[] {"Whether a train drawing power (a raised pantograph touching a wire, or a collector shoe on a third rail) counts as a powered Create train: powered top speed and acceleration, without burning fuel. Contact gaps under 1.5 s are bridged.", "Default: true"})
+            .define("trains.electric_contact_powers_trains", true);
 
         TRACTION_DEBUG = BUILDER.comment(new String[] {"Logs traction decisions on the server: speed reports sent, drivers holding a direction, and slopes Create treats as turns. Lines start with [PAW traction]. Also switchable with /paw_traction_debug server on|off.", "Default: false"})
             .define("debug.traction_log", false);
