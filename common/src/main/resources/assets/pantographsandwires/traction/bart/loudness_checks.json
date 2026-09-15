@@ -1,0 +1,862 @@
+{
+ "checks": {
+  "read_head_age_s_main": 0.0,
+  "largest_adjacent_0p5_step_db": {
+   "power_lufs": [
+    6.35,
+    1.0
+   ],
+   "power_steady_lufs": [
+    1.58,
+    13.0
+   ],
+   "brake_lufs": [
+    6.28,
+    2.0
+   ],
+   "brake_steady_lufs": [
+    0.84,
+    28.0
+   ],
+   "mechanical_lufs": [
+    7.23,
+    1.0
+   ],
+   "cruising_lufs": [
+    4.01,
+    11.5
+   ],
+   "heard_power_sweep_lufs": [
+    6.8,
+    1.0
+   ],
+   "heard_power_steady_lufs": [
+    0.24,
+    13.5
+   ],
+   "heard_brake_sweep_lufs": [
+    7.23,
+    1.0
+   ],
+   "heard_brake_steady_lufs": [
+    0.43,
+    9.0
+   ]
+  },
+  "largest_endpoint_discrepancy_db_5_to_40": {
+   "power": [
+    0.19,
+    5.0
+   ],
+   "brake": [
+    0.16,
+    8.0
+   ]
+  },
+  "worst_summed_peak_dbfs": {
+   "power_full": [
+    -7.07,
+    15.5
+   ],
+   "power_steady_full": [
+    -7.07,
+    15.5
+   ],
+   "brake_full": [
+    -6.76,
+    15.5
+   ],
+   "brake_steady_full": [
+    -6.76,
+    15.5
+   ],
+   "power_half_steady": [
+    -7.07,
+    15.5
+   ],
+   "coast_full_cruising": [
+    -6.85,
+    18.0
+   ]
+  },
+  "max_deviation_vs_age_7p3s_db": [
+   1.0700000000000003,
+   "mechanical_lufs",
+   0.5
+  ],
+  "largest_adjacent_step_at_quarter_offsets_age_3p1_db": {
+   "power_lufs": [
+    4.61,
+    1.25
+   ],
+   "power_steady_lufs": [
+    1.43,
+    12.75
+   ],
+   "brake_lufs": [
+    9.71,
+    1.75
+   ],
+   "brake_steady_lufs": [
+    0.94,
+    28.25
+   ],
+   "mechanical_lufs": [
+    5.04,
+    1.25
+   ],
+   "cruising_lufs": [
+    8.65,
+    11.25
+   ],
+   "heard_power_sweep_lufs": [
+    4.84,
+    1.25
+   ],
+   "heard_power_steady_lufs": [
+    0.23,
+    9.75
+   ],
+   "heard_brake_sweep_lufs": [
+    5.13,
+    1.25
+   ],
+   "heard_brake_steady_lufs": [
+    0.27,
+    9.25
+   ]
+  },
+  "largest_endpoint_discrepancy_quarter_offsets": {
+   "power": [
+    0.2,
+    5.25
+   ],
+   "brake": [
+    0.18,
+    7.75
+   ]
+  }
+ },
+ "peaks_age0": [
+  {
+   "speed_mps": 0.5,
+   "power_full": -24.2,
+   "power_steady_full": -25.84,
+   "brake_full": -25.84,
+   "brake_steady_full": -25.84,
+   "power_half_steady": -25.23,
+   "coast_full_cruising": -25.84
+  },
+  {
+   "speed_mps": 1.0,
+   "power_full": -16.57,
+   "power_steady_full": -18.65,
+   "brake_full": -18.65,
+   "brake_steady_full": -18.65,
+   "power_half_steady": -17.56,
+   "coast_full_cruising": -18.65
+  },
+  {
+   "speed_mps": 1.5,
+   "power_full": -13.09,
+   "power_steady_full": -14.75,
+   "brake_full": -14.51,
+   "brake_steady_full": -14.75,
+   "power_half_steady": -14.0,
+   "coast_full_cruising": -14.75
+  },
+  {
+   "speed_mps": 2.0,
+   "power_full": -12.3,
+   "power_steady_full": -13.14,
+   "brake_full": -12.54,
+   "brake_steady_full": -13.14,
+   "power_half_steady": -12.73,
+   "coast_full_cruising": -13.14
+  },
+  {
+   "speed_mps": 2.5,
+   "power_full": -10.85,
+   "power_steady_full": -11.85,
+   "brake_full": -10.18,
+   "brake_steady_full": -11.85,
+   "power_half_steady": -11.55,
+   "coast_full_cruising": -11.85
+  },
+  {
+   "speed_mps": 3.0,
+   "power_full": -10.44,
+   "power_steady_full": -11.29,
+   "brake_full": -10.12,
+   "brake_steady_full": -11.29,
+   "power_half_steady": -11.12,
+   "coast_full_cruising": -11.29
+  },
+  {
+   "speed_mps": 3.5,
+   "power_full": -9.56,
+   "power_steady_full": -11.02,
+   "brake_full": -10.08,
+   "brake_steady_full": -11.02,
+   "power_half_steady": -10.26,
+   "coast_full_cruising": -11.02
+  },
+  {
+   "speed_mps": 4.0,
+   "power_full": -9.85,
+   "power_steady_full": -10.11,
+   "brake_full": -10.01,
+   "brake_steady_full": -10.11,
+   "power_half_steady": -10.46,
+   "coast_full_cruising": -10.11
+  },
+  {
+   "speed_mps": 4.5,
+   "power_full": -9.36,
+   "power_steady_full": -10.44,
+   "brake_full": -9.12,
+   "brake_steady_full": -10.44,
+   "power_half_steady": -9.98,
+   "coast_full_cruising": -10.44
+  },
+  {
+   "speed_mps": 5.0,
+   "power_full": -8.34,
+   "power_steady_full": -8.49,
+   "brake_full": -8.59,
+   "brake_steady_full": -8.31,
+   "power_half_steady": -8.42,
+   "coast_full_cruising": -9.49
+  },
+  {
+   "speed_mps": 5.5,
+   "power_full": -8.97,
+   "power_steady_full": -9.08,
+   "brake_full": -9.33,
+   "brake_steady_full": -9.09,
+   "power_half_steady": -9.03,
+   "coast_full_cruising": -10.29
+  },
+  {
+   "speed_mps": 6.0,
+   "power_full": -9.17,
+   "power_steady_full": -9.28,
+   "brake_full": -9.37,
+   "brake_steady_full": -9.31,
+   "power_half_steady": -9.23,
+   "coast_full_cruising": -10.41
+  },
+  {
+   "speed_mps": 6.5,
+   "power_full": -10.35,
+   "power_steady_full": -10.33,
+   "brake_full": -10.08,
+   "brake_steady_full": -10.46,
+   "power_half_steady": -10.34,
+   "coast_full_cruising": -11.35
+  },
+  {
+   "speed_mps": 7.0,
+   "power_full": -10.14,
+   "power_steady_full": -10.14,
+   "brake_full": -10.08,
+   "brake_steady_full": -10.55,
+   "power_half_steady": -10.14,
+   "coast_full_cruising": -11.41
+  },
+  {
+   "speed_mps": 7.5,
+   "power_full": -10.72,
+   "power_steady_full": -10.72,
+   "brake_full": -10.69,
+   "brake_steady_full": -10.77,
+   "power_half_steady": -10.72,
+   "coast_full_cruising": -11.47
+  },
+  {
+   "speed_mps": 8.0,
+   "power_full": -10.55,
+   "power_steady_full": -10.55,
+   "brake_full": -9.23,
+   "brake_steady_full": -10.17,
+   "power_half_steady": -10.55,
+   "coast_full_cruising": -11.7
+  },
+  {
+   "speed_mps": 8.5,
+   "power_full": -9.24,
+   "power_steady_full": -9.24,
+   "brake_full": -10.0,
+   "brake_steady_full": -9.92,
+   "power_half_steady": -9.24,
+   "coast_full_cruising": -10.35
+  },
+  {
+   "speed_mps": 9.0,
+   "power_full": -10.09,
+   "power_steady_full": -10.09,
+   "brake_full": -9.9,
+   "brake_steady_full": -9.9,
+   "power_half_steady": -10.09,
+   "coast_full_cruising": -10.87
+  },
+  {
+   "speed_mps": 9.5,
+   "power_full": -9.61,
+   "power_steady_full": -9.61,
+   "brake_full": -9.67,
+   "brake_steady_full": -9.67,
+   "power_half_steady": -9.61,
+   "coast_full_cruising": -9.88
+  },
+  {
+   "speed_mps": 10.0,
+   "power_full": -9.37,
+   "power_steady_full": -9.37,
+   "brake_full": -8.74,
+   "brake_steady_full": -8.74,
+   "power_half_steady": -9.37,
+   "coast_full_cruising": -10.16
+  },
+  {
+   "speed_mps": 10.5,
+   "power_full": -9.08,
+   "power_steady_full": -9.08,
+   "brake_full": -9.81,
+   "brake_steady_full": -9.81,
+   "power_half_steady": -9.08,
+   "coast_full_cruising": -9.67
+  },
+  {
+   "speed_mps": 11.0,
+   "power_full": -9.13,
+   "power_steady_full": -9.13,
+   "brake_full": -8.9,
+   "brake_steady_full": -8.9,
+   "power_half_steady": -9.13,
+   "coast_full_cruising": -9.53
+  },
+  {
+   "speed_mps": 11.5,
+   "power_full": -8.62,
+   "power_steady_full": -8.62,
+   "brake_full": -8.29,
+   "brake_steady_full": -8.29,
+   "power_half_steady": -8.62,
+   "coast_full_cruising": -8.85
+  },
+  {
+   "speed_mps": 12.0,
+   "power_full": -8.24,
+   "power_steady_full": -8.24,
+   "brake_full": -8.16,
+   "brake_steady_full": -8.16,
+   "power_half_steady": -8.24,
+   "coast_full_cruising": -9.05
+  },
+  {
+   "speed_mps": 12.5,
+   "power_full": -8.4,
+   "power_steady_full": -8.4,
+   "brake_full": -8.25,
+   "brake_steady_full": -8.25,
+   "power_half_steady": -8.4,
+   "coast_full_cruising": -8.97
+  },
+  {
+   "speed_mps": 13.0,
+   "power_full": -8.89,
+   "power_steady_full": -8.89,
+   "brake_full": -8.35,
+   "brake_steady_full": -8.35,
+   "power_half_steady": -8.89,
+   "coast_full_cruising": -8.37
+  },
+  {
+   "speed_mps": 13.5,
+   "power_full": -8.43,
+   "power_steady_full": -8.43,
+   "brake_full": -8.29,
+   "brake_steady_full": -8.29,
+   "power_half_steady": -8.43,
+   "coast_full_cruising": -7.88
+  },
+  {
+   "speed_mps": 14.0,
+   "power_full": -7.53,
+   "power_steady_full": -7.53,
+   "brake_full": -7.78,
+   "brake_steady_full": -7.78,
+   "power_half_steady": -7.53,
+   "coast_full_cruising": -8.26
+  },
+  {
+   "speed_mps": 14.5,
+   "power_full": -8.06,
+   "power_steady_full": -8.06,
+   "brake_full": -7.58,
+   "brake_steady_full": -7.58,
+   "power_half_steady": -8.06,
+   "coast_full_cruising": -7.84
+  },
+  {
+   "speed_mps": 15.0,
+   "power_full": -8.18,
+   "power_steady_full": -8.18,
+   "brake_full": -7.99,
+   "brake_steady_full": -7.99,
+   "power_half_steady": -8.18,
+   "coast_full_cruising": -8.04
+  },
+  {
+   "speed_mps": 15.5,
+   "power_full": -7.07,
+   "power_steady_full": -7.07,
+   "brake_full": -6.76,
+   "brake_steady_full": -6.76,
+   "power_half_steady": -7.07,
+   "coast_full_cruising": -7.3
+  },
+  {
+   "speed_mps": 16.0,
+   "power_full": -7.36,
+   "power_steady_full": -7.36,
+   "brake_full": -7.61,
+   "brake_steady_full": -7.61,
+   "power_half_steady": -7.36,
+   "coast_full_cruising": -7.14
+  },
+  {
+   "speed_mps": 16.5,
+   "power_full": -7.69,
+   "power_steady_full": -7.69,
+   "brake_full": -7.39,
+   "brake_steady_full": -7.39,
+   "power_half_steady": -7.69,
+   "coast_full_cruising": -7.72
+  },
+  {
+   "speed_mps": 17.0,
+   "power_full": -7.38,
+   "power_steady_full": -7.38,
+   "brake_full": -7.39,
+   "brake_steady_full": -7.39,
+   "power_half_steady": -7.38,
+   "coast_full_cruising": -7.41
+  },
+  {
+   "speed_mps": 17.5,
+   "power_full": -7.66,
+   "power_steady_full": -7.66,
+   "brake_full": -7.29,
+   "brake_steady_full": -7.29,
+   "power_half_steady": -7.66,
+   "coast_full_cruising": -7.21
+  },
+  {
+   "speed_mps": 18.0,
+   "power_full": -7.42,
+   "power_steady_full": -7.42,
+   "brake_full": -7.21,
+   "brake_steady_full": -7.21,
+   "power_half_steady": -7.42,
+   "coast_full_cruising": -6.85
+  },
+  {
+   "speed_mps": 18.5,
+   "power_full": -7.68,
+   "power_steady_full": -7.68,
+   "brake_full": -7.36,
+   "brake_steady_full": -7.36,
+   "power_half_steady": -7.68,
+   "coast_full_cruising": -7.91
+  },
+  {
+   "speed_mps": 19.0,
+   "power_full": -7.78,
+   "power_steady_full": -7.78,
+   "brake_full": -7.42,
+   "brake_steady_full": -7.42,
+   "power_half_steady": -7.78,
+   "coast_full_cruising": -7.76
+  },
+  {
+   "speed_mps": 19.5,
+   "power_full": -8.26,
+   "power_steady_full": -8.26,
+   "brake_full": -7.95,
+   "brake_steady_full": -7.95,
+   "power_half_steady": -8.26,
+   "coast_full_cruising": -7.96
+  },
+  {
+   "speed_mps": 20.0,
+   "power_full": -7.53,
+   "power_steady_full": -7.53,
+   "brake_full": -7.21,
+   "brake_steady_full": -7.21,
+   "power_half_steady": -7.53,
+   "coast_full_cruising": -7.6
+  },
+  {
+   "speed_mps": 20.5,
+   "power_full": -7.3,
+   "power_steady_full": -7.3,
+   "brake_full": -7.28,
+   "brake_steady_full": -7.28,
+   "power_half_steady": -7.3,
+   "coast_full_cruising": -7.79
+  },
+  {
+   "speed_mps": 21.0,
+   "power_full": -8.43,
+   "power_steady_full": -8.43,
+   "brake_full": -8.22,
+   "brake_steady_full": -8.22,
+   "power_half_steady": -8.43,
+   "coast_full_cruising": -8.11
+  },
+  {
+   "speed_mps": 21.5,
+   "power_full": -8.41,
+   "power_steady_full": -8.41,
+   "brake_full": -8.27,
+   "brake_steady_full": -8.27,
+   "power_half_steady": -8.41,
+   "coast_full_cruising": -8.25
+  },
+  {
+   "speed_mps": 22.0,
+   "power_full": -8.22,
+   "power_steady_full": -8.22,
+   "brake_full": -8.05,
+   "brake_steady_full": -8.05,
+   "power_half_steady": -8.22,
+   "coast_full_cruising": -7.93
+  },
+  {
+   "speed_mps": 22.5,
+   "power_full": -8.24,
+   "power_steady_full": -8.24,
+   "brake_full": -8.26,
+   "brake_steady_full": -8.26,
+   "power_half_steady": -8.24,
+   "coast_full_cruising": -8.37
+  },
+  {
+   "speed_mps": 23.0,
+   "power_full": -8.26,
+   "power_steady_full": -8.26,
+   "brake_full": -8.11,
+   "brake_steady_full": -8.11,
+   "power_half_steady": -8.26,
+   "coast_full_cruising": -8.67
+  },
+  {
+   "speed_mps": 23.5,
+   "power_full": -8.86,
+   "power_steady_full": -8.86,
+   "brake_full": -8.96,
+   "brake_steady_full": -8.96,
+   "power_half_steady": -8.86,
+   "coast_full_cruising": -9.13
+  },
+  {
+   "speed_mps": 24.0,
+   "power_full": -9.06,
+   "power_steady_full": -9.06,
+   "brake_full": -8.92,
+   "brake_steady_full": -8.92,
+   "power_half_steady": -9.06,
+   "coast_full_cruising": -8.87
+  },
+  {
+   "speed_mps": 24.5,
+   "power_full": -8.57,
+   "power_steady_full": -8.57,
+   "brake_full": -8.61,
+   "brake_steady_full": -8.61,
+   "power_half_steady": -8.57,
+   "coast_full_cruising": -8.6
+  },
+  {
+   "speed_mps": 25.0,
+   "power_full": -9.15,
+   "power_steady_full": -9.15,
+   "brake_full": -9.05,
+   "brake_steady_full": -9.05,
+   "power_half_steady": -9.15,
+   "coast_full_cruising": -9.09
+  },
+  {
+   "speed_mps": 25.5,
+   "power_full": -8.88,
+   "power_steady_full": -8.88,
+   "brake_full": -8.84,
+   "brake_steady_full": -8.84,
+   "power_half_steady": -8.88,
+   "coast_full_cruising": -8.86
+  },
+  {
+   "speed_mps": 26.0,
+   "power_full": -8.28,
+   "power_steady_full": -8.28,
+   "brake_full": -8.21,
+   "brake_steady_full": -8.21,
+   "power_half_steady": -8.28,
+   "coast_full_cruising": -8.26
+  },
+  {
+   "speed_mps": 26.5,
+   "power_full": -8.59,
+   "power_steady_full": -8.59,
+   "brake_full": -8.61,
+   "brake_steady_full": -8.61,
+   "power_half_steady": -8.59,
+   "coast_full_cruising": -8.6
+  },
+  {
+   "speed_mps": 27.0,
+   "power_full": -9.37,
+   "power_steady_full": -9.37,
+   "brake_full": -9.33,
+   "brake_steady_full": -9.33,
+   "power_half_steady": -9.37,
+   "coast_full_cruising": -9.38
+  },
+  {
+   "speed_mps": 27.5,
+   "power_full": -8.2,
+   "power_steady_full": -8.2,
+   "brake_full": -8.11,
+   "brake_steady_full": -8.11,
+   "power_half_steady": -8.2,
+   "coast_full_cruising": -8.24
+  },
+  {
+   "speed_mps": 28.0,
+   "power_full": -9.48,
+   "power_steady_full": -9.48,
+   "brake_full": -9.16,
+   "brake_steady_full": -9.16,
+   "power_half_steady": -9.48,
+   "coast_full_cruising": -9.51
+  },
+  {
+   "speed_mps": 28.5,
+   "power_full": -8.21,
+   "power_steady_full": -8.21,
+   "brake_full": -8.48,
+   "brake_steady_full": -8.48,
+   "power_half_steady": -8.21,
+   "coast_full_cruising": -8.18
+  },
+  {
+   "speed_mps": 29.0,
+   "power_full": -9.07,
+   "power_steady_full": -9.07,
+   "brake_full": -8.85,
+   "brake_steady_full": -8.85,
+   "power_half_steady": -9.07,
+   "coast_full_cruising": -9.21
+  },
+  {
+   "speed_mps": 29.5,
+   "power_full": -8.74,
+   "power_steady_full": -8.74,
+   "brake_full": -8.75,
+   "brake_steady_full": -8.75,
+   "power_half_steady": -8.74,
+   "coast_full_cruising": -8.87
+  },
+  {
+   "speed_mps": 30.0,
+   "power_full": -8.42,
+   "power_steady_full": -8.42,
+   "brake_full": -8.6,
+   "brake_steady_full": -8.6,
+   "power_half_steady": -8.42,
+   "coast_full_cruising": -8.55
+  },
+  {
+   "speed_mps": 30.5,
+   "power_full": -8.78,
+   "power_steady_full": -8.78,
+   "brake_full": -8.98,
+   "brake_steady_full": -8.98,
+   "power_half_steady": -8.78,
+   "coast_full_cruising": -8.92
+  },
+  {
+   "speed_mps": 31.0,
+   "power_full": -9.47,
+   "power_steady_full": -9.47,
+   "brake_full": -9.14,
+   "brake_steady_full": -9.14,
+   "power_half_steady": -9.47,
+   "coast_full_cruising": -9.54
+  },
+  {
+   "speed_mps": 31.5,
+   "power_full": -10.05,
+   "power_steady_full": -10.05,
+   "brake_full": -9.81,
+   "brake_steady_full": -9.81,
+   "power_half_steady": -10.05,
+   "coast_full_cruising": -10.16
+  },
+  {
+   "speed_mps": 32.0,
+   "power_full": -9.4,
+   "power_steady_full": -9.4,
+   "brake_full": -9.7,
+   "brake_steady_full": -9.7,
+   "power_half_steady": -9.4,
+   "coast_full_cruising": -9.56
+  },
+  {
+   "speed_mps": 32.5,
+   "power_full": -9.17,
+   "power_steady_full": -9.17,
+   "brake_full": -9.42,
+   "brake_steady_full": -9.42,
+   "power_half_steady": -9.17,
+   "coast_full_cruising": -9.34
+  },
+  {
+   "speed_mps": 33.0,
+   "power_full": -9.64,
+   "power_steady_full": -9.64,
+   "brake_full": -9.78,
+   "brake_steady_full": -9.78,
+   "power_half_steady": -9.64,
+   "coast_full_cruising": -9.64
+  },
+  {
+   "speed_mps": 33.5,
+   "power_full": -8.83,
+   "power_steady_full": -8.83,
+   "brake_full": -9.56,
+   "brake_steady_full": -9.56,
+   "power_half_steady": -8.83,
+   "coast_full_cruising": -8.85
+  },
+  {
+   "speed_mps": 34.0,
+   "power_full": -9.13,
+   "power_steady_full": -9.13,
+   "brake_full": -8.77,
+   "brake_steady_full": -8.77,
+   "power_half_steady": -9.13,
+   "coast_full_cruising": -9.21
+  },
+  {
+   "speed_mps": 34.5,
+   "power_full": -9.62,
+   "power_steady_full": -9.62,
+   "brake_full": -9.04,
+   "brake_steady_full": -9.04,
+   "power_half_steady": -9.62,
+   "coast_full_cruising": -9.61
+  },
+  {
+   "speed_mps": 35.0,
+   "power_full": -10.41,
+   "power_steady_full": -10.41,
+   "brake_full": -10.81,
+   "brake_steady_full": -10.81,
+   "power_half_steady": -10.41,
+   "coast_full_cruising": -10.61
+  },
+  {
+   "speed_mps": 35.5,
+   "power_full": -10.22,
+   "power_steady_full": -10.22,
+   "brake_full": -10.6,
+   "brake_steady_full": -10.6,
+   "power_half_steady": -10.22,
+   "coast_full_cruising": -10.2
+  },
+  {
+   "speed_mps": 36.0,
+   "power_full": -9.43,
+   "power_steady_full": -9.43,
+   "brake_full": -9.5,
+   "brake_steady_full": -9.5,
+   "power_half_steady": -9.43,
+   "coast_full_cruising": -9.64
+  },
+  {
+   "speed_mps": 36.5,
+   "power_full": -9.99,
+   "power_steady_full": -9.99,
+   "brake_full": -9.54,
+   "brake_steady_full": -9.54,
+   "power_half_steady": -9.99,
+   "coast_full_cruising": -10.02
+  },
+  {
+   "speed_mps": 37.0,
+   "power_full": -9.35,
+   "power_steady_full": -9.35,
+   "brake_full": -9.05,
+   "brake_steady_full": -9.05,
+   "power_half_steady": -9.35,
+   "coast_full_cruising": -9.37
+  },
+  {
+   "speed_mps": 37.5,
+   "power_full": -9.68,
+   "power_steady_full": -9.68,
+   "brake_full": -9.17,
+   "brake_steady_full": -9.17,
+   "power_half_steady": -9.68,
+   "coast_full_cruising": -9.68
+  },
+  {
+   "speed_mps": 38.0,
+   "power_full": -8.4,
+   "power_steady_full": -8.4,
+   "brake_full": -8.89,
+   "brake_steady_full": -8.89,
+   "power_half_steady": -8.4,
+   "coast_full_cruising": -8.6
+  },
+  {
+   "speed_mps": 38.5,
+   "power_full": -9.61,
+   "power_steady_full": -9.61,
+   "brake_full": -9.69,
+   "brake_steady_full": -9.69,
+   "power_half_steady": -9.61,
+   "coast_full_cruising": -9.75
+  },
+  {
+   "speed_mps": 39.0,
+   "power_full": -9.55,
+   "power_steady_full": -9.55,
+   "brake_full": -10.21,
+   "brake_steady_full": -10.21,
+   "power_half_steady": -9.55,
+   "coast_full_cruising": -9.78
+  },
+  {
+   "speed_mps": 39.5,
+   "power_full": -9.44,
+   "power_steady_full": -9.44,
+   "brake_full": -10.06,
+   "brake_steady_full": -10.06,
+   "power_half_steady": -9.44,
+   "coast_full_cruising": -9.68
+  },
+  {
+   "speed_mps": 40.0,
+   "power_full": -9.21,
+   "power_steady_full": -9.21,
+   "brake_full": -9.31,
+   "brake_steady_full": -9.31,
+   "power_half_steady": -9.21,
+   "coast_full_cruising": -9.41
+  }
+ ]
+}

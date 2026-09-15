@@ -37,8 +37,8 @@ import net.minecraft.sounds.SoundEvent;
  * briefly skipping across an insulator gap) keeps one steady sound instead of
  * stuttering on and off.
  *
- * The traction profile in the client config picks how a vehicle sounds. WMATA (the default) plays the
- * WMATA traction sound pack (assets/pantographsandwires/traction/wmata): hand-made loops with pitch and
+ * The traction profile in the client config picks how a vehicle sounds. BART (the default) and WMATA play
+ * traction sound packs (assets/pantographsandwires/traction/bart and /wmata): hand-made loops with pitch and
  * volume curves against speed, mixed live into one streamed voice per vehicle. MP89 plays pitched
  * loops of components measured in a recording of a Paris MP 89, laid out over speed.
  */
@@ -212,7 +212,7 @@ public final class TractionSoundManager {
     private static Entry start(TractionSoundProfile profile, UUID vehicleId, VehicleSpeed vehicle, double x, double y, double z) {
         VoiceBank bank = switch (profile) {
             case MP89 -> new Mp89Bank(x, y, z);
-            case WMATA -> new PackBank(vehicleId, x, y, z);
+            case BART, WMATA -> new PackBank(profile, vehicleId, x, y, z);
         };
         Entry entry = new Entry(profile, bank);
         // State is set before playback so nothing starts at the wrong pitch, or off to one side, and
@@ -541,7 +541,7 @@ public final class TractionSoundManager {
     }
 
     /**
-     * WMATA: the traction sound pack mixed live into one streamed voice. The pack loads in the
+     * BART and WMATA: the profile's traction sound pack mixed live into one streamed voice. The pack loads in the
      * background; until it is ready the vehicle is silent and the voice starts as soon as it can. If
      * Minecraft drops the voice (a stalled client can starve the stream), it is restarted with the same
      * mixer, so every loop continues where it was.
@@ -552,6 +552,7 @@ public final class TractionSoundManager {
         // departure is heard at once. Fading is only for stopping, and for restarting a voice mid-sound.
         private static final int VOICE_FADE_TICKS = 2;
 
+        private final TractionSoundProfile profile;
         private final UUID vehicleId;
         private final TractionModeDetector detector = new TractionModeDetector();
         private final SteadyLoadDetector steady = new SteadyLoadDetector();
@@ -569,7 +570,8 @@ public final class TractionSoundManager {
         private long lastDescribeTick = Long.MIN_VALUE;
         private long lastDescribeBlocks;
 
-        private PackBank(UUID vehicleId, double x, double y, double z) {
+        private PackBank(TractionSoundProfile profile, UUID vehicleId, double x, double y, double z) {
+            this.profile = profile;
             this.vehicleId = vehicleId;
             this.x = x;
             this.y = y;
@@ -580,10 +582,10 @@ public final class TractionSoundManager {
         public void start() {
             boolean restart = mixer != null;
             if (mixer == null) {
-                TractionPack pack = TractionPacks.wmataIfLoaded();
+                TractionPack pack = TractionPacks.ifLoaded(profile.pack());
                 if (pack == null) {
                     if (TractionDebug.client()) {
-                        TractionDebug.info("client: train {} waiting for the WMATA sound pack to load", TractionDebug.shortId(vehicleId));
+                        TractionDebug.info("client: train {} waiting for the {} sound pack to load", TractionDebug.shortId(vehicleId), profile);
                     }
                     return;
                 }
@@ -678,7 +680,7 @@ public final class TractionSoundManager {
         @Override
         public String describe(long gameTime) {
             if (mixer == null) {
-                return "WMATA pack not loaded yet";
+                return profile + " pack not loaded yet";
             }
             TractionMixer.Diagnostics d = mixer.diagnostics(4);
             String stream = "-";

@@ -1,0 +1,30 @@
+{
+ "5": {
+  "previous_db": 7.5,
+  "this_build_db": 7.5
+ },
+ "10": {
+  "previous_db": 0.3,
+  "this_build_db": 0.1
+ },
+ "14": {
+  "previous_db": -6.3,
+  "this_build_db": -6.3
+ },
+ "19": {
+  "previous_db": -16.8,
+  "this_build_db": -16.8
+ },
+ "25": {
+  "previous_db": -9.9,
+  "this_build_db": -9.7
+ },
+ "32": {
+  "previous_db": -6.2,
+  "this_build_db": -6.5
+ },
+ "39": {
+  "previous_db": -4.3,
+  "this_build_db": -4.3
+ }
+}

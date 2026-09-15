@@ -1,0 +1,265 @@
+{
+ "pack_id": "bart-fotf-0.1.0",
+ "built": "2026-09-14",
+ "tools": {
+  "python": "3.12.13",
+  "numpy": "2.5.3",
+  "scipy": "1.18.1",
+  "soundfile": "0.14.0",
+  "pyloudnorm": "0.2.0",
+  "loudness": "BS.1770 K-weighted integrated via pyloudnorm Meter(48000)",
+  "player": "Python simulation of PLAYER_RULES.md (scripts in fable_study_v1/scripts); Catmull-Rom interpolation"
+ },
+ "tested_ranges": {
+  "speed_grid_mps": "0.5 to 40 step 0.5, plus quarter offsets 0.75 to 39.75",
+  "read_head_ages_s": [
+   0.0,
+   3.1,
+   7.3
+  ],
+  "render_seconds_per_point": 3.0
+ },
+ "checks": {
+  "audio_format_mono_48k_pcm24": "pass",
+  "finite_samples": "pass",
+  "master_peaks_at_or_below_-6dBFS": "pass",
+  "loop_wrap_step_not_larger_than_any_in-file_adjacent_step": "pass",
+  "loop_wrap_listened": "not done (no listening possible in this environment); a small wrap step does not prove a seamless loop",
+  "steady_components_independent_lengths": "deliberate departure: every steady tone and sideband loop is identical to its sweep counterpart (3.6 s, integer periods) so read heads stay aligned; see README",
+  "steady_composite_repetition_over_30s": "not perceptually verified; the 30 s holds in preview1/preview2 exist for that judgement; component c is a 4.0 s loop and necessarily repeats",
+  "csv_all_layers_resolve_to_files": "pass",
+  "csv_rows_sorted_no_duplicate_speeds": "pass",
+  "csv_ranges_speed_0_40_volume_0_1_pitch_0.5_2": "pass",
+  "settings_layer_lists_match_csv": "pass",
+  "settings_keys_and_rule_strings_complete": "pass (all template keys present; lists updated explicitly; see INTEGRATION.md)",
+  "heard_endpoint_steady_vs_sweep_within_1dB_5_to_40": "pass",
+  "adjacent_0p5_steps_at_most_1dB": {
+   "power_lufs": "exceeds (6.35 dB at 1.0 m/s)",
+   "power_steady_lufs": "exceeds (1.58 dB at 13.0 m/s)",
+   "brake_lufs": "exceeds (6.28 dB at 2.0 m/s)",
+   "brake_steady_lufs": "pass",
+   "mechanical_lufs": "exceeds (7.23 dB at 1.0 m/s)",
+   "cruising_lufs": "exceeds (4.01 dB at 11.5 m/s)",
+   "heard_power_sweep_lufs": "exceeds (6.8 dB at 1.0 m/s)",
+   "heard_power_steady_lufs": "pass",
+   "heard_brake_sweep_lufs": "exceeds (7.23 dB at 1.0 m/s)",
+   "heard_brake_steady_lufs": "pass"
+  },
+  "worst_summed_mix_peak_below_-3dBFS": "pass",
+  "previews_rendered_from_shipped_masters_and_curves": "pass (5 files)"
+ },
+ "maxima": {
+  "largest_adjacent_step_db_per_group": {
+   "power_lufs": {
+    "db": 6.35,
+    "at_speed_mps": 1.0
+   },
+   "power_steady_lufs": {
+    "db": 1.58,
+    "at_speed_mps": 13.0
+   },
+   "brake_lufs": {
+    "db": 6.28,
+    "at_speed_mps": 2.0
+   },
+   "brake_steady_lufs": {
+    "db": 0.84,
+    "at_speed_mps": 28.0
+   },
+   "mechanical_lufs": {
+    "db": 7.23,
+    "at_speed_mps": 1.0
+   },
+   "cruising_lufs": {
+    "db": 4.01,
+    "at_speed_mps": 11.5
+   },
+   "heard_power_sweep_lufs": {
+    "db": 6.8,
+    "at_speed_mps": 1.0
+   },
+   "heard_power_steady_lufs": {
+    "db": 0.24,
+    "at_speed_mps": 13.5
+   },
+   "heard_brake_sweep_lufs": {
+    "db": 7.23,
+    "at_speed_mps": 1.0
+   },
+   "heard_brake_steady_lufs": {
+    "db": 0.43,
+    "at_speed_mps": 9.0
+   }
+  },
+  "largest_endpoint_discrepancy_db": {
+   "power": {
+    "db": 0.19,
+    "at_speed_mps": 5.0
+   },
+   "brake": {
+    "db": 0.16,
+    "at_speed_mps": 8.0
+   }
+  },
+  "worst_summed_peak_dbfs": {
+   "power_full": {
+    "db": -7.07,
+    "at_speed_mps": 15.5
+   },
+   "power_steady_full": {
+    "db": -7.07,
+    "at_speed_mps": 15.5
+   },
+   "brake_full": {
+    "db": -6.76,
+    "at_speed_mps": 15.5
+   },
+   "brake_steady_full": {
+    "db": -6.76,
+    "at_speed_mps": 15.5
+   },
+   "power_half_steady": {
+    "db": -7.07,
+    "at_speed_mps": 15.5
+   },
+   "coast_full_cruising": {
+    "db": -6.85,
+    "at_speed_mps": 18.0
+   }
+  },
+  "max_loudness_deviation_vs_read_head_age_7p3s": {
+   "db": 1.0700000000000003,
+   "group": "mechanical_lufs",
+   "speed_mps": 0.5
+  },
+  "largest_adjacent_step_at_quarter_offsets": {
+   "power_lufs": {
+    "db": 4.61,
+    "at_speed_mps": 1.25
+   },
+   "power_steady_lufs": {
+    "db": 1.43,
+    "at_speed_mps": 12.75
+   },
+   "brake_lufs": {
+    "db": 9.71,
+    "at_speed_mps": 1.75
+   },
+   "brake_steady_lufs": {
+    "db": 0.94,
+    "at_speed_mps": 28.25
+   },
+   "mechanical_lufs": {
+    "db": 5.04,
+    "at_speed_mps": 1.25
+   },
+   "cruising_lufs": {
+    "db": 8.65,
+    "at_speed_mps": 11.25
+   },
+   "heard_power_sweep_lufs": {
+    "db": 4.84,
+    "at_speed_mps": 1.25
+   },
+   "heard_power_steady_lufs": {
+    "db": 0.23,
+    "at_speed_mps": 9.75
+   },
+   "heard_brake_sweep_lufs": {
+    "db": 5.13,
+    "at_speed_mps": 1.25
+   },
+   "heard_brake_steady_lufs": {
+    "db": 0.27,
+    "at_speed_mps": 9.25
+   }
+  },
+  "largest_endpoint_discrepancy_quarter_offsets": {
+   "power": {
+    "db": 0.2,
+    "at_speed_mps": 5.25
+   },
+   "brake": {
+    "db": 0.18,
+    "at_speed_mps": 7.75
+   }
+  }
+ },
+ "named_exceptions": [
+  "departure onset 0.5 to 1.5 m/s: power layers fade in from silence (a real onset, not a table defect)",
+  "brake fade-in 1.5 to 4 m/s mirrors the electrical brake letting go at low speed",
+  "steady fade guard 4.5 to 5 m/s is below eligibility and excluded from the steady step assessment",
+  "pattern changes at 11, 24 and 28 m/s are deliberate pitch steps; their loudness was matched across the crossfade"
+ ],
+ "global_volume_correction": {
+  "factor": 0.5855579768933543,
+  "db": -4.648601967483438
+ },
+ "previews": {
+  "preview1_accel_to_14_then_30s_steady_climb": {
+   "seconds": 46.0,
+   "peak_dbfs": -5.48,
+   "lufs": -22.57
+  },
+  "preview2_coast_14_then_30s_steady_descent": {
+   "seconds": 38.0,
+   "peak_dbfs": -5.34,
+   "lufs": -22.0
+  },
+  "preview3_steady_climb_14_cap_lifts_accel_to_21": {
+   "seconds": 28.0,
+   "peak_dbfs": -4.89,
+   "lufs": -21.87
+  },
+  "preview4_full_power_hold_14_enter_and_leave_steady": {
+   "seconds": 28.67,
+   "peak_dbfs": -4.64,
+   "lufs": -22.07
+  },
+  "preview5_upper_speeds_0_to_40_hold_coast_brake_to_0": {
+   "seconds": 98.0,
+   "peak_dbfs": -5.57,
+   "lufs": -22.69
+  }
+ },
+ "steady_fraction_in_previews": "detector-driven by the documented rules applied to the scenario speed inside the simulation; not the game's classifier",
+ "coverage": {
+  "measured": [
+   "power 0 to about 20 m/s (Fruitvale, Lake Merritt, Coliseum departures; axis inferred from 1.3 m/s\u00b2 and the 11 m/s dip)",
+   "braking about 14.5 to 0 m/s (both stops)",
+   "slowing 40 to 28 m/s (user-identified glide) and 28 to 26 m/s (pattern C)",
+   "cruise at 40 m/s (user anchor) and a faint cruise whine near 19 m/s",
+   "rolling noise at about 9, 19 and 40 m/s"
+  ],
+  "inferred_or_extrapolated": [
+   "power 20 to 40 m/s",
+   "brake 15 to 26 m/s",
+   "pattern change speeds 11, 24, 28 m/s",
+   "cruising tone below 19 m/s and 24 to 28 m/s",
+   "level versus speed of the mechanical background between anchors, and its component balance",
+   "all m/s values except the 40 m/s anchor"
+  ],
+  "not_covered": [
+   "powered running at 40 m/s",
+   "station-approach howl",
+   "friction-brake warble and squeal (excluded on purpose)",
+   "any exterior perspective"
+  ]
+ },
+ "files_changed_outside_pack": [
+  "fable_study_v1/scripts (build scripts added)",
+  "fable_study_v1/analysis/pack_masters_looped_spectrograms.png"
+ ],
+ "approval": {
+  "listening": "not obtained for the pack; only study candidate A (departure whine) is approved",
+  "game_test": "not performed",
+  "ogg_encoding": "not performed; recheck loops and peaks after conversion"
+ },
+ "known_limitations": [
+  "no listening by the builder; every check is numeric",
+  "one 4.0 s steady component",
+  "mechanical background is designed; only its total level versus speed is calibrated against the recording",
+  "cruise-family timbre reused for powered 28 to 40 m/s",
+  "K-weighted loudness of pitched layers changes with pitch; rows were calibrated at their own pitch but between rows the player interpolates linearly"
+ ]
+}

@@ -1,0 +1,64 @@
+{
+ "8_mps": {
+  "previous": {
+   "mud_150_400_pct": 31.1,
+   "low_below_150_pct": 47.4,
+   "hiss_above_4k_pct": 0.56,
+   "centroid_hz": 382
+  },
+  "designed": {
+   "mud_150_400_pct": 9.0,
+   "low_below_150_pct": 74.0,
+   "hiss_above_4k_pct": 0.0,
+   "centroid_hz": 223
+  }
+ },
+ "19_mps": {
+  "previous": {
+   "mud_150_400_pct": 37.3,
+   "low_below_150_pct": 38.3,
+   "hiss_above_4k_pct": 0.74,
+   "centroid_hz": 452
+  },
+  "designed": {
+   "mud_150_400_pct": 12.2,
+   "low_below_150_pct": 66.6,
+   "hiss_above_4k_pct": 0.02,
+   "centroid_hz": 296
+  }
+ },
+ "39_mps": {
+  "previous": {
+   "mud_150_400_pct": 33.8,
+   "low_below_150_pct": 37.9,
+   "hiss_above_4k_pct": 1.25,
+   "centroid_hz": 532
+  },
+  "designed": {
+   "mud_150_400_pct": 12.6,
+   "low_below_150_pct": 44.6,
+   "hiss_above_4k_pct": 0.14,
+   "centroid_hz": 608
+  }
+ },
+ "recording_reference": {
+  "about 8 m/s, Fruitvale departure 334.5-338.6 s": {
+   "low_below_150_pct": 68.1,
+   "mud_150_400_pct": 10.8,
+   "hiss_above_4k_pct": 0.23,
+   "centroid_hz": 282
+  },
+  "about 19 m/s, cruise stretch 405.5-418.0 s": {
+   "low_below_150_pct": 53.5,
+   "mud_150_400_pct": 3.8,
+   "hiss_above_4k_pct": 0.34,
+   "centroid_hz": 432
+  },
+  "40 m/s, aerial cruise 232.9-238.5 s": {
+   "low_below_150_pct": 59.7,
+   "mud_150_400_pct": 8.6,
+   "hiss_above_4k_pct": 0.87,
+   "centroid_hz": 447
+  }
+ }
+}

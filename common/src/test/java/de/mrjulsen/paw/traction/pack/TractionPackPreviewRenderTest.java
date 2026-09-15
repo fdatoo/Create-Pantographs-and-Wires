@@ -7,14 +7,22 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * Renders a pack's documented preview journeys through the real mixer, for comparing by ear or by
  * analysis with the pack author's own previews. Runs only when PAW_TRACTION_PACK_DIR points at a pack
  * folder; writes to PAW_TRACTION_RENDER_OUT (default build/traction-renders).
+ *
+ * PAW_STEADY_PREVIEW_DIR adds the steady-load addon's timeline previews (CSV per game tick);
+ * PAW_PREVIEW_REPORT adds previews described by a report of speed and mode every 0.25 s, as the BART pack has.
  */
 @EnabledIfEnvironmentVariable(named = "PAW_TRACTION_PACK_DIR", matches = ".+")
 class TractionPackPreviewRenderTest {
@@ -41,30 +49,73 @@ class TractionPackPreviewRenderTest {
                     out.resolve("render_" + name + "_timeline.csv"));
             }
         }
+
+        String report = System.getenv("PAW_PREVIEW_REPORT");
+        if (report != null) {
+            JsonObject previews = JsonParser.parseString(Files.readString(Path.of(report))).getAsJsonObject();
+            for (String name : previews.keySet()) {
+                reported(loaded, previews.getAsJsonObject(name), out.resolve("render_" + name + ".wav"), out.resolve("render_" + name + "_timeline.csv"));
+            }
+        }
+    }
+
+    /** Replays a steady-load addon timeline: one CSV row per game tick with speed and the classified mode. */
+    private static void timeline(TractionPack pack, Path timeline, Path file, Path trace) throws IOException {
+        List<String> rows = Files.readAllLines(timeline);
+        double[] speeds = new double[rows.size() - 1];
+        TractionMode[] modes = new TractionMode[rows.size() - 1];
+        for (int i = 1; i < rows.size(); i++) {
+            String[] cells = rows.get(i).split(",");
+            speeds[i - 1] = Double.parseDouble(cells[1]);
+            int classified = (int) Double.parseDouble(cells[2]);
+            modes[i - 1] = classified > 0 ? TractionMode.POWER : classified < 0 ? TractionMode.BRAKE : TractionMode.COAST;
+        }
+        replay(pack, speeds, modes, file, trace);
     }
 
     /**
-     * Replays a steady-load preview's timeline (one row per game tick: speed and the classified mode),
-     * letting the real steady detector decide steady load, and writes what the mixer did per tick.
+     * Replays a preview from a report logged every 0.25 s as [time, speed, mode letter C/P/B, ...]: speed is
+     * interpolated to game ticks and the mode held from the latest row.
      */
-    private static void timeline(TractionPack pack, Path timeline, Path file, Path trace) throws IOException {
-        List<String> rows = Files.readAllLines(timeline);
+    private static void reported(TractionPack pack, JsonObject preview, Path file, Path trace) throws IOException {
+        JsonArray log = preview.getAsJsonArray("log_every_0.25s");
+        int ticks = (int) Math.round(preview.get("seconds").getAsDouble() * 20);
+        double[] speeds = new double[ticks];
+        TractionMode[] modes = new TractionMode[ticks];
+        for (int tick = 0; tick < ticks; tick++) {
+            double time = tick / 20.0;
+            int row = Math.min(log.size() - 1, (int) Math.floor(time / 0.25 + 1e-9));
+            JsonArray at = log.get(row).getAsJsonArray();
+            JsonArray next = log.get(Math.min(log.size() - 1, row + 1)).getAsJsonArray();
+            double t0 = at.get(0).getAsDouble();
+            double t1 = next.get(0).getAsDouble();
+            double u = t1 > t0 ? Math.min(1, (time - t0) / (t1 - t0)) : 0;
+            speeds[tick] = at.get(1).getAsDouble() + (next.get(1).getAsDouble() - at.get(1).getAsDouble()) * u;
+            modes[tick] = switch (at.get(2).getAsString()) {
+                case "P" -> TractionMode.POWER;
+                case "B" -> TractionMode.BRAKE;
+                default -> TractionMode.COAST;
+            };
+        }
+        replay(pack, speeds, modes, file, trace);
+    }
+
+    /** Plays one game tick per entry, letting the real steady detector decide steady load, and writes what the mixer did. */
+    private static void replay(TractionPack pack, double[] speeds, TractionMode[] modes, Path file, Path trace) throws IOException {
         TractionMixer mixer = new TractionMixer(pack, RATE);
         SteadyLoadDetector steady = new SteadyLoadDetector();
         steady.configure(pack.settings().steady());
-        float[] all = new float[(rows.size() - 1) * BLOCK];
+        float[] all = new float[speeds.length * BLOCK];
         float[] block = new float[BLOCK];
         StringBuilder csv = new StringBuilder("time_s,speed_mps,mode,power,brake,steady_power,steady_brake\n");
         TractionMode previous = TractionMode.COAST;
         double previousSpeed = 0;
         boolean slopeDriven = false;
-        for (int i = 1; i < rows.size(); i++) {
-            String[] cells = rows.get(i).split(",");
-            double speed = Double.parseDouble(cells[1]);
-            int classified = (int) Double.parseDouble(cells[2]);
-            TractionMode mode = classified > 0 ? TractionMode.POWER : classified < 0 ? TractionMode.BRAKE : TractionMode.COAST;
+        for (int i = 0; i < speeds.length; i++) {
+            double speed = speeds[i];
+            TractionMode mode = modes[i];
             if (mode != previous) {
-                // A load that arrives while the speed holds is the grade's doing, as on the previews' climb.
+                // A load that arrives while the speed holds is the grade's doing, as on the previews' climbs.
                 slopeDriven = Math.abs(speed - previousSpeed) < 1e-6 && speed > 0;
                 previous = mode;
             }
@@ -72,9 +123,9 @@ class TractionPackPreviewRenderTest {
             steady.update(speed, mode);
             mixer.setState(speed, mode, slopeDriven, steady.powerTarget(), steady.brakeTarget());
             mixer.render(block, BLOCK);
-            System.arraycopy(block, 0, all, (i - 1) * BLOCK, BLOCK);
+            System.arraycopy(block, 0, all, i * BLOCK, BLOCK);
             TractionMixer.Diagnostics d = mixer.diagnostics(0);
-            csv.append(String.format(java.util.Locale.ROOT, "%s,%.3f,%s,%.5f,%.5f,%.5f,%.5f%n", cells[0], speed, mode, d.power(), d.brake(),
+            csv.append(String.format(Locale.ROOT, "%.2f,%.3f,%s,%.5f,%.5f,%.5f,%.5f%n", i / 20.0, speed, mode, d.power(), d.brake(),
                 d.steadyPower(), d.steadyBrake()));
         }
         writeFloatWav(file, all);

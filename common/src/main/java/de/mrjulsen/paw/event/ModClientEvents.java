@@ -5,6 +5,7 @@ import de.mrjulsen.paw.client.ThirdRailPlacementPreview;
 import de.mrjulsen.paw.traction.TractionDebug;
 import de.mrjulsen.paw.client.sound.TractionPacks;
 import de.mrjulsen.paw.client.sound.TractionSoundManager;
+import de.mrjulsen.paw.config.ModClientConfig;
 import de.mrjulsen.paw.compat.sodium.IncompatabilityScreen;
 import de.mrjulsen.paw.compat.sodium.SodiumCompatEvent;
 import de.mrjulsen.wires.item.WireBaseItem;
@@ -56,8 +57,13 @@ public final class ModClientEvents {
             } 
         });
 
-        // Load the traction sound pack in the background on joining a world, so the first train isn't silent.
-        ClientPlayerEvent.CLIENT_PLAYER_JOIN.register((player) -> TractionPacks.wmata());
+        // Load the chosen traction sound pack in the background on joining a world, so the first train isn't silent.
+        ClientPlayerEvent.CLIENT_PLAYER_JOIN.register((player) -> {
+            String pack = ModClientConfig.TRACTION_PROFILE.get().pack();
+            if (pack != null) {
+                TractionPacks.load(pack);
+            }
+        });
 
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register((server) -> {
             WireClientNetwork.clear();
