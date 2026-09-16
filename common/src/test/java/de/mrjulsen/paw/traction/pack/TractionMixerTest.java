@@ -167,6 +167,54 @@ class TractionMixerTest {
         assertArrayEquals(powering, braking, 0f);
     }
 
+    @Test
+    void theRollingVolumeScalesOnlyTheMechanicalLayers() {
+        float[] loop = sine(96000, 200);
+        PackSettings settings = new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
+            PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0,
+            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0, 0, 0, PackSettings.Steady.defaults());
+        TractionPack mechanical = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
+        float[] full = render(new TractionMixer(mechanical, RATE), 12, TractionMode.COAST, 4);
+        TractionMixer quieter = new TractionMixer(mechanical, RATE);
+        quieter.setRollingVolume(0.5);
+        float[] halved = render(quieter, 12, TractionMode.COAST, 4);
+        for (int i = 0; i < full.length; i++) {
+            assertEquals(full[i] * 0.5f, halved[i], 1e-6f, "sample " + i);
+        }
+
+        // The whine is left alone: only layers the pack calls mechanical move.
+        TractionPack whine = new TractionPack(List.of(layer("power/w", TractionMode.POWER, loop, 1.0, 0.7, false)), settings);
+        float[] whineFull = render(new TractionMixer(whine, RATE), 12, TractionMode.POWER, 4);
+        TractionMixer whineQuieter = new TractionMixer(whine, RATE);
+        whineQuieter.setRollingVolume(0.5);
+        assertArrayEquals(whineFull, render(whineQuieter, 12, TractionMode.POWER, 4), 0f);
+    }
+
+    @Test
+    void movingTheRollingVolumeMidRideWalksThere() {
+        float[] loop = sine(96000, 200);
+        PackSettings settings = new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
+            PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0,
+            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0, 0, 0, PackSettings.Steady.defaults());
+        TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
+        TractionMixer mixer = new TractionMixer(pack, RATE);
+        render(mixer, 12, TractionMode.COAST, 4);
+        mixer.setRollingVolume(0);
+        float[] next = render(mixer, 12, TractionMode.COAST, 1);
+        float[] still = render(mixer, 12, TractionMode.COAST, 1);
+        // One block moves the scale by at most the step, so the first block after the change is nearly as loud.
+        assertTrue(peak(next) > 0.7 * 0.9, "first block after the change " + peak(next));
+        assertTrue(peak(still) < peak(next), "and it keeps falling");
+    }
+
+    private static double peak(float[] block) {
+        double peak = 0;
+        for (float sample : block) {
+            peak = Math.max(peak, Math.abs(sample));
+        }
+        return peak;
+    }
+
     private static float[] ones() {
         float[] dc = new float[48000];
         java.util.Arrays.fill(dc, 1f);

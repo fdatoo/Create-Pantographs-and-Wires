@@ -35,6 +35,8 @@ public final class TractionMixer {
     static final double ON_DEMAND_SPEED_MARGIN_MPS = 1.0;
     /** An on-demand layer's samples are dropped after this long unwanted. */
     static final long ON_DEMAND_IDLE_NANOS = 30_000_000_000L;
+    /** Largest change of the mechanical scale per block, so moving the setting mid-ride doesn't click. */
+    static final double ROLLING_VOLUME_STEP = 0.02;
 
     private final List<TractionPack.Layer> layers;
     private final PackSettings settings;
@@ -72,6 +74,9 @@ public final class TractionMixer {
     private double targetSteadyBrake;
     private double renderedSpeed = Double.NaN;
     private TractionMode appliedMode;
+    /** Listener's scale for the mechanical layers, set from the client's setting. */
+    private volatile double rollingVolume = 1;
+    private double appliedRollingVolume = Double.NaN;
 
     // Diagnostics, written by the sound thread and read by the game thread for logging only.
     private final double[] layerLevel;
@@ -121,6 +126,15 @@ public final class TractionMixer {
         this.layerLevel = new double[layers.size()];
     }
 
+    /**
+     * How loud the mechanical layers (a pack's rolling, wind and structure noise) play against the rest of
+     * the mix. 1 is the pack's own balance; lower leaves the traction whine standing further out of it.
+     * Set before the first block is rendered it takes effect at once, and afterwards it walks there.
+     */
+    public void setRollingVolume(double volume) {
+        rollingVolume = Math.max(0, volume);
+    }
+
     /** @param speedMps train speed in metres per second */
     public synchronized void setState(double speedMps, TractionMode mode) {
         setState(speedMps, mode, false);
@@ -162,6 +176,14 @@ public final class TractionMixer {
         }
         if (Double.isNaN(renderedSpeed)) {
             renderedSpeed = speedTarget;
+        }
+        double rollingTarget = rollingVolume;
+        if (Double.isNaN(appliedRollingVolume)) {
+            appliedRollingVolume = rollingTarget;
+        } else {
+            // Moving the setting mid-ride walks the scale there over a second or so instead of stepping it.
+            double step = Math.min(ROLLING_VOLUME_STEP, Math.abs(rollingTarget - appliedRollingVolume));
+            appliedRollingVolume += Math.signum(rollingTarget - appliedRollingVolume) * step;
         }
         if (mode != appliedMode) {
             applyMode(mode, slopeDriven);
@@ -303,7 +325,7 @@ public final class TractionMixer {
                 continue;
             }
 
-            double gain = layer.continuous() && !layer.ducked() ? settings.mechanicalGain() : 1.0;
+            double gain = layer.continuous() && !layer.ducked() ? settings.mechanicalGain() * appliedRollingVolume : 1.0;
             int s = 0;
             for (int j = 0; j < subBlocks; j++) {
                 int subLength = Math.min(SUB_BLOCK, count - j * SUB_BLOCK);

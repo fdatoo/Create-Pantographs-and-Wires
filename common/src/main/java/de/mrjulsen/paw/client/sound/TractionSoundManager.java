@@ -601,6 +601,7 @@ public final class TractionSoundManager {
                     return;
                 }
                 mixer = new TractionMixer(pack, SynthAudioStream.SAMPLE_RATE);
+                mixer.setRollingVolume(ModClientConfig.TRACTION_ROLLING_VOLUME.get());
                 int persistenceTicks = (int) Math.round(pack.settings().modePersistenceSeconds() * 20);
                 int endPersistenceTicks = pack.settings().modeEndPersistenceSeconds() > 0
                     ? (int) Math.round(pack.settings().modeEndPersistenceSeconds() * 20)
@@ -644,6 +645,7 @@ public final class TractionSoundManager {
                     String.format("%.2f", speedMps), mode);
             }
             if (mixer != null) {
+                mixer.setRollingVolume(ModClientConfig.TRACTION_ROLLING_VOLUME.get());
                 mixer.setState(speedMps, mode, detector.slopeDriven(), steady.powerTarget(), steady.brakeTarget());
             }
             if (!stopping && gameTime != Long.MIN_VALUE && gameTime - lastStartTick >= RESTART_INTERVAL_TICKS
