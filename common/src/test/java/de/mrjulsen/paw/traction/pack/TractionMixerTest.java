@@ -60,7 +60,8 @@ class TractionMixerTest {
     void pitchOnePlaysTheLoopSamplesUnchanged() {
         float[] loop = sine(96000, 480);
         TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.5, true)), PackSettings.defaults());
-        float[] out = render(new TractionMixer(pack, RATE), 10, TractionMode.POWER, 4);
+        // At the top of the layer's curve the rolling ramp is neutral, so the curve volume is all that is left.
+        float[] out = render(new TractionMixer(pack, RATE), 40, TractionMode.POWER, 4);
         for (int i = 0; i < out.length; i++) {
             assertEquals(0.5f * loop[i % loop.length], out[i], 1e-6f, "sample " + i);
         }
@@ -80,7 +81,10 @@ class TractionMixerTest {
         float[] loop = sine(96000, 331);
         LayerCurve curve = new LayerCurve(List.of(new double[] {10, 1.0, 1.0}, new double[] {20, 1.0, 1.0}));
         TractionPack.Layer gappy = new TractionPack.Layer("coast/g", TractionMode.COAST, curve, loop, RATE, true);
-        TractionPack.Layer steady = layer("coast/s", TractionMode.COAST, loop, 1.0, 1.0, true);
+        // The same top speed as the gappy layer, so both mixers ramp the rolling noise alike and only the
+        // gap tells them apart.
+        LayerCurve steadyCurve = new LayerCurve(List.of(new double[] {0, 1.0, 1.0}, new double[] {20, 1.0, 1.0}));
+        TractionPack.Layer steady = new TractionPack.Layer("coast/s", TractionMode.COAST, steadyCurve, loop, RATE, true);
 
         TractionMixer interrupted = new TractionMixer(new TractionPack(List.of(gappy), PackSettings.defaults()), RATE);
         TractionMixer continuous = new TractionMixer(new TractionPack(List.of(steady), PackSettings.defaults()), RATE);
@@ -89,11 +93,13 @@ class TractionMixerTest {
         float[] gap = render(interrupted, 30, TractionMode.COAST, 5);
         render(continuous, 15, TractionMode.COAST, 5);
         assertEquals(0, rms(gap, 1 * BLOCK, gap.length), 0, "silent while outside the curve");
-        float[] resumedA = render(interrupted, 15, TractionMode.COAST, 3);
-        float[] resumedB = render(continuous, 15, TractionMode.COAST, 3);
+        // Long enough for the glide down from 30 to settle: the rolling ramp follows speed, so until it does,
+        // the one coming back from 30 is still the louder of the two.
+        float[] resumedA = render(interrupted, 15, TractionMode.COAST, 14);
+        float[] resumedB = render(continuous, 15, TractionMode.COAST, 14);
         assertTrue(rms(before, 0, before.length) > 0.5);
         // After gliding back into the curve, the loop is where it would have been had it never stopped.
-        for (int i = 2 * BLOCK; i < resumedA.length; i++) {
+        for (int i = 12 * BLOCK; i < resumedA.length; i++) {
             assertEquals(resumedB[i], resumedA[i], 1e-5f, "sample " + i);
         }
     }
@@ -145,14 +151,15 @@ class TractionMixerTest {
         render(mixer, 10, TractionMode.COAST, 2);
         float[] out = render(mixer, 20, TractionMode.COAST, 8);
         double largestStep = 0;
-        double previous = 10 / 40.0;
+        // The rolling ramp rides on top of the curve, so the level at 10 m/s is 0.25 * (0.35 + 0.65 * 0.25²).
+        double previous = 0.25 * 0.390625;
         for (float sample : out) {
             largestStep = Math.max(largestStep, Math.abs(sample - previous));
             previous = sample;
         }
         // A 10 m/s jump spread over a 50 ms glide: no sample moves more than 0.2 % of full scale.
         assertTrue(largestStep < 0.002, "largest step " + largestStep);
-        assertEquals(0.5, out[out.length - 1], 1e-3, "settled at the new speed within 400 ms");
+        assertEquals(0.5 * 0.5125, out[out.length - 1], 1e-3, "settled at the new speed within 400 ms");
     }
 
     @Test
@@ -199,12 +206,37 @@ class TractionMixerTest {
         TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
         TractionMixer mixer = new TractionMixer(pack, RATE);
         render(mixer, 12, TractionMode.COAST, 4);
+        float[] before = render(mixer, 12, TractionMode.COAST, 1);
         mixer.setRollingVolume(0);
         float[] next = render(mixer, 12, TractionMode.COAST, 1);
         float[] still = render(mixer, 12, TractionMode.COAST, 1);
         // One block moves the scale by at most the step, so the first block after the change is nearly as loud.
-        assertTrue(peak(next) > 0.7 * 0.9, "first block after the change " + peak(next));
+        assertTrue(peak(next) > 0.9 * peak(before), "first block after the change " + peak(next) + " against " + peak(before));
         assertTrue(peak(still) < peak(next), "and it keeps falling");
+    }
+
+    @Test
+    void theRollingNoiseRisesWithSpeed() {
+        float[] loop = sine(96000, 200);
+        PackSettings settings = new PackSettings(0.06, PackSettings.Shape.LINEAR, 0.18, PackSettings.Shape.SMOOTHSTEP, 0.35,
+            PackSettings.Shape.SMOOTHSTEP, 0.18, PackSettings.Shape.SMOOTHSTEP, Set.of("coast/m"), 1.0,
+            Set.of(), 0.85, 0, 0, PackSettings.Shape.SMOOTHSTEP, 1.0, 0, 0, 0, PackSettings.Steady.defaults());
+        // One layer at a flat curve volume from 0 to 40 m/s, so any change heard is the speed ramp itself.
+        TractionPack pack = new TractionPack(List.of(layer("coast/m", TractionMode.COAST, loop, 1.0, 0.7, true)), settings);
+
+        double crawl = peak(render(new TractionMixer(pack, RATE), 4, TractionMode.COAST, 6));
+        double middling = peak(render(new TractionMixer(pack, RATE), 20, TractionMode.COAST, 6));
+        double lineSpeed = peak(render(new TractionMixer(pack, RATE), 40, TractionMode.COAST, 6));
+        assertTrue(crawl < middling && middling < lineSpeed, "crawl " + crawl + ", middling " + middling + ", line speed " + lineSpeed);
+
+        // At the top of the curves the listener's setting applies in full, and at rest about a third of it.
+        assertEquals(0.7, lineSpeed, 0.01, "line speed plays the pack's own balance");
+        assertEquals(0.7 * TractionMixer.ROLLING_AT_REST, peak(render(new TractionMixer(pack, RATE), 0, TractionMode.COAST, 6)), 0.01);
+
+        // Halving the setting halves it at every speed, ramp and all.
+        TractionMixer quieter = new TractionMixer(pack, RATE);
+        quieter.setRollingVolume(0.5);
+        assertEquals(middling * 0.5, peak(render(quieter, 20, TractionMode.COAST, 6)), 1e-3);
     }
 
     private static double peak(float[] block) {

@@ -37,6 +37,10 @@ public final class TractionMixer {
     static final long ON_DEMAND_IDLE_NANOS = 30_000_000_000L;
     /** Largest change of the mechanical scale per block, so moving the setting mid-ride doesn't click. */
     static final double ROLLING_VOLUME_STEP = 0.02;
+    /** Share of the listener's rolling volume left at a standstill, before speed ramps it back up. */
+    static final double ROLLING_AT_REST = 0.35;
+    /** Speed the rolling ramp reaches full at, for a pack whose mechanical layers name no top speed. */
+    static final double ROLLING_RAMP_SPEED_MPS = 40;
 
     private final List<TractionPack.Layer> layers;
     private final PackSettings settings;
@@ -77,6 +81,8 @@ public final class TractionMixer {
     /** Listener's scale for the mechanical layers, set from the client's setting. */
     private volatile double rollingVolume = 1;
     private double appliedRollingVolume = Double.NaN;
+    /** Speed the rolling ramp reaches the listener's full setting at: the top of the mechanical layers' curves. */
+    private final double rollingRampSpeed;
 
     // Diagnostics, written by the sound thread and read by the game thread for logging only.
     private final double[] layerLevel;
@@ -124,15 +130,35 @@ public final class TractionMixer {
         this.hasPowerSteady = layers.stream().anyMatch(l -> l.steady() && l.mode() == TractionMode.POWER);
         this.hasBrakeSteady = layers.stream().anyMatch(l -> l.steady() && l.mode() == TractionMode.BRAKE);
         this.layerLevel = new double[layers.size()];
+        this.rollingRampSpeed = layers.stream()
+            .filter(l -> l.continuous() && !l.ducked())
+            .mapToDouble(l -> l.curve().lastSpeed())
+            .max().orElse(ROLLING_RAMP_SPEED_MPS);
     }
 
     /**
      * How loud the mechanical layers (a pack's rolling, wind and structure noise) play against the rest of
-     * the mix. 1 is the pack's own balance; lower leaves the traction whine standing further out of it.
+     * the mix, at the top of their speed range. 1 there is the pack's own balance; lower leaves the traction
+     * whine standing further out of it. The scale rises with speed toward this setting (see rollingScale), so
+     * a standing start is mostly whine and a run at line speed keeps its roar.
      * Set before the first block is rendered it takes effect at once, and afterwards it walks there.
      */
     public void setRollingVolume(double volume) {
         rollingVolume = Math.max(0, volume);
+    }
+
+    /**
+     * The listener's rolling volume at a given speed. Rolling and wind noise grows with speed, so the
+     * setting applies in full only at the top of the mechanical layers' curves and eases off below it,
+     * down to ROLLING_AT_REST of it at a standstill. Squared, so the cut holds through the middle of the
+     * range rather than fading out as soon as the train moves.
+     */
+    double rollingScale(double speedMps) {
+        if (rollingRampSpeed <= 0) {
+            return appliedRollingVolume;
+        }
+        double u = Math.min(1, Math.max(0, speedMps / rollingRampSpeed));
+        return appliedRollingVolume * (ROLLING_AT_REST + (1 - ROLLING_AT_REST) * u * u);
     }
 
     /** @param speedMps train speed in metres per second */
@@ -325,14 +351,18 @@ public final class TractionMixer {
                 continue;
             }
 
-            double gain = layer.continuous() && !layer.ducked() ? settings.mechanicalGain() * appliedRollingVolume : 1.0;
+            boolean mechanical = layer.continuous() && !layer.ducked();
+            double base = mechanical ? settings.mechanicalGain() : 1.0;
             int s = 0;
             for (int j = 0; j < subBlocks; j++) {
                 int subLength = Math.min(SUB_BLOCK, count - j * SUB_BLOCK);
                 double pitch0 = pitchAt[j];
                 double pitchStep = (pitchAt[j + 1] - pitch0) / subLength;
+                // The rolling scale follows the speed, so it is read at both ends of the sub-block like volume.
+                double gain = mechanical ? base * rollingScale(boundarySpeed[j]) : base;
+                double gainNext = mechanical ? base * rollingScale(boundarySpeed[j + 1]) : base;
                 double volume0 = volumeAt[j] * gain;
-                double volumeStep = (volumeAt[j + 1] * gain - volume0) / subLength;
+                double volumeStep = (volumeAt[j + 1] * gainNext - volume0) / subLength;
                 for (int k = 1; k <= subLength; k++, s++) {
                     double volume = volume0 + volumeStep * k;
                     if (gate != null) {
@@ -348,7 +378,8 @@ public final class TractionMixer {
                 }
             }
             head[i] = h;
-            layerLevel[i] = count > 0 ? volumeAt[subBlocks] * gain * (gate != null ? gate[count - 1] : 1) : 0;
+            double lastGain = mechanical ? base * rollingScale(boundarySpeed[subBlocks]) : base;
+            layerLevel[i] = count > 0 ? volumeAt[subBlocks] * lastGain * (gate != null ? gate[count - 1] : 1) : 0;
         }
         blocksRendered++;
     }
